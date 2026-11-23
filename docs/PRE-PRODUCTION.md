@@ -777,6 +777,15 @@ Uma chave sem o prefixo `ajkey_` tem efeito diferente em cada app. Na `api` ela 
 vira no-op e o boot registra um `console.error`, sem imprimir o valor. Em `app` e `web` o build falha em
 "Collecting page data" com `Invalid environment variables`, e na Vercel o deploy anterior continua no ar.
 
+Sem a chave, o no-op cobre também o orçamento padrão: todo `POST`, `PUT`, `PATCH` e `DELETE` da API fica sem
+limite, não só as rotas de autenticação, e o aviso do boot diz isso.
+
+- [ ] Conferir o plano do Arcjet contra o volume novo
+
+Com a chave, o orçamento padrão consulta o Arcjet em toda requisição mutável da API, além das 21 rotas da
+lista estrita. A cota do plano gratuito não foi medida; confira no painel do Arcjet se o volume esperado de
+escritas do fork cabe nela antes de ligar a chave em produção.
+
 ### 9. Branch protection na `main`
 
 - [ ] Exigir os checks `verify` e `e2e` do CI antes do merge
@@ -964,8 +973,8 @@ mexer no modo `simple` por ora. Reabra se o modo passar a restringir o painel co
 
 > ⚠️ **Correção medida em 2026-09-25: a premissa desta seção não confere com o código.** O texto abaixo parte
 > de que o modo `simple` restringe o painel comum a administradores. Nada no `apps/app` faz isso: o layout
-> `(common)` não lê o modo de produto, e os únicos arquivos do app que leem são `(common)/routes.tsx:69` e
-> `AccountTabs.tsx:33`, os dois só para esconder a cobrança. `commonUserUsesPanel()` não existe em
+> `(common)` não lê o modo; no painel comum, só `(common)/routes.tsx:67` e `accountTabRouting.ts:15` o leem, os dois
+> para esconder a cobrança (a home do admin o lê para a cobrança também). `commonUserUsesPanel()` não existe em
 > `packages/next-config/product-mode.ts`, e a `apps/web` não tem área autenticada. Hoje, num fork `simple`, o
 > usuário comum entra no painel e alcança a aba de privacidade. A pendência real é outra: o modo `simple`
 > não faz o que `docs/AUTH-SSO.md` descreve. Ela está registrada nos achados do `specs/BACKLOG.md`. O texto
