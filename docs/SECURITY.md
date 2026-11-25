@@ -173,7 +173,7 @@ Refletir a origem **após** conferir a allowlist é a implementação canônica 
 
 ### Limite de requisições
 
-`checkRateLimit()` (Arcjet, `slidingWindow` de 60 s) roda no proxy da API com dois orçamentos, e uma requisição gasta no máximo um deles (`rateLimitBudgetFor`, `apps/api/proxy.ts:106`, medido em 2026-11-24):
+`checkRateLimit()` (Arcjet, `slidingWindow` de 60 s) roda no proxy da API com dois orçamentos, e uma requisição gasta no máximo um deles (`rateLimitBudgetFor`, `apps/api/proxy.ts:62`, medido em 2026-11-25):
 
 | Requisição | Orçamento | Chave | Limite |
 |------------|-----------|-------|--------|

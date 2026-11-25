@@ -1,7 +1,7 @@
-# Decisões, custos e riscos
+# Decisões, riscos e quanto custa rodar
 
-O porquê do desenho do agent-board: quanto custa rodar, onde os agentes executam, por que construir em vez
-de adotar, o que pode dar errado e o que ainda está em aberto. As peças em si estão em
+O porquê do desenho do agent-board: onde os agentes executam, quanto custa rodar o pipeline, por que
+construir em vez de adotar, o que pode dar errado e o que ainda está em aberto. As peças em si estão em
 [`ARCHITECTURE.md`](ARCHITECTURE.md); a ordem de construção, em [`ROADMAP.md`](ROADMAP.md).
 
 > Preços e limites coletados em **2026-11-25**, das fontes no fim do arquivo. Preço envelhece: antes de
@@ -16,11 +16,15 @@ etapa, o agente escreve no card por um contrato (MCP/HTTP) e o board decide a pr
 
 Não há licença a pagar pelo board nem pelas ferramentas. Paga-se o uso do Claude e uma hospedagem pequena.
 
-## Custos
+## Quanto custa rodar
+
+**O board não mostra custo nem orçamento** — isso saiu do escopo em 2026-11-25 (spec `schedules-and-budgets`
+substituída por `cycle-schedule`). A conta abaixo serve para escolher o plano do Claude e se mede fora do
+board, no uso da conta.
 
 Para **40 features por mês**, o modelo custa de US$ 100–200 (assinatura) a cerca de US$ 400 (API, modelos
 mistos); a infraestrutura fica abaixo de US$ 30. Os preços são de tabela; os volumes de tokens são estimativa
-até o G2 medir os reais.
+até as features do G2 serem medidas.
 
 | Item | Como cobra | Estimativa mensal (40 features) |
 |------|-----------|--------------------------------|
@@ -56,7 +60,7 @@ uso for de equipe ou cobrado por API.
 |-------|-----------|-----------|----------------------------|---------|--------|
 | Tarefas agendadas com gatilho de API | Nuvem Anthropic, ou ambiente self-hosted (Team/Enterprise, beta) | Assinatura Pro, Max, Team ou Enterprise | Modelo fixo por tarefa; a etapa troca o modelo passando-o ao subagente | Zero infra; `POST /fire` devolve a URL da sessão; clona o repo e usa as skills commitadas; aceita agenda e eventos do GitHub | Research preview; a tarefa pertence a uma conta; a API só dispara (criar e editar é na web); 30 disparos/h por tarefa e 100/h por conta; o texto do disparo chega marcado como não confiável |
 | GitHub Actions (`claude-code-action`) | Runner do GitHub | Assinatura (token de `claude setup-token`) ou API, mais minutos | `--model` e `--max-turns` em `claude_args` | Segredos, concorrência, logs e `workflow_dispatch` nativos | Sem sessão ao vivo; um workflow por repositório |
-| Agent SDK (TypeScript) | Processo seu: servidor ou máquina-alvo | API key; login da assinatura só para uso próprio | Total: modelo, esforço, turnos, ferramentas, hooks; intercepta `AskUserQuestion` | Controle máximo, stream ao vivo, custo por execução; carrega `.claude/` do repo como o CLI | Você opera fila, isolamento (worktrees) e atualizações |
+| Agent SDK (TypeScript) | Processo seu: servidor ou máquina-alvo | API key; login da assinatura só para uso próprio | Total: modelo, esforço, turnos, ferramentas, hooks; intercepta `AskUserQuestion` | Controle máximo, stream ao vivo; carrega `.claude/` do repo como o CLI | Você opera fila, isolamento (worktrees) e atualizações |
 | Managed Agents | Sandbox da Anthropic ou self-hosted | API: tokens + US$ 0,08/h de sessão ativa | Total, via API | Escala para equipe sem operar sandbox | Só API key; repo e skills precisam ser empacotados no agente |
 
 Três detalhes pesam no desenho:
@@ -74,7 +78,8 @@ Três detalhes pesam no desenho:
 
 | Coluna | Agente | Modelo | Sai quando |
 |--------|--------|--------|-----------|
-| Tarefas | — | — | Você arrasta o card ou a agenda puxa o topo do backlog |
+| Rascunhos | `estrategista-produto` (via `/spec`) | — | Spec aprovada por alguém (`spec-authoring`) |
+| Tarefas | — | — | Você arrasta o card ou um ciclo o puxa (`cycle-runs`) |
 | Análise | `planejador-tarefa` | Opus, esforço alto | `plan.md` pronto, `analyze = done`, sem perguntas abertas |
 | Executando | `desenvolvedor` | Sonnet | `handoff.md` escrito e typecheck verde |
 | Revisando | `revisor-codigo` | Opus | `review.md`, commits na branch da feature e push |
@@ -108,7 +113,7 @@ preview. Os dois têm mitigação barata se entrarem desde o MVP.
 | Tarefas agendadas e Managed Agents estão em preview/beta; a API pode mudar | Cada executor atrás de um adapter; o board não depende de nenhum deles |
 | Agente sem supervisão commita onde não deve | Hook `PreToolUse` de branch protegida, ruleset no GitHub, nunca merge automático, limite de turnos por etapa |
 | Injeção de prompt via spec, comentário de PR ou ClickUp | Conteúdo do card tratado como dado; o disparo leva só campos esperados (card, slug, etapa); as tarefas agendadas já marcam o texto do disparo como não confiável |
-| Loop review ↔ develop queimando tokens | No máximo duas voltas; na terceira o card para em *aguardando você*; orçamento mensal por board |
+| Loop review ↔ develop queimando tokens | No máximo duas voltas; na terceira o card para em *aguardando você*; limite de turnos por etapa |
 | Cards em paralelo conflitando (i18n, lockfile) | Limite WIP por coluna e rebase antes do review |
 | Nuvem diferente da máquina local (emulador, browser) | Script de setup do ambiente; validação visual pesada no runner local |
 | Login da assinatura usado fora da regra | Assinatura só no runner local e nas suas tarefas agendadas; servidor central com API key |
@@ -120,6 +125,9 @@ preview. Os dois têm mitigação barata se entrarem desde o MVP.
 |---------|---------|
 | Base do código | Fork da `main` do next-boilerplate (`b7f9124`), com o core como remoto `upstream` para `git merge upstream/main` |
 | Natureza | Ferramenta de uso próprio, não produto: sem landing, cobrança, e-mail transacional nem telas de suporte a usuário final |
+| Custos no board | Fora do escopo: nenhuma tela mostra valor, teto de gasto ou painel de custos; `runs` grava modelo, turnos e tempo |
+| Onde a spec nasce | No repositório (`specs/`) ou no board, escrita por um agente na branch do card (spec `spec-authoring`) |
+| Rodar o backlog sem ninguém | Ciclo com várias specs (`cycle-runs`), agendável (`cycle-schedule`) |
 | O que ficou do core | `apps/app`, `apps/api`, `apps/e2e`; auth, admin de usuários com impersonação, notificações no app, upload de arquivos, design system, SDK; o pipeline `.claude` e `specs/` |
 | O que saiu do core | Landing, preview de e-mail, cobrança e modo de produto, organizações e convites, trilha de auditoria, e-mail transacional, en/es, cadastro, recuperação, verificação, link por e-mail, MFA, tela de sessões, métodos vinculados, troca de e-mail, onboarding, kickoff e `/deliver` |
 | Escopo dos dados | Por pessoa (`userId`) até a spec `board-members`; depois, por board, com guard de papel |
@@ -127,7 +135,7 @@ preview. Os dois têm mitigação barata se entrarem desde o MVP.
 | Identidade | Conta do GitHub (spec `github-sign-in`); até lá, e-mail/senha e Google, herdados |
 | Permissão | Papel no board limitado pela permissão no repositório do GitHub |
 | Fonte do backlog | `specs/` + `specs/BACKLOG.md` de cada repositório importado |
-| Quem paga a execução | A credencial de quem disparou; API key do board como fallback (fase 4) |
+| Com que credencial a etapa roda | A de quem disparou; API key do board como fallback (fase 4) |
 | Executores no MVP | Runner local (Agent SDK) primeiro; nuvem (tarefas agendadas com gatilho de API) na fase 2 |
 
 ## Em aberto

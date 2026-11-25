@@ -23,12 +23,13 @@ para importar repositórios e o repo enxuto. O próximo passo é provar o **G1**
 | Fase | Gate |
 |------|------|
 | 0 — Preparar o repo | G1: uma feature inteira sem intervenção |
-| 1 — MVP local | G2: três features no board, custo medido |
+| 1 — MVP local | G2: três features no board, ponta a ponta |
 | 2 — Nuvem + GitHub | G3: uma feature concluída com o notebook fechado |
 | 3 — Automação | G4: uma semana de backlog sem intervenção |
 
-Fases, specs e estimativas: [`docs/board/ROADMAP.md`](docs/board/ROADMAP.md). Custos, executores e riscos:
-[`docs/board/DECISIONS.md`](docs/board/DECISIONS.md). A fila: [`specs/BACKLOG.md`](specs/BACKLOG.md).
+Fases, specs e estimativas: [`docs/board/ROADMAP.md`](docs/board/ROADMAP.md). Executores, riscos e quanto
+custa rodar o pipeline: [`docs/board/DECISIONS.md`](docs/board/DECISIONS.md). Telas: [`docs/board/SCREENS.md`](docs/board/SCREENS.md).
+A fila: [`specs/BACKLOG.md`](specs/BACKLOG.md).
 
 ## O que vem do core
 
@@ -79,7 +80,7 @@ para testar sem o board). Comece por [`CLAUDE.md`](CLAUDE.md) e
 
 | Documento | Responde |
 |-----------|----------|
-| [`docs/board/`](docs/board/README.md) | O board por dentro: arquitetura, acesso, contrato dos agentes, importação, roadmap e decisões |
+| [`docs/board/`](docs/board/README.md) | O board por dentro: arquitetura, acesso, contrato dos agentes, importação, telas, roadmap e decisões |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topologia do monorepo, fluxo de dados, escopo e auth |
 | [`docs/SETUP.md`](docs/SETUP.md) | Ambiente local, variáveis, emulador, CI e E2E |
 | [`docs/SECURITY.md`](docs/SECURITY.md) · [`docs/AUTH-PANEL.md`](docs/AUTH-PANEL.md) | Guards, rotas e sessão |

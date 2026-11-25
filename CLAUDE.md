@@ -112,7 +112,7 @@ Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. Local: `pnpm emulators` + `pnpm s
 | Acesso, papéis, GitHub App | [`docs/board/ACCESS.md`](docs/board/ACCESS.md) |
 | Ferramentas que os agentes chamam | [`docs/board/CONTRACT.md`](docs/board/CONTRACT.md) + [`.claude/rules/board-mode.md`](.claude/rules/board-mode.md) |
 | Importar repositórios, `board.yml`, kit | [`docs/board/IMPORT.md`](docs/board/IMPORT.md) + [`kit/README.md`](kit/README.md) |
-| Ordem das fases, custos, decisões em aberto | [`docs/board/ROADMAP.md`](docs/board/ROADMAP.md) + [`docs/board/DECISIONS.md`](docs/board/DECISIONS.md) |
+| Ordem das fases, decisões em aberto, quanto custa rodar | [`docs/board/ROADMAP.md`](docs/board/ROADMAP.md) + [`docs/board/DECISIONS.md`](docs/board/DECISIONS.md) |
 | Qualquer coisa | este `CLAUDE.md` (sempre carregado) + `.claude/rules/*` |
 
 ## Trabalhando com IA neste repo
