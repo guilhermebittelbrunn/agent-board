@@ -17,7 +17,6 @@ describe("getBrand without configuration", () => {
             NEXT_PUBLIC_APP_NAME: undefined,
             NEXT_PUBLIC_APP_LOGO_URL: undefined,
             NEXT_PUBLIC_APP_SUPPORT_EMAIL: undefined,
-            NEXT_PUBLIC_WEB_URL: undefined,
         });
 
         expect(getBrand()).toEqual({
@@ -25,7 +24,6 @@ describe("getBrand without configuration", () => {
             isDefaultName: true,
             logoUrl: null,
             supportEmail: null,
-            siteUrl: null,
         });
     });
 
@@ -36,7 +34,6 @@ describe("getBrand without configuration", () => {
                 NEXT_PUBLIC_APP_NAME: value,
                 NEXT_PUBLIC_APP_LOGO_URL: value,
                 NEXT_PUBLIC_APP_SUPPORT_EMAIL: value,
-                NEXT_PUBLIC_WEB_URL: value,
             });
 
             expect(getBrand()).toEqual({
@@ -44,7 +41,6 @@ describe("getBrand without configuration", () => {
                 isDefaultName: true,
                 logoUrl: null,
                 supportEmail: null,
-                siteUrl: null,
             });
         }
     );
@@ -149,17 +145,4 @@ describe("support email", () => {
             expect(getBrand().supportEmail).toBeNull();
         }
     );
-});
-
-describe("site url", () => {
-    it.each([
-        ["https://example.com/", "https://example.com"],
-        ["https://example.com///", "https://example.com"],
-        ["example.com", "https://example.com"],
-        ["http://localhost:3001", "http://localhost:3001"],
-    ])("normalizes %s to %s", (value, expected) => {
-        stubBrand({ NEXT_PUBLIC_WEB_URL: value });
-
-        expect(getBrand().siteUrl).toBe(expected);
-    });
 });

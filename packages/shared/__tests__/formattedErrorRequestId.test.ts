@@ -71,11 +71,11 @@ describe("handleClientError with an identifier", () => {
     it("uses the label of the caller's locale", () => {
         const formatted = new FormattedError(
             apiError({ "x-request-id": REQUEST_ID }),
-            "en"
+            "pt-br"
         );
 
         expect(handleClientError(formatted)).toBe(
-            `Invalid or expired session. (Error code: ${REQUEST_ID})`
+            `Sessão inválida ou expirada. (Código do erro: ${REQUEST_ID})`
         );
     });
 

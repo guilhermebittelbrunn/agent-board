@@ -36,8 +36,8 @@ export const setCookie = (
     const ms = 1000;
     expires.setTime(expires.getTime() + expiresIn * ms);
 
-    // Usar SameSite=Lax para permitir cookies em redirecionamentos externos (ex: Stripe)
-    // Lax permite cookies em navegação top-level (como retorno do Stripe)
+    // SameSite=Lax mantém o cookie numa navegação top-level vinda de outro site, como o
+    // retorno de um provedor de login.
     document.cookie = [
         `${name}=${value}`,
         `expires=${expires.toUTCString()}`,

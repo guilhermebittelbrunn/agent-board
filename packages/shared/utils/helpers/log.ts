@@ -4,13 +4,8 @@
  */
 export type LogScope =
     | "account"
-    | "audit"
     | "auth"
-    | "auth-action-link"
-    | "email"
     | "notifications"
-    | "organization"
-    | "payments"
     | "request"
     | "security"
     | "storage";

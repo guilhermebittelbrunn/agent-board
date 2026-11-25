@@ -20,25 +20,9 @@ export const keys = () =>
         },
         client: {
             NEXT_PUBLIC_APP_URL: z.url().optional(),
-            NEXT_PUBLIC_WEB_URL: z.url().optional(),
             NEXT_PUBLIC_API_URL: z.url().optional(),
-            NEXT_PUBLIC_DOCS_URL: z.url().optional(),
             /** Default locale (e.g. pt-br). Used when URL has no locale; all dictionary consumers respect this. */
             NEXT_PUBLIC_DEFAULT_LOCALE: z.string().optional(),
-            /**
-             * Product navigation/auth model. `subscription`: users operate in the app
-             * panel (admin manages users); `simple`: users operate inside web, panel is
-             * admin-only. Defaults to `subscription`. See `getProductMode()`.
-             */
-            NEXT_PUBLIC_PRODUCT_MODE: z
-                .enum(["subscription", "simple"])
-                .optional(),
-            /**
-             * Address the legal pages publish as the privacy channel. Empty, they link
-             * the contact form instead, which only delivers once the fork sets
-             * `NEXT_PUBLIC_APP_SUPPORT_EMAIL` and the email provider.
-             */
-            NEXT_PUBLIC_PRIVACY_CONTACT: z.string().optional(),
             /**
              * Brand and SEO identity. Plain strings on purpose: the example env files
              * publish them empty, and `getBrand()` validates the format and falls back.
@@ -60,13 +44,8 @@ export const keys = () =>
             VERCEL_PROJECT_PRODUCTION_URL:
                 process.env.VERCEL_PROJECT_PRODUCTION_URL,
             NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-            NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
             NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-            NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
             NEXT_PUBLIC_DEFAULT_LOCALE: process.env.NEXT_PUBLIC_DEFAULT_LOCALE,
-            NEXT_PUBLIC_PRODUCT_MODE: process.env.NEXT_PUBLIC_PRODUCT_MODE,
-            NEXT_PUBLIC_PRIVACY_CONTACT:
-                process.env.NEXT_PUBLIC_PRIVACY_CONTACT,
             NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
             NEXT_PUBLIC_APP_LOGO_URL: process.env.NEXT_PUBLIC_APP_LOGO_URL,
             NEXT_PUBLIC_APP_SUPPORT_EMAIL:

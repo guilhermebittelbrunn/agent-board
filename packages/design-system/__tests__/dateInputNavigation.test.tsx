@@ -40,14 +40,10 @@ const YEARS_FROM_A_CENTURY_AGO_TO_THIS_YEAR = 101;
 
 const april1990Caption: Record<Locale, string> = {
     "pt-br": "abr",
-    en: "Apr",
-    es: "abr",
 };
 
 const dropdownNames: Record<Locale, { month: string; year: string }> = {
     "pt-br": { month: "Escolha o mês", year: "Escolha o ano" },
-    en: { month: "Choose the Month", year: "Choose the Year" },
-    es: { month: "Elegir el mes", year: "Elegir el año" },
 };
 
 function inLocale(locale: Locale, ui: ReactNode) {

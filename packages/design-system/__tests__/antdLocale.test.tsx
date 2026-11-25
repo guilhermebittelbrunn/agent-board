@@ -31,8 +31,6 @@ const { AntdAppProvider, antdLocales } = await import(
 const expectedPagination: Record<Locale, { sizeLabel: string; next: string }> =
     {
         "pt-br": { sizeLabel: "10 / página", next: "Próxima página" },
-        en: { sizeLabel: "10 / page", next: "Next Page" },
-        es: { sizeLabel: "10 / página", next: "Página siguiente" },
     };
 
 const rows = Array.from({ length: 12 }, (_, index) => ({
@@ -82,16 +80,5 @@ describe("antd no idioma ativo", () => {
         render(tree(locale));
 
         expect(paginatesIn(locale)).toBe(true);
-    });
-
-    it("troca o idioma da paginação sem remontar o provider", () => {
-        const { rerender } = render(tree("pt-br"));
-        expect(paginatesIn("pt-br")).toBe(true);
-
-        rerender(tree("en"));
-        expect(paginatesIn("en")).toBe(true);
-
-        rerender(tree("es"));
-        expect(paginatesIn("es")).toBe(true);
     });
 });

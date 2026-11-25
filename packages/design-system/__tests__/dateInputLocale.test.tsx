@@ -60,22 +60,6 @@ const expected: Record<
         firstWeekday: "domingo",
         shortOctober: "out",
     },
-    en: {
-        formattedDate: "October 13th, 2026",
-        caption: "October 2026",
-        previousMonth: "Go to the Previous Month",
-        nextMonth: "Go to the Next Month",
-        firstWeekday: "Sunday",
-        shortOctober: "Oct",
-    },
-    es: {
-        formattedDate: "13 de octubre de 2026",
-        caption: "octubre 2026",
-        previousMonth: "Ir al mes anterior",
-        nextMonth: "Ir al mes siguiente",
-        firstWeekday: "lunes",
-        shortOctober: "oct",
-    },
 };
 
 function inLocale(locale: Locale, ui: ReactNode) {
@@ -154,31 +138,13 @@ describe.each(locales)("Calendar em %s", (locale) => {
 });
 
 describe("Calendar", () => {
-    it("troca o idioma sem remontar quando a página re-renderiza", () => {
-        const { rerender } = renderInLocale(
-            "pt-br",
-            <Calendar mode="single" month={OCTOBER_2026} />
-        );
-        expect(screen.getByText(expected["pt-br"].caption)).toBeTruthy();
-
-        rerender(
-            inLocale("en", <Calendar mode="single" month={OCTOBER_2026} />)
-        );
-        expect(screen.getByText(expected.en.caption)).toBeTruthy();
-
-        rerender(
-            inLocale("es", <Calendar mode="single" month={OCTOBER_2026} />)
-        );
-        expect(screen.getByText(expected.es.caption)).toBeTruthy();
-    });
-
     it("deixa um locale passado pelo chamador vencer o idioma da página", () => {
         renderInLocale(
             "pt-br",
             <Calendar locale={enUS} mode="single" month={OCTOBER_2026} />
         );
 
-        expect(screen.getByText(expected.en.caption)).toBeTruthy();
+        expect(screen.getByText("October 2026")).toBeTruthy();
     });
 
     it("nomeia os meses do seletor no idioma da página", () => {
