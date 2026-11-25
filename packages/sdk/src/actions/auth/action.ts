@@ -1,10 +1,6 @@
 import type BaseClient from "../../client/base";
 import type { Response } from "../../client/type";
-import type {
-    OnboardingStateDTO,
-    UserPreferences,
-    UserType,
-} from "../../types";
+import type { UserPreferences, UserType } from "../../types";
 
 /** Only what the front-ends read. A field the API adds to the profile stays out until it is listed here. */
 export type AuthMePayload = {
@@ -12,16 +8,7 @@ export type AuthMePayload = {
     type: UserType | null;
     email: string | null;
     preferences: UserPreferences | null;
-    onboarding: OnboardingStateDTO | null;
 };
-
-export type SignUpRequest = {
-    email: string;
-    password: string;
-};
-
-/** Carries no account data: the caller signs in right after with the same credentials. */
-export type AuthAccountCreated = { created: true };
 
 export type GoogleSignInRequest = {
     idToken: string;
@@ -38,45 +25,6 @@ export type GoogleSignInResponse = {
     session: GoogleSignInSession;
     user: AuthMePayload | null;
 };
-
-export type PasswordResetRequestBody = {
-    email: string;
-    /** Language of the email. Absent falls back to the fork's default locale. */
-    locale?: string;
-};
-
-export type EmailLinkSignInAvailability = { enabled: boolean };
-
-export type EmailLinkSignInRequestBody = {
-    email: string;
-    /** Language of the email. Absent falls back to the fork's default locale. */
-    locale?: string;
-};
-
-export type PasswordResetConfirmBody = {
-    oobCode: string;
-    password: string;
-};
-
-export type EmailVerificationSendBody = {
-    locale?: string;
-};
-
-export type EmailVerificationConfirmBody = {
-    oobCode: string;
-};
-
-export type EmailChangeConfirmBody = {
-    oobCode: string;
-};
-
-/**
- * Deliberately carries no information: a password reset request answers the same
- * way whether or not the address has an account.
- */
-export type AuthActionRequested = { requested: true };
-
-export type AuthActionConfirmed = { confirmed: true };
 
 export type AuthSessionStanding = { active: true };
 
@@ -102,18 +50,6 @@ export default class AuthActions {
         return data.data;
     }
 
-    async signUp(body: SignUpRequest): Promise<AuthAccountCreated> {
-        const { data } = await this.client.request<
-            Response<AuthAccountCreated>
-        >({
-            url: "/auth/sign-up",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
     /**
      * Google popup (Firebase client) → Google ID token → API `/auth/sign-in/google`,
      * returning the same `session` + merged `user` shape as e-mail/password sign-in.
@@ -128,101 +64,6 @@ export default class AuthActions {
         });
 
         return data;
-    }
-
-    async requestPasswordReset(
-        body: PasswordResetRequestBody
-    ): Promise<AuthActionRequested> {
-        const { data } = await this.client.request<
-            Response<AuthActionRequested>
-        >({
-            url: "/auth/password/reset-request",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    async emailLinkSignInAvailability(): Promise<EmailLinkSignInAvailability> {
-        const { data } = await this.client.request<
-            Response<EmailLinkSignInAvailability>
-        >({
-            url: "/auth/sign-in/email-link",
-            method: "GET",
-        });
-
-        return data.data;
-    }
-
-    async requestEmailLinkSignIn(
-        body: EmailLinkSignInRequestBody
-    ): Promise<AuthActionRequested> {
-        const { data } = await this.client.request<
-            Response<AuthActionRequested>
-        >({
-            url: "/auth/sign-in/email-link/request",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    async confirmPasswordReset(
-        body: PasswordResetConfirmBody
-    ): Promise<AuthActionConfirmed> {
-        const { data } = await this.client.request<
-            Response<AuthActionConfirmed>
-        >({
-            url: "/auth/password/reset",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    async sendEmailVerification(
-        body?: EmailVerificationSendBody
-    ): Promise<AuthActionRequested> {
-        const { data } = await this.client.request<
-            Response<AuthActionRequested>
-        >({
-            url: "/auth/email-verification/send",
-            method: "POST",
-            data: body ?? {},
-        });
-
-        return data.data;
-    }
-
-    async confirmEmailVerification(
-        body: EmailVerificationConfirmBody
-    ): Promise<AuthActionConfirmed> {
-        const { data } = await this.client.request<
-            Response<AuthActionConfirmed>
-        >({
-            url: "/auth/email-verification/confirm",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    async confirmEmailChange(
-        body: EmailChangeConfirmBody
-    ): Promise<AuthActionConfirmed> {
-        const { data } = await this.client.request<
-            Response<AuthActionConfirmed>
-        >({
-            url: "/auth/email-change/confirm",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
     }
 
     /** Answers 401 `AUTH_SESSION_REVOKED` for a session ended from another device. */

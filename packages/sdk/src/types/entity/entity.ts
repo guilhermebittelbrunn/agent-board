@@ -7,9 +7,7 @@ export enum EntityType {
 
 export type EntityDTO = {
     id: string;
-    /** The scope: every read and write of the record is decided by it. */
-    organizationId: string;
-    /** Profile id of whoever created the record. It does not grant access. */
+    /** Profile id of the owner: every read and write of the record is decided by it. */
     userId: string;
     name: string;
     description: string;

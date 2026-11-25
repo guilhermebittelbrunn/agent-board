@@ -1,9 +1,4 @@
-export const NOTIFICATION_TYPES = [
-    "welcome",
-    "subscriptionPaymentPending",
-    "subscriptionCanceled",
-    "subscriptionReactivated",
-] as const;
+export const NOTIFICATION_TYPES = ["welcome"] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -15,9 +10,6 @@ export type NotificationParamValue = string | number | boolean | null;
  */
 export type NotificationParamsByType = {
     welcome: Record<string, never>;
-    subscriptionPaymentPending: Record<string, never>;
-    subscriptionCanceled: Record<string, never>;
-    subscriptionReactivated: Record<string, never>;
 };
 
 /** The API counts unread notifications up to this number; the badge reads `99+` from here on. */

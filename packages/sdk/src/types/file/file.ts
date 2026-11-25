@@ -8,9 +8,3 @@ export type UploadedFileDTO = {
     contentType: string;
     size: number;
 };
-
-/**
- * Where an upload is stored. A personal object (the avatar) belongs to the person; an
- * organization object (a record's photo) stays with the organization when a member leaves.
- */
-export type UploadScope = "personal" | "organization";
