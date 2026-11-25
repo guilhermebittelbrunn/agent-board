@@ -1,0 +1,61 @@
+# Contrato entre este repositório e o agent-board.
+# Schema: packages/kanban-contract/src/boardConfig.ts (agent-board).
+version: 1
+name: CHANGE-ME
+
+# Branch de onde as features saem e para onde as PRs vão. Precisa estar em protectedBranches.
+baseBranch: main
+protectedBranches: [main, master, production, production-backup]
+# O board nomeia a branch de cada card a partir do slug.
+branchPattern: feat/{slug}
+
+backlog:
+  source: specs # specs | manual
+  index: specs/BACKLOG.md
+  readyStatus: approved
+
+featuresDir: docs/features
+
+stages:
+  - key: analyze
+    column: Análise
+    command: /analyze
+    agent: planejador-tarefa
+    model: opus
+    effort: high
+    approval: optional # o dono do board liga ou desliga a aprovação do plano
+  - key: develop
+    column: Executando
+    command: /develop
+    agent: desenvolvedor
+    model: sonnet
+    effort: medium
+  - key: review
+    column: Revisando
+    command: /review
+    agent: revisor-codigo
+    model: opus
+    effort: high
+    onRework: develop
+  - key: test
+    column: Testando
+    command: /test
+    agent: analista-qa
+    model: sonnet
+    effort: medium
+    onRework: develop
+  - key: pr
+    column: Aguardando PR
+    command: /observe
+    agent: observador-tarefa
+    model: haiku
+    effort: low
+    onPrComment: /mediate
+
+limits:
+  maxReworkLoops: 2
+  maxTurnsPerStage: 200
+
+environment:
+  install: pnpm install --frozen-lockfile
+  setupScript: .kanban/setup.sh
