@@ -109,6 +109,7 @@ Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. Local: `pnpm emulators` + `pnpm s
 | Planejar/analisar uma tarefa | [`docs/feature-analysis-guide.md`](docs/feature-analysis-guide.md) |
 | Decidir **o que** construir | [`specs/README.md`](specs/README.md) + [`specs/BACKLOG.md`](specs/BACKLOG.md) (backlog de funcionalidades) |
 | Domínio do board (qualquer coisa de board, card, coluna, execução) | [`docs/board/`](docs/board/README.md) + `packages/kanban-contract/src` |
+| Tela do board (layout, estados, textos) | [`docs/design/README.md`](docs/design/README.md) (referência visual) + [`docs/board/SCREENS.md`](docs/board/SCREENS.md) (tela → spec) |
 | Acesso, papéis, GitHub App | [`docs/board/ACCESS.md`](docs/board/ACCESS.md) |
 | Ferramentas que os agentes chamam | [`docs/board/CONTRACT.md`](docs/board/CONTRACT.md) + [`.claude/rules/board-mode.md`](.claude/rules/board-mode.md) |
 | Importar repositórios, `board.yml`, kit | [`docs/board/IMPORT.md`](docs/board/IMPORT.md) + [`kit/README.md`](kit/README.md) |

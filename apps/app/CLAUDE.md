@@ -2,6 +2,11 @@
 
 Regras de escopo para a aplicação do usuário (dashboard, cadastro, **admin** com impersonação). O Claude carrega este arquivo automaticamente ao trabalhar em `apps/app`. Veja também o [`CLAUDE.md`](../../CLAUDE.md) raiz e o [`AGENTS.md`](../../AGENTS.md) (padrões detalhados, incl. design system/RHF). Recurso de referência: `entity` (`app/[locale]/(authenticated)/(common)/(pages)/entities/`).
 
+## Referência visual
+
+- Antes de criar ou mudar uma tela do board, abra a referência em [`docs/design/`](../../docs/design/README.md) e o mapa tela → spec em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
+- Implemente com o `@repo/design-system`. O desenho usa outro design system e serve de referência para layout, estados e textos, não como código a copiar.
+
 ## Rotas e pastas
 
 - App Router sob `app/[locale]/`. Respeitar grupos existentes: `(unauthenticated)`, `(authenticated)`, `(admin)`, etc.
