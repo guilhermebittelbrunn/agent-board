@@ -75,7 +75,7 @@ conteúdo no prompt. Peça para, **na mesma execução**:
   (`pnpm --filter app test`, `pnpm --filter api test`) e **sempre** feche com
   `pnpm test` no root — `turbo build` **depende de `test`**, é isso que se está antecipando. Se o diff
   tocou i18n ou adicionou `error.code`, rode também
-  `pnpm --filter @repo/internationalization test` (paridade dos 3 idiomas). Mais
+  `pnpm --filter @repo/internationalization test` e `pnpm --filter api test apiErrorCodes`. Mais
   `pnpm --filter <app> typecheck` nos apps afetados. **Sem `--force`**: o cache do turbo vale aqui, o gate
   com cache sai em ~300 ms contra ~50 s e o número é idêntico — reserve o `--force` para quando suspeitar
   de cache sujo, e diga no relatório por que suspeitou;
@@ -133,9 +133,9 @@ Ao autorizar, instrua o `analista-qa` a:
 - **checar a porta antes de subir qualquer coisa** (`lsof -ti tcp:3000`): ocupada = o ambiente é seu,
   ele **reutiliza e não derruba**; livre = ele sobe, guarda o PID e **mata no final** — inclusive quando o
   e2e falha ou é abortado. ⛔ Nunca `pkill -f node`/`killall node`, que derrubaria seu editor e os outros
-  workspaces. Portas em jogo: 3000 `app` · 3001 `web` · 3002 `api` · 3003 `email` · 9099 Auth · 8080
+  workspaces. Portas em jogo: 3000 `app` · 3002 `api` · 9099 Auth · 8080
   Firestore · 4001 UI do emulador;
-- subir `pnpm --filter api dev` (3002) + `pnpm --filter app dev` (3000) / `pnpm --filter web dev` (3001);
+- subir `pnpm --filter api dev` (3002) + `pnpm --filter app dev` (3000);
 - usar a skill **`agent-browser`** (`agent-browser skills get core`) — **não** instalar Playwright por
   conta própria;
 - **dirigir o app de fato**: navegar, preencher, submeter e **observar o resultado** — não parar em
@@ -157,8 +157,8 @@ dizer o que ele subiu, o que reutilizou e que derrubou o que era dele. Se ele n�
 
 ## Passo 5 — Cross-check
 
-Liste os ambientes a conferir quando a mudança os afetar: `apps/app` × `apps/web`, comum × admin ×
-impersonação, `subscription` × `simple`, mobile × desktop, light × dark, e os 3 idiomas. Registre os
+Liste os ambientes a conferir quando a mudança os afetar: comum × admin × impersonação, mobile ×
+desktop, light × dark. Registre os
 follow-ups.
 
 **Não escreva no ClickUp** (comentário/update/anexo): a integração é somente leitura em todo o fluxo. Os

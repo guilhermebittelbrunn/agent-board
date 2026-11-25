@@ -1,6 +1,6 @@
 ---
 name: new-crud
-description: Scaffolda um CRUD vertical completo de um recurso neste monorepo (next-forge fork), do contrato no SDK até a UI no app — SDK actions, rotas na apps/api, hooks de dados, página de lista + formulários de criar/editar e chaves de tradução nos 3 idiomas. Use quando o usuário pedir "criar um CRUD de X", "adicionar o recurso X de ponta a ponta", "uma tela de listagem + cadastro de X". Segue o padrão do recurso `entity`.
+description: Scaffolda um CRUD vertical completo de um recurso neste monorepo, do contrato no SDK até a UI no app — SDK actions, rotas na apps/api, hooks de dados, página de lista + formulários de criar/editar e chaves de tradução (pt-br). Use quando o usuário pedir "criar um CRUD de X", "adicionar o recurso X de ponta a ponta", "uma tela de listagem + cadastro de X". Segue o padrão do recurso `entity`.
 ---
 
 # CRUD vertical completo
@@ -10,7 +10,7 @@ Orquestra um recurso de ponta a ponta seguindo o **CRUD de referência `entity`*
 ## 0. Alinhe o recurso com o usuário
 - Nome singular/plural (ex.: `product`/`products`) e coleção Firestore.
 - Campos + tipos (refletem o DTO).
-- Contexto: comum ou admin (`requireAdminApi`)? No comum, de quem é o recurso: da organização (padrão para dado de negócio, como `entity`: `requireOrganizationApi`, campos `organizationId` + `userId` de autor) ou da pessoa (como `notification`: `requireCommonPanelApi` e posse por `userId`)?
+- Contexto: comum ou admin (`requireAdminApi`)? No comum, o recurso hoje é **da pessoa** (como `entity`: `requireCommonPanelApi`, campo `userId` e predicado no repositório). Recurso **de um board** só depois que a spec `board-members` entregar o guard de papel — até lá, não improvise o escopo.
 - Operações necessárias (list/create/get/update/delete) e se há coluna `enabled` (toggle).
 
 > Antes de criar arquivos, **abra o recurso `entity`** e use como template em cada camada (caminhos abaixo). Replique a estrutura, troque nomes/campos.
@@ -21,7 +21,7 @@ Orquestra um recurso de ponta a ponta seguindo o **CRUD de referência `entity`*
 - **Registre** a action no `Client` (`packages/sdk/src/client/index.ts`): campo `x!: XActions;` + `this.x = new XActions(this)` no construtor.
 
 ## 2. Camada API (`apps/api`)
-Siga [`/new-api-route`](../new-api-route/SKILL.md) na íntegra: validação Zod (`<recurso>.schema.ts`), mapper se houver normalização, repositório (`BaseRepository<XDTO>`), handlers em `(routes)/<plural>/route.ts` e `(routes)/<plural>/[id]/route.ts`, guards, `error.code`. Garanta os `apiErrors` correspondentes nos 3 idiomas.
+Siga [`/new-api-route`](../new-api-route/SKILL.md) na íntegra: validação Zod (`<recurso>.schema.ts`), mapper se houver normalização, repositório (`BaseRepository<XDTO>`), handlers em `(routes)/<plural>/route.ts` e `(routes)/<plural>/[id]/route.ts`, guards, `error.code`. Garanta os `apiErrors` correspondentes.
 
 ## 3. Hooks de dados no app
 Colocados em `apps/app/app/[locale]/(authenticated)/(<contexto>)/(pages)/<plural>/(hooks)/`. Espelhe os hooks de `entities`:
@@ -40,7 +40,7 @@ Sob `(pages)/<plural>/`:
 - **Textos**: tudo via dictionary — ver passo 5.
 
 ## 5. Traduções
-Use [`/i18n-sync`](../i18n-sync/SKILL.md): crie `translations/apps/app/pages/<contexto>/<recurso>.ts` (modelo: `common/entities.ts`) com `title`, `fields`, `messages`, `table`, etc. nos 3 idiomas; conecte no `index.ts`. Garanta os `apiErrors` do passo 2.
+Use [`/i18n-sync`](../i18n-sync/SKILL.md): crie `translations/apps/app/pages/<contexto>/<recurso>.ts` (modelo: `common/entities.ts`) com `title`, `fields`, `messages`, `table`, etc. em `"pt-br"`; conecte no `index.ts`. Garanta os `apiErrors` do passo 2.
 
 ## 6. Fechamento
 - Rode `pnpm check` e `pnpm --filter app typecheck` + `pnpm --filter api typecheck`.
@@ -68,7 +68,7 @@ packages/internationalization/translations/packages/shared/utils.ts   # apiError
 ## Checklist final
 - [ ] Front chama a API **só** via `apiClient`/SDK; sem `fetch` cru nem URL hardcoded.
 - [ ] Guards na API espelham a autorização; posse checada quando aplicável.
-- [ ] Zero string de UI literal; chaves nos 3 idiomas; `apiErrors` cobertos.
+- [ ] Zero string de UI literal; chaves no dicionário; `apiErrors` cobertos (`pnpm --filter api test apiErrorCodes`).
 - [ ] Hooks seguem `useListX`/`useFindXById`; toggle via `setQueryData`.
 - [ ] Design system usado (HookForm*/Table/Footer/FormContainer/Container); sem primitivos duplicados.
 - [ ] `pnpm check` + typechecks passam.

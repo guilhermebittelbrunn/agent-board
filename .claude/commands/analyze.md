@@ -113,7 +113,7 @@ Perguntas que costumam importar neste repo e que valem a pena confirmar quando o
 
 - **corte de MVP** (o que fica para depois);
 - **área do painel**: comum, admin ou ambas (define o guard);
-- **modo de produto**: o comportamento difere entre `subscription` e `simple`?
+- **escopo do dado**: é da pessoa (como `entity`) ou de um board (espera a spec `board-members`)?
 - **volume esperado**: se a listagem pode crescer, o `BaseRepository` (sem paginação, filtro em memória)
   precisa evoluir — isso é decisão de arquitetura, não detalhe de implementação.
 

@@ -129,7 +129,7 @@ saber disso para não reprovar o que não é código.
 ## Passo 3 — `/develop`
 
 Acione o **`desenvolvedor`** com o caminho do plano. Ordem do slice vertical: `packages/sdk` → `apps/api` →
-`apps/app`/`apps/web` → `packages/internationalization`.
+`apps/app` → `packages/internationalization`.
 
 Além das obrigações normais do `/develop`, o prompt carrega três coisas:
 
@@ -149,7 +149,7 @@ Além das obrigações normais do `/develop`, o prompt carrega três coisas:
 Acione o **`revisor-codigo`**. Ele aplica o [`review-checklist.md`](../../docs/review-checklist.md),
 **corrige** o que encontra, decide a branch e devolve o plano de commits.
 
-Ele roda **só os gates estáticos** — `pnpm check`, `typecheck`, paridade de i18n, **sem `--force`** (o
+Ele roda **só os gates estáticos** — `pnpm check`, `typecheck`, cobertura do `apiErrors`, **sem `--force`** (o
 cache do turbo vale: ~300 ms contra ~50 s, mesmo número). Não sobe app, não dirige `agent-browser`, não
 tira screenshot.
 
@@ -176,7 +176,7 @@ Acione o **`analista-qa`**: critérios de aceite no formato §9.1, testes dos wo
   mede, ou o critério fica 🔒. Lacuna de teste herdada do `review.md` sai com veredito — fechada, aberta
   ou fora de escopo —, nunca copiada adiante.
 - **Uma passada de browser, bem feita.** É a única da rodada, então ela cobre o fluxo inteiro, os estados
-  de erro e vazio, light + dark + mobile, nos 3 idiomas. ⚠️ `agent-browser` **estritamente em sequência**
+  de erro e vazio, light + dark + mobile. ⚠️ `agent-browser` **estritamente em sequência**
   (chamadas concorrentes travam o daemon e o screenshot sai da aba errada). Diff sem superfície de runtime
   — só teste, documentação, `specs/`, tooling — não abre browser nenhum; registre o motivo no `report.md`.
 - **Teste no nível mais barato que prova o comportamento.** Rodada sem ninguém olhando é onde nasce o
@@ -228,9 +228,9 @@ que ficou certa.
 > implementado, nas duas direções. Se uma afirmação do `PRE-PRODUCTION.md` ou do `SECURITY.md` for barata
 > de medir, **meça e corrija** — é a única forma de esse arquivo não apodrecer.
 
-Se a decisão envolver **custo ou escolha de provedor**, use a skill
-[`/market-research`](../skills/market-research/SKILL.md) e grave a nota em `specs/reference/research/`, com
-`collected`/`revalidate_after`. Preço envelhece; número sem data é boato.
+Se a decisão envolver **custo ou escolha de provedor**, pesquise em fonte primária (WebSearch/WebFetch) e
+registre o número com a fonte e a data de coleta — no `report.md` ou, se a decisão for do board, em
+[`docs/board/DECISIONS.md`](../../docs/board/DECISIONS.md). Preço envelhece; número sem data é boato.
 
 ## Passo 7 — Relatório final
 

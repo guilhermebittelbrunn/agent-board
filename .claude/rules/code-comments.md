@@ -22,8 +22,8 @@ Se está sentindo vontade de comentar, primeiro tente **reescrever o código**.
 
 Comente **só** nestes dois casos, sempre explicando o **porquê**, nunca o **o quê**, e em 1–3 linhas:
 
-1. **Regra de negócio / restrição externa não evidente no código** — ex.: um mínimo cobrado pela Stripe,
-   um limite de janela do session cookie do Firebase, uma ordem de eventos que o provedor impõe.
+1. **Regra de negócio / restrição externa não evidente no código** — ex.: o teto de itens por página da API
+   do GitHub, um limite de janela do session cookie do Firebase, uma ordem de eventos que o provedor impõe.
 2. **Código genuinamente difícil de decifrar** — algoritmo não óbvio, workaround de bug de biblioteca,
    edge case contraintuitivo, race condition tratada de propósito, hidratação/SSR com armadilha real.
 
@@ -55,15 +55,15 @@ escreva a regra de negócio em si (autocontida), sem citar de onde ela veio.
 
 ```ts
 // ❌ referência quebrada
-// Ajustado conforme o critério 4 do plano (docs/features/stripe-checkout/analyze/plan.md).
-if (amount < MIN_CHARGE) amount = MIN_CHARGE;
+// Ajustado conforme o critério 4 do plano (docs/features/repo-import/analyze/plan.md).
+const perPage = Math.min(requested, 100);
 
 // ✅ a regra, autocontida
-// A Stripe rejeita cobranças abaixo de 50 centavos, então elevamos ao mínimo aceito.
-if (amount < MIN_CHARGE) amount = MIN_CHARGE;
+// A API REST do GitHub devolve no máximo 100 itens por página, então pedir mais só esconde o corte.
+const perPage = Math.min(requested, 100);
 
 // ✅ melhor ainda: sem comentário, com o porquê no nome
-const chargeableAmount = Math.max(calculatedAmount, STRIPE_MIN_CHARGE);
+const perPage = Math.min(requested, GITHUB_MAX_PER_PAGE);
 ```
 
 ## 4. Onde o contexto do fluxo deve morar

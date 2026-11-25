@@ -10,7 +10,7 @@ Você combina dois papéis sobre uma tarefa deste monorepo:
 
 1. **Product Owner** — entende o problema, o valor para o usuário, o escopo e o que fica de fora;
    identifica o **corte de MVP**, regras de negócio, e quais apps são impactados
-   (`apps/app` painel · `apps/web` landing · `apps/api` · `packages/*`).
+   (`apps/app` painel · `apps/api` · `packages/*`).
 2. **Tech Lead** — faz a análise técnica seguindo os padrões reais deste repo e propõe um blueprint
    concreto e validável.
 
@@ -80,16 +80,16 @@ A descrição e os comentários quase sempre apontam para o material que **é a 
    mudar o escopo.
 2. Leia [`docs/feature-analysis-guide.md`](../../docs/feature-analysis-guide.md) — é o roteiro que você
    preenche. Consulte também [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) e, quando a tarefa
-   tocar auth/pagamentos/env, [`AUTH-SSO.md`](../../docs/AUTH-SSO.md) / [`PAYMENTS.md`](../../docs/PAYMENTS.md) /
-   [`SETUP.md`](../../docs/SETUP.md) / [`SECURITY.md`](../../docs/SECURITY.md).
+   tocar auth/env, [`AUTH-PANEL.md`](../../docs/AUTH-PANEL.md) / [`SETUP.md`](../../docs/SETUP.md) /
+   [`SECURITY.md`](../../docs/SECURITY.md); quando tocar o board, [`docs/board/`](../../docs/board/README.md).
 3. **Leia o slice de referência `entity`** antes de desenhar qualquer coisa nova (a seção 0 do guia lista
    os 10 caminhos). Tudo que você propor deve espelhar esse padrão ou justificar o desvio.
 4. Mapeie o código relevante. Para acelerar, **dispare subagents `Explore` em paralelo** quando o escopo
    for amplo (ex.: um para `apps/api`, um para `apps/app`, um para `packages/sdk` + i18n).
-5. Os `CLAUDE.md` aninhados (`apps/api`, `apps/app`, `apps/web`, `packages`) são as regras acionáveis por
+5. Os `CLAUDE.md` aninhados (`apps/api`, `apps/app`, `packages`) são as regras acionáveis por
    área e [`AGENTS.md`](../../AGENTS.md) tem os detalhes de design system/RHF.
-6. **Procure precedentes**: features análogas já implementadas (`entity` para CRUD, `users` para área
-   admin, `payments` para integração externa). Use como checklist — revela todos os pontos que aquela
+6. **Procure precedentes**: features análogas já implementadas (`entity` para CRUD e upload, `users` para
+   área admin, `notification` para evento por pessoa). Use como checklist — revela todos os pontos que aquela
    mudança tocou.
 7. **Tarefa de "ajustar algo que já existe"**: **mapeie cada campo/elemento exigido à sua origem de dado
    real** — já existe no DTO do SDK? precisa de campo novo no documento? precisa de tela de
@@ -170,8 +170,7 @@ docs/features/<slug>/
 Siga as seções 1 a 9 do `feature-analysis-guide.md`, marcando `N/A` o que não se aplica:
 
 - Contexto, objetivos, **fora de escopo** e o **corte de MVP**.
-- Apps impactados; área do painel (comum × admin); **modo de produto** (`subscription` × `simple`);
-  dependência de assinatura/plano.
+- Apps impactados; área do painel (comum × admin).
 - **Dados (Firestore)**: coleção, campos novos (nome, tipo, default, `null`?, justificativa), ownership
   (`userId`), soft delete, consultas necessárias e o **limite real do `BaseRepository`** (sem paginação,
   sem `orderBy`, filtro em memória) — se o volume torna isso inviável, é decisão de arquitetura a
@@ -179,24 +178,24 @@ Siga as seções 1 a 9 do `feature-analysis-guide.md`, marcando `N/A` o que não
 - **Contrato `@repo/sdk`**: DTO, `Create/UpdateRequest`, action, contexto (`common`/`admin`), e quem
   quebra.
 - **API**: rota/método, guard, ownership, schema Zod, repositório/mapper, **códigos de erro novos +
-  status** (e as entradas correspondentes em `apiErrors` nos 3 idiomas).
+  status** (e as entradas correspondentes em `apiErrors`).
 - **Front**: rotas/grupos, prefetch RSC, `queryKeys`, hooks, formulário (campos × componente
   `HookForm*`), tabela, estados.
-- **i18n**: árvore de chaves novas nos 3 idiomas.
+- **i18n**: árvore de chaves novas (pt-br).
 - **Autorização/segurança**, incluindo comportamento sob **impersonação**.
 - **Testes** a criar — nomeie o **nível** de cada um e prefira o mais barato que prova o comportamento
   (schema, mapper, hook, rota com `vi.mock` do repositório e do guard). Só planeje teste que exija processo
   externo (emulador do Firebase, app servindo) quando o objeto do teste for a **infra**: consulta real que
   depende de índice, `firestore.rules`, serialização `Timestamp` contra o documento. Se planejar um, diga
   na mesma linha o que ele prova que o unitário não provaria.
-- **O que o `/test` vai percorrer**: fluxos nomeados, temas, viewports, idiomas — e como produzir cada
+- **O que o `/test` vai percorrer**: fluxos nomeados, temas, viewports — e como produzir cada
   estado observável.
 
 ### Etapa 2 — Blueprint técnico
 
 Seção 10 do guia: contrato escrito, esqueleto do handler, payload/resposta de exemplo, tabela
 `error.code` → status, forma do documento, árvore de arquivos do front, chaves de i18n, pseudo-diffs dos
-arquivos afetados, **ordem de implementação/commit (SDK → API → app/web → i18n)** e env nova.
+arquivos afetados, **ordem de implementação/commit (SDK → API → app → i18n)** e env nova.
 
 ### Perguntas em aberto
 

@@ -20,7 +20,7 @@ Regra em [`.claude/rules/writing-skills.md`](../rules/writing-skills.md); as ski
 - **`caveman` no que chega até o usuário**: tabela de specs, lacunas descartadas, triagem, recomendação da
   próxima. Estilo restrito a este comando — **não** fixe o modo na sessão. Saia do estilo no texto das
   perguntas de triagem: aprovar ou rejeitar spec é decisão que o usuário toma em cima delas.
-- **`humanizer` no que vira arquivo**: `specs/features/<id>.md`, `specs/BACKLOG.md` e `specs/reference/research/*`, inclusive
+- **`humanizer` no que vira arquivo**: `specs/features/<id>.md` e `specs/BACKLOG.md`, inclusive
   na consolidação do Passo 4. Spec é o documento onde mais aparece superlativo sem número — a skill corta
   o inflado, mas a fonte com URL e data continua sendo exigência sua.
 - **Repita as regras no prompt do `estrategista-produto`.**
@@ -49,13 +49,13 @@ Invoque o subagent **`estrategista-produto`** (`subagent_type: "estrategista-pro
 foco e o lote escolhidos, e instruindo a:
 
 - **inventariar o repositório primeiro**, com evidência `arquivo.ts:linha`, disparando `Explore` em
-  paralelo por área (`apps/api` · `apps/app`+`apps/web` · `packages/*` · infra/testes/CI);
+  paralelo por área (`apps/api` · `apps/app` · `packages/*` · infra/testes/CI);
 - **ler `specs/BACKLOG.md` e as specs existentes** para não repropor nada — inclusive o que está
   `rejected`/`deferred`;
-- **pesquisar o mercado** com a skill `market-research`, com fontes primárias, prevalência declarada e
-  ceticismo sobre hype;
+- **pesquisar o mercado** com WebSearch/WebFetch, em fontes primárias, com prevalência declarada,
+  ceticismo sobre hype e a data de coleta ao lado de cada número;
 - **escrever as specs** no formato de [`specs/reference/TEMPLATE.md`](../../specs/reference/TEMPLATE.md) (status `proposed`),
-  regravar o `specs/BACKLOG.md` e gravar as notas em `specs/reference/research/`;
+  regravar o `specs/BACKLOG.md` e citar as fontes na própria spec;
 - retornar a tabela de specs, as **lacunas descartadas com motivo** e as **"Perguntas em aberto"**.
 
 Em `--sync`, instrua-o a **seguir a skill `spec-audit` passo a passo** — ela é o procedimento canônico da

@@ -24,8 +24,8 @@ responsabilidade de quem escreve a mensagem.
 - Commit: `type(project): descrição curta`.
 - PR: `type(project): title`.
 - `type` ∈ `feat` / `fix` / `style` / `chore` / `ci` / `refactor` / `perf` / `test` / `docs`.
-- `project` = pasta em `apps/` (`app`, `web`, `api`, `email`) **ou** nome do pacote sem `@repo/`
-  (`sdk`, `design-system`, `internationalization`, `auth`, `payments`, `shared`, …). Vários pacotes no
+- `project` = pasta em `apps/` (`app`, `api`, `e2e`) **ou** nome do pacote sem `@repo/`
+  (`sdk`, `design-system`, `internationalization`, `auth`, `kanban-contract`, `shared`, …). Vários pacotes no
   mesmo commit → `packages`. Tooling de IA → `claude`. Backlog de funcionalidades (`specs/`) → `specs`.
   Vários apps num commit único → omita o escopo (`feat: …`) ou concatene com hífen — mas prefira
   **separar em commits** (regra abaixo).
@@ -36,7 +36,7 @@ responsabilidade de quem escreve a mensagem.
 ## Granularidade
 
 - **Um commit por aplicação/pacote:** não misture `apps/app` com `apps/api` ou `packages/*` no mesmo
-  commit. Ordene por dependência: **`packages/sdk` (contrato) → `apps/api` → `apps/app`/`apps/web` →
+  commit. Ordene por dependência: **`packages/sdk` (contrato) → `apps/api` → `apps/app` →
   `packages/internationalization` (i18n)**.
 - **Pulverize por funcionalidade:** dentro de cada app, quebre em **vários commits pequenos e coesos, um
   por unidade de mudança** (evite commits com +10 arquivos misturando assuntos). Ex.: na `api`, um commit
@@ -44,8 +44,8 @@ responsabilidade de quem escreve a mensagem.
   de dados e outro para a página/formulário. Testes acompanham o commit da funcionalidade que cobrem.
 - **Artefatos do fluxo:** `docs/features/<slug>/` é versionado (histórico da feature) e entra como
   **último commit**, separado do código: `docs(features): <slug>`.
-  - ⛔ **Varra o artefato por segredo antes de incluí-lo no plano.** `docs/features/` é versionado e vai
-    para todo fork. Isso já vazou duas vezes: um `test/report.md` gravou a senha `NovaSenha2026!x` **no
+  - ⛔ **Varra o artefato por segredo antes de incluí-lo no plano.** `docs/features/` é versionado e fica
+    no histórico do git. Isso já vazou duas vezes: um `test/report.md` gravou a senha `NovaSenha2026!x` **no
     mesmo arquivo** em que afirmava "nenhuma senha foi gravada em arquivo", e outro gravou `qaAudit2026!`.
     Senha, token, chave e e-mail real de pessoa não entram — nem em roteiro de teste, nem em bloco de log
     colado, nem em nome de arquivo. Credencial de dev reutilizável vive em

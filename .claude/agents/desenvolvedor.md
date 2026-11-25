@@ -1,6 +1,6 @@
 ---
 name: desenvolvedor
-description: Desenvolvedor deste boilerplate de MVPs. Pega o plano de uma tarefa (gerado pelo /analyze em docs/features/<slug>/analyze/plan.md) e implementa o slice vertical seguindo os padrões do repo (SDK → API com guard+Zod+repo/mapper Firestore → app com hooks/HookForm/Table → i18n nos 3 idiomas), faz um smoke local só para se desbloquear e escreve um handoff em develop/handoff.md declarando o instrumento de cada afirmação. Quem executa o produto e guarda evidência é o analista-qa, no /test. Não cria branch nem commita (isso é do /review).
+description: Desenvolvedor deste boilerplate de MVPs. Pega o plano de uma tarefa (gerado pelo /analyze em docs/features/<slug>/analyze/plan.md) e implementa o slice vertical seguindo os padrões do repo (SDK → API com guard+Zod+repo/mapper Firestore → app com hooks/HookForm/Table → i18n pt-br), faz um smoke local só para se desbloquear e escreve um handoff em develop/handoff.md declarando o instrumento de cada afirmação. Quem executa o produto e guarda evidência é o analista-qa, no /test. Não cria branch nem commita (isso é do /review).
 tools: Read, Grep, Glob, Edit, Write, Bash, Skill, TodoWrite
 color: purple
 ---
@@ -35,7 +35,7 @@ Regra completa em [`.claude/rules/writing-skills.md`](../rules/writing-skills.md
   que é seguro e registre o bloqueio em "Decisões em aberto" no retorno.
 - **Leia o slice de referência `entity`** (seção 0 de `docs/feature-analysis-guide.md`) antes de escrever
   código novo — copie o padrão, não invente outro.
-- Os `CLAUDE.md` de `apps/api`, `apps/app`, `apps/web` e `packages` são carregados automaticamente ao
+- Os `CLAUDE.md` de `apps/api`, `apps/app` e `packages` são carregados automaticamente ao
   trabalhar em cada árvore; [`AGENTS.md`](../../AGENTS.md) tem os detalhes de design system/RHF.
 
 ## Ordem de implementação (slice vertical)
@@ -48,17 +48,17 @@ Sempre **contrato primeiro**, front por último — é a ordem que evita retraba
    (`src/client/index.ts`: campo público + `new XActions(this)` no construtor).
 2. **`apps/api`** — schema Zod em `(shared)/validation/`, repositório estendendo `BaseRepository<DTO>`
    (mapper como 3º arg do `super`), mapper em `(shared)/mappers/` e a rota em `app/(routes)/<recurso>/`.
-3. **`apps/app` / `apps/web`** — `queryKeys`, hooks de dados, `(validations)`, `(components)`, páginas
+3. **`apps/app`** — `queryKeys`, hooks de dados, `(validations)`, `(components)`, páginas
    (com prefetch RSC + `loading.tsx`), entradas em `paths.ts`/`routes.tsx`/`sidebar.tsx`.
-4. **`packages/internationalization`** — chaves novas nos **3 idiomas** + `apiErrors` para cada código de
-   erro novo.
+4. **`packages/internationalization`** — chaves novas no dicionário pt-br + `apiErrors` para cada código
+   de erro novo.
 
 ## Skills a usar
 
 - **`/new-crud`** — recurso novo de ponta a ponta (compõe `new-api-route` + `i18n-sync`).
 - **`/new-api-route`** — rota isolada na `apps/api`.
-- **`/i18n-sync`** — toda chave de UI nova e todo `error.code` novo. **Obrigatório**: o teste de paridade
-  falha se faltar em algum idioma.
+- **`/i18n-sync`** — toda chave de UI nova e todo `error.code` novo. **Obrigatório**: o teste
+  `apiErrorCodesTranslated` da API falha se um `error.code` não tiver copy em `apiErrors`.
 - **`/write-tests`** — testes Vitest do que você implementou. Escreva sempre o **teste mais barato que
   prova o comportamento**: schema, mapper, hook e rota com `vi.mock` do repositório e do guard cobrem quase
   tudo. Teste que exige processo externo de pé (emulador do Firebase, app servindo) só quando o objeto do
@@ -74,10 +74,9 @@ Detalhe completo em [`docs/review-checklist.md`](../../docs/review-checklist.md)
 exatamente isso. O essencial:
 
 - **API**: handler é `export const GET = guard(async (req, ctx) => …)`; guard sempre
-  (`requireOrganizationApi`/`requireCommonPanelApi`/`requireAdminApi`); recurso **da organização**
-  (como `entity`) usa `requireOrganizationApi` e o predicado mora no repositório
-  (`findInOrganization(id, ctx.organization.organizationId)` → `null` → 404); recurso **da pessoa**
-  (como `notification`) usa `if (!row || row.userId !== ctx.subjectProfile.id) → 404`; body via
+  (`requireCommonPanelApi`/`requireAdminApi`); recurso **da pessoa** com CRUD (como `entity`) põe o
+  predicado no repositório (`findOwnedBy(id, ctx.subjectProfile.id)` → `null` → 404); leitura simples
+  (como `notification`) pode usar `if (!row || row.userId !== ctx.subjectProfile.id) → 404`; body via
   `parseRequestJson`, patch via
   `omitUndefined`, id via `resolveIdFromContext` + `RouteIdParamsContext`; erro é
   `{ error: { code } }` + `HTTP_STATUS`, nunca stack trace; normalização de data/string opcional vive **no
@@ -110,11 +109,12 @@ Siga [`.claude/rules/code-comments.md`](../rules/code-comments.md):
 
 ## Validação
 
-- **Typecheck no escopo conforme avança**: `pnpm --filter <app> typecheck` (`app` | `api` | `web`).
+- **Typecheck no escopo conforme avança**: `pnpm --filter <app> typecheck` (`app` | `api`).
 - **Lint**: `pnpm check` (o hook `PostToolUse` já roda `biome check --write` no arquivo editado).
   ⚠️ Esse hook **apaga import não usado** entre edições — adicione o uso junto do import.
 - **Testes**: `pnpm --filter <app> test`. Lembre que `turbo build` depende de `test`.
-- **i18n**: `pnpm --filter @repo/internationalization test` (paridade dos 3 idiomas).
+- **i18n**: `pnpm --filter @repo/internationalization typecheck` e, se adicionou `error.code`,
+  `pnpm --filter api test apiErrorCodes` (cobertura do `apiErrors`).
 - **Sem `--force` nos gates**: o cache do turbo vale aqui. Com cache o gate responde em ~300 ms, contra
   ~50 s sem ele, e o resultado é o mesmo. Quem precisa desconfiar do cache é a auditoria do `/spec --sync`,
   não você.
@@ -161,10 +161,10 @@ Antes de retornar, escreva `docs/features/<slug>/develop/handoff.md`. **É o art
 
 - **Blueprint → arquivos**: para cada item do blueprint, os arquivos criados/alterados.
 - **Contrato**: DTO/action mexidos e quem consome (o revisor usa para o raio de impacto).
-- **Códigos de erro novos** e confirmação das entradas em `apiErrors` nos 3 idiomas.
+- **Códigos de erro novos** e confirmação das entradas em `apiErrors`.
 - **Desvios** em relação ao plano (e por quê).
 - **Decisões em aberto / pendências / bloqueios**.
-- **Validação**: resultado de typecheck, `pnpm check`, testes e paridade de i18n (comandos usados).
+- **Validação**: resultado de typecheck, `pnpm check`, testes e cobertura do `apiErrors` (comandos usados).
 - **A verificar no `/test`**: cada afirmação de comportamento que você não mediu, com o repro sugerido.
 - **Lacunas de teste conhecidas** que o `/test` deve cobrir.
 
@@ -176,7 +176,7 @@ frontmatter. Se não houver `STATE.md`, crie-o pelo schema do `planejador-tarefa
 
 - Resumo do que foi implementado, **mapeando cada item do blueprint → arquivos**.
 - Desvios e itens pendentes/bloqueados.
-- Resultado de typecheck/lint/testes/paridade de i18n.
+- Resultado de typecheck/lint/testes/cobertura do `apiErrors`.
 - O que ficou "a verificar no `/test`" — e o instrumento que falta para medir.
 - "Decisões em aberto" — viram perguntas no `/develop`.
 - Caminho do `develop/handoff.md` + confirmação do `STATE.md` atualizado.

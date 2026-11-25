@@ -32,14 +32,12 @@ abaixo de forma resumida. O fluxo completo está em
 |---------|---------|----------|-----------|
 | `/spec` | [`spec.md`](spec.md) | `estrategista-produto` | Descobre e especifica o que vale construir → `specs/features/<id>.md` + `BACKLOG.md`. `--sync` reconcilia o backlog **com o código** e arquiva as specs entregues; `--next` recomenda a próxima. |
 | `/analyze` | [`analyze.md`](analyze.md) | `planejador-tarefa` | Transforma uma spec em **plano técnico** → `docs/features/<slug>/analyze/plan.md` + `STATE.md`. |
-| `/develop` | [`develop.md`](develop.md) | `desenvolvedor` | **Implementa** o slice vertical (SDK → API → app/web → i18n) → `develop/handoff.md`. Smoke local, sem evidência persistida. |
+| `/develop` | [`develop.md`](develop.md) | `desenvolvedor` | **Implementa** o slice vertical (SDK → API → app → i18n) → `develop/handoff.md`. Smoke local, sem evidência persistida. |
 | `/review` | [`review.md`](review.md) | `revisor-codigo` | Lê o diff, **corrige**, roda os gates estáticos, resolve a branch, propõe os commits → `review/review.md`. Não executa o produto. |
 | `/test` | [`test.md`](test.md) | `analista-qa` | Critérios de aceite (§9.1) + testes Vitest + e2e no browser → `test/`. **Única etapa que executa o produto.** |
 | `/observe` | [`observe.md`](observe.md) | `observador-tarefa` | *(opcional)* Resumo de 2–3 parágrafos em linguagem de negócio → `observacao.md`. |
 | `/mediate` | [`mediate.md`](mediate.md) | `mediador-pr` | *(avulso)* Triagem dos comentários de uma PR → markdown de replies. Independente do pipeline. |
 | `/cycle` | [`cycle.md`](cycle.md) | todos | Roda o ciclo inteiro **sem parar para perguntar**. Para quando você não vai acompanhar. |
-| `/kickoff` | [`kickoff.md`](kickoff.md) | `estrategista-produto` | **Começo de um fork**: lê o que o formulário visual do `pnpm kickoff` salvou em `docs/product/` (produto, domínio, telas, marca, prompt de design), completa as lacunas e gera as specs do MVP em ordem. |
-| `/deliver` | [`deliver.md`](deliver.md) | `code-reviewer`, `analista-qa` | **Etapa de entrega** de um fork, obrigatória antes da entrega final: segurança, infra, qualidade, documentação e políticas legais, conforme [`docs/delivery/`](../../docs/delivery/README.md) → `docs/delivery/reports/<data>/report.md`. Audita e registra. |
 
 ## Quem pode fazer o quê
 
@@ -50,7 +48,6 @@ Três permissões que separam os papéis, e que **nenhum** comando pode contorna
 | `/spec` · `/analyze` · `/develop` · `/test` · `/observe` · `/mediate` | ❌ | ❌ | ❌ |
 | `/review` | ✅ **é o dono da branch** | ❌ *propõe o plano* | ❌ |
 | `/cycle` | ❌ | ❌ | ❌ |
-| `/kickoff` · `/deliver` | ❌ | ❌ | ❌ |
 | **você** | — | ✅ | ✅ |
 
 **Commit exige a sua aprovação explícita** ([`../rules/git-commits.md`](../rules/git-commits.md)) — e
@@ -66,7 +63,7 @@ Uma etapa só. Subir app, dirigir o `agent-browser`, tirar screenshot e rodar a 
 | etapa | executa | evidência que persiste |
 |---|---|---|
 | `/develop` | smoke local, só para se desbloquear | nenhuma |
-| `/review` | `pnpm check` · `typecheck` · paridade de i18n | nenhuma |
+| `/review` | `pnpm check` · `typecheck` · cobertura do `apiErrors` | nenhuma |
 | `/test` | suíte Vitest **e** fluxo ponta a ponta com `agent-browser` | o **texto** do `test/report.md` |
 
 A desconfiança entre etapas não sumiu, mudou de dono: o `/develop` escreve cada afirmação com o
