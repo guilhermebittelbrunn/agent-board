@@ -126,15 +126,12 @@ describe("buildAccountPasswordSchema", () => {
 });
 
 describe("buildAccountPreferencesSchema", () => {
-    it("only accepts the supported theme and locale", () => {
-        expect(
-            preferencesSchema.safeParse({ theme: "dark", locale: "es" }).success
-        ).toBe(true);
-        expect(
-            preferencesSchema.safeParse({ theme: "neon", locale: "es" }).success
-        ).toBe(false);
-        expect(
-            preferencesSchema.safeParse({ theme: "dark", locale: "fr" }).success
-        ).toBe(false);
+    it("only accepts the supported theme", () => {
+        expect(preferencesSchema.safeParse({ theme: "dark" }).success).toBe(
+            true
+        );
+        expect(preferencesSchema.safeParse({ theme: "neon" }).success).toBe(
+            false
+        );
     });
 });

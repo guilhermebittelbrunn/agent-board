@@ -1,13 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
     getServerApiClientMock,
     isImpersonatingMock,
     summaryMock,
     activityMock,
-    billingMock,
 } = vi.hoisted(() => ({
-    billingMock: vi.fn(),
     getServerApiClientMock: vi.fn(),
     isImpersonatingMock: vi.fn(),
     summaryMock: vi.fn(),
@@ -46,7 +44,6 @@ function givenSession(hasSession: boolean) {
         hasSession
             ? {
                   user: { summary: summaryMock, activitySummary: activityMock },
-                  payments: { summary: billingMock },
               }
             : null
     );
@@ -73,14 +70,8 @@ beforeEach(() => {
     isImpersonatingMock.mockReset();
     summaryMock.mockReset().mockResolvedValue(SUMMARY);
     activityMock.mockReset().mockResolvedValue(ACTIVITY);
-    billingMock.mockReset().mockResolvedValue({ enabled: false });
     isImpersonatingMock.mockResolvedValue(false);
-    vi.stubEnv("NEXT_PUBLIC_PRODUCT_MODE", "subscription");
     givenSession(true);
-});
-
-afterEach(() => {
-    vi.unstubAllEnvs();
 });
 
 describe("AdminHome prefetch", () => {
@@ -88,7 +79,6 @@ describe("AdminHome prefetch", () => {
         const element = await renderPage();
 
         expect(dehydratedKeys(element).sort()).toEqual([
-            "payments.summary",
             "users.activitySummary",
             "users.summary",
         ]);
@@ -99,7 +89,6 @@ describe("AdminHome prefetch", () => {
 
         expect(summaryMock).toHaveBeenCalledTimes(1);
         expect(activityMock).toHaveBeenCalledTimes(1);
-        expect(billingMock).toHaveBeenCalledTimes(1);
     });
 
     it("requests the admin context, which is the one the route guard expects", async () => {
@@ -131,7 +120,6 @@ describe("AdminHome prefetch while impersonating", () => {
 
         expect(getServerApiClientMock).not.toHaveBeenCalled();
         expect(activityMock).not.toHaveBeenCalled();
-        expect(billingMock).not.toHaveBeenCalled();
     });
 
     it("leaves the cache empty", async () => {
@@ -160,31 +148,6 @@ describe("AdminHome prefetch when an aggregate fails", () => {
 
         const element = await renderPage();
 
-        expect(dehydratedKeys(element).sort()).toEqual([
-            "payments.summary",
-            "users.summary",
-        ]);
-    });
-
-    it("still renders when the billing summary fails", async () => {
-        billingMock.mockRejectedValue(new Error("SUMMARY_INDEX_MISSING"));
-
-        const element = await renderPage();
-
-        expect(dehydratedKeys(element).sort()).toEqual([
-            "users.activitySummary",
-            "users.summary",
-        ]);
-    });
-});
-
-describe("AdminHome prefetch in simple mode", () => {
-    it("never asks for the billing summary", async () => {
-        vi.stubEnv("NEXT_PUBLIC_PRODUCT_MODE", "simple");
-
-        const element = await renderPage();
-
-        expect(billingMock).not.toHaveBeenCalled();
-        expect(dehydratedKeys(element)).not.toContain("payments.summary");
+        expect(dehydratedKeys(element).sort()).toEqual(["users.summary"]);
     });
 });

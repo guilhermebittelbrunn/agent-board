@@ -5,7 +5,7 @@ import {
 } from "@repo/shared/utils/helpers/passwordPolicy";
 import { describe, expect, it } from "vitest";
 
-const LOCALES = ["pt-br", "en", "es"] as const;
+const LOCALES = ["pt-br"] as const;
 
 type Locale = (typeof LOCALES)[number];
 
@@ -16,14 +16,10 @@ type Locale = (typeof LOCALES)[number];
 function newPasswordMessages(locale: Locale): Record<string, string> {
     const { apps, packages } = globalTranslations[locale];
     return {
-        "app signUp.passwordMin": apps.app.pages.signUp.validation.passwordMin,
-        "app resetPassword.passwordMin":
-            apps.app.pages.resetPassword.validation.passwordMin,
         "app admin.users.passwordMin":
             apps.app.pages.admin.users.form.validation.passwordMin,
         "app account.security.newPasswordMin":
             apps.app.pages.common.account.security.validation.newPasswordMin,
-        "web signUp.passwordMin": apps.web.pages.signUp.validation.passwordMin,
         "apiErrors.AUTH_PASSWORD_TOO_SHORT":
             packages.utils.apiErrors.AUTH_PASSWORD_TOO_SHORT,
     };
@@ -33,11 +29,8 @@ function existingPasswordMessages(locale: Locale): Record<string, string> {
     const { apps } = globalTranslations[locale];
     return {
         "app signIn.passwordMin": apps.app.pages.signIn.validation.passwordMin,
-        "web signIn.passwordMin": apps.web.pages.signIn.validation.passwordMin,
         "app account.security.min":
             apps.app.pages.common.account.security.validation.min,
-        "app account.privacy.delete.min":
-            apps.app.pages.common.account.privacy.delete.validation.min,
     };
 }
 

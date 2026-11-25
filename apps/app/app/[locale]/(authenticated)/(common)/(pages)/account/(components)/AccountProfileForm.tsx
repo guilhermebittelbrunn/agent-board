@@ -5,19 +5,17 @@ import {
     HookFormImageUpload,
     HookFormInput,
 } from "@repo/design-system/components/form/hookform";
-import { Button } from "@repo/design-system/components/ui/button";
 import { Form } from "@repo/design-system/components/ui/form";
 import { Input } from "@repo/design-system/components/ui/input";
 import { Label } from "@repo/design-system/components/ui/label";
 import { getDictionary } from "@repo/internationalization/client";
 import type { AccountDTO } from "@repo/sdk/src/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Footer } from "@/shared/components/ui/Footer";
 import { FormContainer } from "@/shared/components/ui/FormContainer";
 import { SettingsSection } from "@/shared/components/ui/SettingsSection";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
-import { lacksPasswordProvider } from "@/shared/lib/signInMethods";
 import { isStorageEnabled } from "@/shared/lib/storageEnabled";
 import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { useAccountMutations } from "../(hooks)/useAccountMutations";
@@ -25,7 +23,6 @@ import {
     type AccountProfileFormValues,
     buildAccountProfileSchema,
 } from "../(validations)/accountFormSchema";
-import { AccountEmailChangeDialog } from "./AccountEmailChangeDialog";
 
 type AccountProfileFormProps = {
     account: AccountDTO | undefined;
@@ -38,9 +35,6 @@ export function AccountProfileForm({ account }: AccountProfileFormProps) {
     const { updateProfileMutation } = useAccountMutations();
     const { uploadFile, isUploading } = useFileUpload();
     const canUploadAvatar = isStorageEnabled();
-    const [emailChangeOpen, setEmailChangeOpen] = useState(false);
-    const emailChangeTriggerRef = useRef<HTMLButtonElement>(null);
-    const canChangeEmail = !lacksPasswordProvider(account);
 
     const schema = useMemo(
         () => buildAccountProfileSchema(dictionary),
@@ -159,30 +153,8 @@ export function AccountProfileForm({ account }: AccountProfileFormProps) {
                         readOnly
                         value={account?.email ?? ""}
                     />
-                    {canChangeEmail ? (
-                        <Button
-                            className="self-start"
-                            disabled={isImpersonating || !account}
-                            onClick={() => setEmailChangeOpen(true)}
-                            ref={emailChangeTriggerRef}
-                            type="button"
-                            variant="outline"
-                        >
-                            {accountProfile.emailChange.action}
-                        </Button>
-                    ) : (
-                        <p className="text-muted-foreground text-xs">
-                            {accountProfile.emailChange.unsupported}
-                        </p>
-                    )}
                 </div>
             </SettingsSection>
-            <AccountEmailChangeDialog
-                currentEmail={account?.email ?? null}
-                onOpenChange={setEmailChangeOpen}
-                open={emailChangeOpen}
-                returnFocusRef={emailChangeTriggerRef}
-            />
         </>
     );
 }

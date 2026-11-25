@@ -65,7 +65,7 @@ describe("brand in the panel sidebar", () => {
         expect(header?.textContent).toContain(DEFAULT_BRAND_NAME);
         expect(
             header?.querySelector('[data-slot="avatar-fallback"]')?.textContent
-        ).toBe("N");
+        ).toBe(DEFAULT_BRAND_NAME.charAt(0).toUpperCase());
     });
 
     it("keeps only the mark once the sidebar is collapsed", () => {

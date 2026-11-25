@@ -55,9 +55,6 @@ vi.mock("@/shared/lib/postLoginNavigation", () => ({
 const { SignInForm } = await import(
     "@/app/[locale]/(unauthenticated)/sign-in/components/SignInForm"
 );
-const { default: SignUpFormClient } = await import(
-    "@/app/[locale]/(unauthenticated)/sign-up/components/SignUpFormClient"
-);
 
 const STATUS_OK = 200;
 const STATUS_BAD_REQUEST = 400;
@@ -127,14 +124,26 @@ afterEach(() => {
  * sends the browser back to this same screen, where the still signed-in client user
  * starts the round trip again.
  */
-describe.each([
-    ["login", SignInForm],
-    ["cadastro", SignUpFormClient],
-] as const)("sessão persistida na tela de %s", (_screen, Form) => {
-    it.each([STATUS_BAD_REQUEST, STATUS_UNAUTHORIZED, STATUS_FORBIDDEN])(
-        "desloga e não navega quando a gravação do cookie responde %i",
-        async (status) => {
-            givenSessionStatus(status);
+describe.each([["login", SignInForm]] as const)(
+    "sessão persistida na tela de %s",
+    (_screen, Form) => {
+        it.each([STATUS_BAD_REQUEST, STATUS_UNAUTHORIZED, STATUS_FORBIDDEN])(
+            "desloga e não navega quando a gravação do cookie responde %i",
+            async (status) => {
+                givenSessionStatus(status);
+
+                await renderWithPersistedUser(Form);
+
+                await waitFor(() => {
+                    expect(logoutMock).toHaveBeenCalledTimes(1);
+                });
+                expect(replaceMock).not.toHaveBeenCalled();
+                expect(postLoginPathMock).not.toHaveBeenCalled();
+            }
+        );
+
+        it("desloga e não navega quando a requisição nem chega ao servidor", async () => {
+            fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
 
             await renderWithPersistedUser(Form);
 
@@ -142,30 +151,18 @@ describe.each([
                 expect(logoutMock).toHaveBeenCalledTimes(1);
             });
             expect(replaceMock).not.toHaveBeenCalled();
-            expect(postLoginPathMock).not.toHaveBeenCalled();
-        }
-    );
-
-    it("desloga e não navega quando a requisição nem chega ao servidor", async () => {
-        fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
-
-        await renderWithPersistedUser(Form);
-
-        await waitFor(() => {
-            expect(logoutMock).toHaveBeenCalledTimes(1);
         });
-        expect(replaceMock).not.toHaveBeenCalled();
-    });
 
-    it("navega para o destino quando a gravação do cookie é aceita", async () => {
-        givenSessionStatus(STATUS_OK);
+        it("navega para o destino quando a gravação do cookie é aceita", async () => {
+            givenSessionStatus(STATUS_OK);
 
-        await renderWithPersistedUser(Form);
+            await renderWithPersistedUser(Form);
 
-        await waitFor(() => {
-            expect(replaceMock).toHaveBeenCalledWith(HOME_PATH);
+            await waitFor(() => {
+                expect(replaceMock).toHaveBeenCalledWith(HOME_PATH);
+            });
+            expect(replaceMock).toHaveBeenCalledTimes(1);
+            expect(logoutMock).not.toHaveBeenCalled();
         });
-        expect(replaceMock).toHaveBeenCalledTimes(1);
-        expect(logoutMock).not.toHaveBeenCalled();
-    });
-});
+    }
+);

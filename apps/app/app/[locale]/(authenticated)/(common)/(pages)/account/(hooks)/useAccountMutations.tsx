@@ -1,7 +1,6 @@
 import useAlert from "@repo/design-system/hooks/useAlert";
 import { getDictionary } from "@repo/internationalization/client";
 import type {
-    ChangeEmailRequest,
     ChangePasswordRequest,
     UpdateAccountRequest,
 } from "@repo/sdk/src/types";
@@ -51,25 +50,9 @@ export const useAccountMutations = () => {
         onError: (error) => errorAlert(formatClientError(error)),
     });
 
-    // Nothing changes on the account until the link is opened, so there is nothing to refetch.
-    const requestEmailChangeMutation = useMutation({
-        mutationFn: (body: Omit<ChangeEmailRequest, "locale">) =>
-            apiClient.account.requestEmailChange({ ...body, locale }),
-        onSuccess: () => successAlert(accountMessages.emailChangeRequested),
-        onError: (error) => errorAlert(formatClientError(error)),
-    });
-
-    const revokeSessionsMutation = useMutation({
-        mutationFn: () => apiClient.account.revokeSessions(),
-        onSuccess: () => successAlert(accountMessages.sessionsRevoked),
-        onError: (error) => errorAlert(formatClientError(error)),
-    });
-
     return {
         updateProfileMutation,
         updatePreferencesMutation,
         changePasswordMutation,
-        requestEmailChangeMutation,
-        revokeSessionsMutation,
     };
 };

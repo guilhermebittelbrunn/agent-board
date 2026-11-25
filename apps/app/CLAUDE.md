@@ -40,7 +40,7 @@ Regras de escopo para a aplicação do usuário (dashboard, cadastro, **admin** 
 ## Formulários com ações no rodapé
 
 - Evite `form="…"` em botões fora do `<form>`. Use **`Footer`** (`shared/components/ui/Footer.tsx`) **dentro** do `<form>`: `showBack` (padrão `true`, `router.back()`), `onBack`/`backLabel` opcionais; primário é `type="submit"` se `onConfirm` ausente, senão `type="button"`. Props genéricas: `isLoading`, `disabled`.
-- Por padrão o `Footer` é uma barra fixa no rodapé (`sticky`), para formulários de página inteira com uma ação só (criar/editar entidade e usuário, onboarding). Com **`sticky={false}`** ele vira uma linha de ações dentro do bloco: use em formulários que convivem com outros na mesma tela (blocos da conta, convite da equipe).
+- Por padrão o `Footer` é uma barra fixa no rodapé (`sticky`), para formulários de página inteira com uma ação só (criar/editar entidade e usuário). Com **`sticky={false}`** ele vira uma linha de ações dentro do bloco: use em formulários que convivem com outros na mesma tela (blocos da conta).
 - Barra fixa publica **`data-sticky-action-bar`** (o `Footer` fixo, a barra do `Container` e o `PageFormFooter` já publicam), e o `Navbar` publica `data-panel-navbar`. O `<html>` do root layout reserva 80 px no `scroll-padding` do documento enquanto cada uma existir, para o campo focado por teclado não ficar atrás delas (WCAG 2.4.11). Barra fixa nova sem o atributo, ou mais alta que 80 px, volta a esconder o foco; `__tests__/focusNotObscuredScrollPadding.test.tsx` e o E2E `focusNotObscured.spec.ts` acusam.
 - Em diálogo (`AlertDialog`) com formulário, não use `Footer`: use `AlertDialogFooter` com dois `Button`, cancelar `type="button" variant="outline"` e confirmar `type="submit"`. O `type="button"` do cancelar é obrigatório, senão ele envia o formulário. Confirmação de ação destrutiva usa `variant="destructive"` (no `AlertDialogAction` ou no `Button` de confirmar).
 - Layout de campos em grelha: **`FormContainer`** — 1 coluna no mobile, 2 no `md+`; filhos com `display: contents` para cada campo ocupar uma célula.
@@ -57,7 +57,7 @@ Regras de escopo para a aplicação do usuário (dashboard, cadastro, **admin** 
 ## i18n e a11y
 
 - **Não** use strings literais em JSX para mensagens de interface, placeholders, `aria-label`, confirmações, toasts ou títulos de coluna. Centralize em `@repo/internationalization` (mesmo padrão de chave em `pt-br`, `en`, `es`) — use a skill `/i18n-sync`.
-- Resolver locale: prefira `getDictionary()` (client/server). Os helpers já aplicam fallback/default. O do client segue o segmento `[locale]` via `LocaleProvider` (montado no root layout); o do servidor segue o mesmo segmento, que o `proxy.ts` repassa no header `x-request-locale`, e só cai no cookie `x-locale` quando o header falta. Componente client acima do segmento `[locale]` usa `useDictionary()`, para re-renderizar na troca de idioma.
+- Resolver locale: há um idioma só (`pt-br`). Prefira `getDictionary()` (client/server), que já aplica fallback/default; o do client segue o segmento `[locale]` via `LocaleProvider` (montado no root layout). Componente client acima do segmento `[locale]` usa `useDictionary()`.
 - Ao guardar um objeto/fatia do dictionary em variável, use **nome descritivo** (`adminUsersForm`, `entitiesMessages`, …), **nunca** letras soltas como `t`/`d`.
 - Para Zod, injete mensagens a partir do `dictionary` (ex.: `buildXxxSchema(dictionary)`), não texto fixo no schema compartilhado.
 - Layouts responsivos: mobile primeiro, breakpoints consistentes com o design system.

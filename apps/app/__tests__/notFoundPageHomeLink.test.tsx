@@ -44,17 +44,17 @@ afterEach(() => {
 
 describe("NotFoundPage home action", () => {
     it("renders a single link to the resolved home, with no button around it", async () => {
-        cookieValueMock.mockReturnValue("en");
-        homePathMock.mockResolvedValue("/en/admin");
+        cookieValueMock.mockReturnValue("pt-br");
+        homePathMock.mockResolvedValue("/pt-br/admin");
 
         const { container } = await renderPage();
 
         const links = container.querySelectorAll("a");
         expect(links).toHaveLength(1);
-        expect(links[0].getAttribute("href")).toBe("/en/admin");
-        expect(links[0].textContent).toBe("Go to home");
+        expect(links[0].getAttribute("href")).toBe("/pt-br/admin");
+        expect(links[0].textContent).toBe("Ir para o início");
         expect(container.querySelector("button")).toBeNull();
-        expect(homePathMock).toHaveBeenCalledWith("en");
+        expect(homePathMock).toHaveBeenCalledWith("pt-br");
     });
 
     it("keeps the icon and the label inside one wrapper so the large size keeps its padding", async () => {
@@ -79,17 +79,5 @@ describe("NotFoundPage home action", () => {
         expect(container.querySelector("a")?.textContent).toBe(
             "Ir para o início"
         );
-    });
-
-    it("speaks the language of the URL rather than the one in the cookie", async () => {
-        urlLocaleMock.mockReturnValue("en");
-        cookieValueMock.mockReturnValue("pt-br");
-        homePathMock.mockResolvedValue("/en");
-
-        const { container } = await renderPage();
-
-        expect(homePathMock).toHaveBeenCalledWith("en");
-        expect(container.querySelector("a")?.textContent).toBe("Go to home");
-        expect(container.textContent).toContain("Page not found");
     });
 });

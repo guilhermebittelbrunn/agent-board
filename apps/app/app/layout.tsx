@@ -13,7 +13,6 @@ import { getAppSessionUser } from "@/lib/server/authSession";
 import { resolvePreferredTimeZone } from "@/lib/server/displayTimeZone";
 import { resolvePanelSnapshot } from "@/lib/server/panelSnapshot";
 import { DocumentLangSync } from "@/shared/components/DocumentLangSync";
-import { privacyPolicyUrl } from "@/shared/lib/privacyPolicyUrl";
 import { AppDesignProvider } from "@/shared/providers/AppDesignProvider";
 import { DisplayTimeZoneProvider } from "@/shared/providers/DisplayTimeZoneProvider";
 import ClientLayout from "./[locale]/clientLayout";
@@ -54,8 +53,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         resolveConsentBootstrap(),
     ]);
 
-    const privacyPolicyHref = privacyPolicyUrl(locale);
-
     // Resolved on the server so the panel is already correct on the first paint.
     const initialPanel = {
         snapshot: panelSnapshot,
@@ -80,11 +77,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 <DocumentLangSync />
                 <LocaleProvider>
                     <QueryProvider>
-                        <AnalyticsProvider
-                            consent={consent}
-                            locale={locale}
-                            privacyPolicyHref={privacyPolicyHref}
-                        >
+                        <AnalyticsProvider consent={consent} locale={locale}>
                             <AppDesignProvider defaultTheme={preferredTheme}>
                                 <ToastContainer />
                                 <DisplayTimeZoneProvider

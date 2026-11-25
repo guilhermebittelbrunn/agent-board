@@ -51,7 +51,7 @@ const { globalTranslations } = await import(
 const accountPreferences =
     globalTranslations["pt-br"].apps.app.pages.common.account.preferences;
 
-function accountWith(locale: "pt-br" | "en" | "es", theme: "light" | "dark") {
+function accountWith(locale: "pt-br", theme: "light" | "dark") {
     return {
         id: "account-1",
         preferences: { theme, locale },
@@ -78,22 +78,14 @@ describe("AccountPreferencesForm", () => {
 
     afterEach(cleanup);
 
-    it("mantém o idioma da conta quando o dado chega depois do primeiro render", async () => {
+    it("mantém o tema da conta quando o dado chega depois do primeiro render", async () => {
         const { rerender } = render(
             <AccountPreferencesForm account={undefined} />
         );
 
         rerender(
-            <AccountPreferencesForm account={accountWith("es", "light")} />
+            <AccountPreferencesForm account={accountWith("pt-br", "light")} />
         );
-
-        await waitFor(() => {
-            expect(
-                screen.getByRole("combobox", {
-                    name: accountPreferences.language,
-                }).textContent
-            ).toContain("Español");
-        });
 
         fireEvent.click(
             screen.getByRole("button", { name: accountPreferences.save })
@@ -103,7 +95,7 @@ describe("AccountPreferencesForm", () => {
             expect(updatePreferencesMutateMock).toHaveBeenCalledTimes(1);
         });
         expect(updatePreferencesMutateMock.mock.calls[0]?.[0]).toEqual({
-            preferences: { theme: "light", locale: "es" },
+            preferences: { theme: "light" },
         });
     });
 });

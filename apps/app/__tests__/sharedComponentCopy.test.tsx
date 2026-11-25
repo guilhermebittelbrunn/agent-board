@@ -25,9 +25,6 @@ vi.mock("next/link", () => ({
     }) => <a {...props}>{children}</a>,
 }));
 
-const { LanguageSwitcher } = await import(
-    "@/shared/components/ui/LanguageSwitcher"
-);
 const { default: PageBreadcrumb } = await import(
     "@/shared/components/ui/PageBreadcrumb"
 );
@@ -40,19 +37,6 @@ function renderInLocale(locale: Locale, ui: ReactNode) {
 afterEach(cleanup);
 
 describe("copy dos componentes compartilhados da apps/app", () => {
-    it.each(locales)("nomeia o seletor de idioma em %s", (locale) => {
-        renderInLocale(locale, <LanguageSwitcher />);
-
-        expect(
-            screen.getByRole("button", {
-                name: new RegExp(
-                    globalTranslations[locale].components.languageSwitcher
-                        .trigger
-                ),
-            })
-        ).toBeTruthy();
-    });
-
     it.each(locales)("leva o breadcrumb de página à home de %s", (locale) => {
         renderInLocale(locale, <PageBreadcrumb pageTitle="Entidades" />);
 

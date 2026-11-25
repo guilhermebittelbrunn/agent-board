@@ -3,18 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import useAuth from "@repo/auth/provider";
 import { HookFormInputPassword } from "@repo/design-system/components/form/hookform";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@repo/design-system/components/ui/alert-dialog";
-import { Button } from "@repo/design-system/components/ui/button";
 import { Form } from "@repo/design-system/components/ui/form";
 import { getDictionary } from "@repo/internationalization/client";
 import type { AccountDTO } from "@repo/sdk/src/types";
@@ -30,9 +18,6 @@ import {
     type AccountPasswordFormValues,
     buildAccountPasswordSchema,
 } from "../(validations)/accountFormSchema";
-import { AccountPasswordSetForm } from "./AccountPasswordSetForm";
-import { AccountSessionsPanel } from "./AccountSessionsPanel";
-import { AccountSignInMethodsPanel } from "./AccountSignInMethodsPanel";
 
 type AccountSecurityFormProps = {
     account: AccountDTO | undefined;
@@ -43,8 +28,7 @@ export function AccountSecurityForm({ account }: AccountSecurityFormProps) {
     const { isImpersonating } = useAuthRequestPanel();
     const { signOut } = useAuth();
     const accountSecurity = dictionary.apps.app.pages.common.account.security;
-    const { changePasswordMutation, revokeSessionsMutation } =
-        useAccountMutations();
+    const { changePasswordMutation } = useAccountMutations();
 
     const schema = useMemo(
         () => buildAccountPasswordSchema(dictionary),
@@ -60,8 +44,8 @@ export function AccountSecurityForm({ account }: AccountSecurityFormProps) {
         },
     });
 
-    // A password change and "sign out everywhere" revoke every Firebase session of the
-    // account, this one included: staying on it would only fail the next request.
+    // A password change revokes every Firebase session of the account, this one
+    // included: staying on it would only fail the next request.
     const onSubmit = (values: AccountPasswordFormValues) => {
         changePasswordMutation.mutate(
             {
@@ -74,10 +58,11 @@ export function AccountSecurityForm({ account }: AccountSecurityFormProps) {
 
     return (
         <div className="flex w-full flex-1 flex-col gap-6">
-            <AccountSignInMethodsPanel account={account} />
-
             {lacksPasswordProvider(account) ? (
-                <AccountPasswordSetForm />
+                <SettingsSection
+                    description={accountSecurity.passwordUnavailable}
+                    title={accountSecurity.passwordTitle}
+                />
             ) : (
                 <SettingsSection
                     description={accountSecurity.description}
@@ -119,51 +104,6 @@ export function AccountSecurityForm({ account }: AccountSecurityFormProps) {
                     </Form>
                 </SettingsSection>
             )}
-
-            <AccountSessionsPanel />
-
-            <SettingsSection
-                description={accountSecurity.signOutEverywhereDescription}
-                title={accountSecurity.signOutEverywhere}
-            >
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button
-                            className="self-start"
-                            disabled={isImpersonating}
-                            type="button"
-                            variant="outline"
-                        >
-                            {accountSecurity.signOutEverywhere}
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>
-                                {accountSecurity.signOutEverywhere}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {accountSecurity.signOutEverywhereConfirm}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>
-                                {accountSecurity.cancel}
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={() =>
-                                    revokeSessionsMutation.mutate(undefined, {
-                                        onSuccess: () => signOut.mutate(),
-                                    })
-                                }
-                                variant="destructive"
-                            >
-                                {accountSecurity.signOutEverywhereAction}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </SettingsSection>
         </div>
     );
 }

@@ -6,7 +6,6 @@ import { SignInForm } from "./components/SignInForm";
 
 type SignInProps = {
     readonly params: Promise<{ locale: string }>;
-    readonly searchParams: Promise<{ redirect?: string | string[] }>;
 };
 
 export const generateMetadata = async ({
@@ -18,10 +17,6 @@ export const generateMetadata = async ({
     return createMetadata(dictionary.apps.app.pages.signIn.meta);
 };
 
-export default async function SignIn({ searchParams }: SignInProps) {
-    const { redirect } = await searchParams;
-
-    return (
-        <SignInForm redirect={typeof redirect === "string" ? redirect : null} />
-    );
+export default function SignIn() {
+    return <SignInForm />;
 }

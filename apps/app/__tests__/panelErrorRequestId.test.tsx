@@ -8,7 +8,7 @@ import { useEntityCrud } from "@/app/[locale]/(authenticated)/(common)/(pages)/e
 const { updateMock, errorAlertMock, localeRef } = vi.hoisted(() => ({
     updateMock: vi.fn(),
     errorAlertMock: vi.fn(),
-    localeRef: { current: "pt-br" as "pt-br" | "en" | "es" },
+    localeRef: { current: "pt-br" as const },
 }));
 
 vi.mock("@/shared/lib/client", () => ({
@@ -113,17 +113,6 @@ describe("erro de mutation no painel", () => {
 
         expect(await submitFailingUpdate()).toBe(
             `Entidade não encontrada. (Código do erro: ${REQUEST_ID})`
-        );
-    });
-
-    it("usa o rótulo do idioma da conta", async () => {
-        localeRef.current = "es";
-        updateMock.mockRejectedValue(
-            apiRejection({ "x-request-id": REQUEST_ID })
-        );
-
-        expect(await submitFailingUpdate()).toBe(
-            `Entidad no encontrada. (Código del error: ${REQUEST_ID})`
         );
     });
 

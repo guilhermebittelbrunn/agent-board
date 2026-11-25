@@ -16,16 +16,14 @@ const {
     pushMock,
     replaceMock,
     signInMock,
-    signInWithEmailLinkCodeMock,
 } = vi.hoisted(() => ({
     designSystemProps: { current: null as Record<string, unknown> | null },
     idTokenListeners: [] as IdTokenListener[],
     logoutMock: vi.fn(),
-    params: { locale: "en" } as Record<string, string>,
+    params: { locale: "pt-br" } as Record<string, string>,
     pushMock: vi.fn(),
     replaceMock: vi.fn(),
     signInMock: vi.fn(),
-    signInWithEmailLinkCodeMock: vi.fn(),
 }));
 
 vi.mock("@repo/auth/client", () => ({
@@ -33,8 +31,6 @@ vi.mock("@repo/auth/client", () => ({
     logout: () => logoutMock(),
     signIn: (...args: unknown[]) => signInMock(...args),
     signInWithGoogle: vi.fn(),
-    signInWithEmailLinkCode: (...args: unknown[]) =>
-        signInWithEmailLinkCodeMock(...args),
     subscribeToIdTokenState: (listener: IdTokenListener) => {
         idTokenListeners.push(listener);
         queueMicrotask(() => listener(null));
@@ -97,7 +93,7 @@ const { AppDesignProvider } = await import(
 );
 
 const ORIGIN = "http://localhost:3000";
-const DESTINATION = "/en/entities";
+const DESTINATION = "/pt-br/entities";
 const STATUS_OK = 200;
 const STATUS_UNAUTHORIZED = 401;
 const STATUS_INTERNAL_ERROR = 500;
@@ -158,7 +154,7 @@ async function signInWithPassword(auth: AuthContextValue | undefined) {
 
 beforeEach(() => {
     cleanup();
-    params.locale = "en";
+    params.locale = "pt-br";
     idTokenListeners.length = 0;
     designSystemProps.current = null;
     fetchMock.mockReset();
@@ -169,14 +165,12 @@ beforeEach(() => {
     replaceMock.mockReset();
     signInMock.mockReset();
     signInMock.mockResolvedValue({ user: firebaseUser() });
-    signInWithEmailLinkCodeMock.mockReset();
-    signInWithEmailLinkCodeMock.mockResolvedValue({ user: firebaseUser() });
     vi.stubGlobal("fetch", fetchMock);
     Object.defineProperty(window, "location", {
         configurable: true,
         value: {
             origin: ORIGIN,
-            pathname: "/en/sign-in",
+            pathname: "/pt-br/sign-in",
             replace: replaceMock,
             search: "",
         },
@@ -200,24 +194,6 @@ describe("navegação depois do login com postLoginNavigation", () => {
 
         await signInWithPassword(getAuth());
 
-        expect(replaceMock).toHaveBeenCalledWith(DESTINATION);
-        expect(pushMock).not.toHaveBeenCalled();
-    });
-
-    it("leva o login por link de e-mail à mesma navegação de página inteira", async () => {
-        const getAuth = renderProvider({
-            postLoginNavigation: "full-page",
-            resolveDefaultPostLoginPath: async () => DESTINATION,
-        });
-
-        await act(async () => {
-            await getAuth()?.signInWithEmailLink.mutateAsync({
-                email: "qa@example.com",
-                oobCode: "code",
-            });
-        });
-
-        expect(getAuth()?.signInWithEmailLink.isSuccess).toBe(true);
         expect(replaceMock).toHaveBeenCalledWith(DESTINATION);
         expect(pushMock).not.toHaveBeenCalled();
     });

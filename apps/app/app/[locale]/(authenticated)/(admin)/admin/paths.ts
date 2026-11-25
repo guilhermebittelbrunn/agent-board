@@ -29,12 +29,5 @@ export const ADMIN_ROUTES = (
                 url: buildPath(`/admin/users/edit/${id}`),
             }),
         },
-        audit: {
-            list: {
-                label: dictionary?.apps.app.pages.admin.routes.platform.audit
-                    .list,
-                url: buildPath("/admin/audit"),
-            },
-        },
     };
 };

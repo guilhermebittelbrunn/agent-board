@@ -19,24 +19,18 @@ const TAB_LABELS = {
     profile: "Perfil",
     security: "Segurança",
     preferences: "Preferências",
-    billing: "Cobrança",
-    privacy: "Privacidade",
 };
 
 const SECTION_DESCRIPTIONS = {
     profile: "Descrição do perfil",
     security: "Descrição da segurança",
     preferences: "Descrição das preferências",
-    billing: "Descrição da cobrança",
-    privacy: "Descrição da privacidade",
 };
 
 const SECTION_NAV_LABEL = "Seções da conta";
 
-/** profile, security, preferences, billing e privacy. */
-const ACCOUNT_TAB_COUNT = 5;
-/** O modo simple não cobra assinatura, então a seção billing sai. */
-const SIMPLE_MODE_TAB_COUNT = 4;
+/** profile, security e preferences. */
+const ACCOUNT_TAB_COUNT = 3;
 
 const { searchParamsMock } = vi.hoisted(() => ({
     searchParamsMock: vi.fn(() => new URLSearchParams("")),
@@ -86,14 +80,6 @@ vi.mock(
     "@/app/[locale]/(authenticated)/(common)/(pages)/account/(components)/AccountPreferencesForm",
     () => ({ AccountPreferencesForm: stub("preferences") })
 );
-vi.mock(
-    "@/app/[locale]/(authenticated)/(common)/(pages)/account/(components)/AccountBillingPanel",
-    () => ({ AccountBillingPanel: stub("billing") })
-);
-vi.mock(
-    "@/app/[locale]/(authenticated)/(common)/(pages)/account/(components)/AccountPrivacyPanel",
-    () => ({ AccountPrivacyPanel: stub("privacy") })
-);
 
 async function loadAccountTabs() {
     vi.resetModules();
@@ -131,7 +117,7 @@ const lastReplacedUrl = () => {
 };
 
 describe("AccountTabs — navegação vertical", () => {
-    it("expõe uma lista vertical com as cinco seções e um select com as mesmas opções", async () => {
+    it("expõe uma lista vertical com as três seções e um select com as mesmas opções", async () => {
         useUrl("tab=profile");
         const AccountTabs = await loadAccountTabs();
 
@@ -174,15 +160,15 @@ describe("AccountTabs — a seção acompanha a URL", () => {
         const { rerender } = render(<AccountTabs account={undefined} />);
         expect(selectedTab()?.textContent).toBe(TAB_LABELS.security);
 
-        useUrl("tab=privacy");
+        useUrl("tab=preferences");
         rerender(<AccountTabs account={undefined} />);
 
-        expect(selectedTab()?.textContent).toBe(TAB_LABELS.privacy);
-        expect(screen.getByText("privacy-panel")).toBeTruthy();
+        expect(selectedTab()?.textContent).toBe(TAB_LABELS.preferences);
+        expect(screen.getByText("preferences-panel")).toBeTruthy();
     });
 
-    it("ao clicar numa aba, regrava a URL preservando checkout", async () => {
-        useUrl("tab=billing&checkout=success");
+    it("ao clicar numa aba, regrava a URL preservando os outros parâmetros", async () => {
+        useUrl("tab=preferences&from=menu");
         const AccountTabs = await loadAccountTabs();
         render(<AccountTabs account={undefined} />);
         replaceStateSpy.mockClear();
@@ -197,7 +183,7 @@ describe("AccountTabs — a seção acompanha a URL", () => {
         const url = new URL(lastReplacedUrl() ?? "", "http://localhost");
         expect(url.pathname).toBe("/pt-br/account");
         expect(url.searchParams.get("tab")).toBe("security");
-        expect(url.searchParams.get("checkout")).toBe("success");
+        expect(url.searchParams.get("from")).toBe("menu");
     });
 
     it("ao escolher no select, regrava a URL com a seção escolhida", async () => {
@@ -236,52 +222,11 @@ describe("AccountTabs — a seção acompanha a URL", () => {
     });
 
     it("não regrava a URL quando o tab já é válido", async () => {
-        useUrl("tab=privacy");
+        useUrl("tab=preferences");
         const AccountTabs = await loadAccountTabs();
 
         render(<AccountTabs account={undefined} />);
 
         expect(replaceStateSpy).not.toHaveBeenCalled();
-    });
-});
-
-describe("AccountTabs — cobrança por modo de produto", () => {
-    it("renderiza a seção billing no modo subscription", async () => {
-        vi.stubEnv("NEXT_PUBLIC_PRODUCT_MODE", "subscription");
-        useUrl("tab=billing");
-        const AccountTabs = await loadAccountTabs();
-
-        render(<AccountTabs account={undefined} />);
-
-        expect(selectedTab()?.textContent).toBe(TAB_LABELS.billing);
-        expect(screen.getByText("billing-panel")).toBeTruthy();
-    });
-
-    it("tira a seção billing da lista e do select no modo simple", async () => {
-        vi.stubEnv("NEXT_PUBLIC_PRODUCT_MODE", "simple");
-        useUrl("tab=profile");
-        const AccountTabs = await loadAccountTabs();
-
-        render(<AccountTabs account={undefined} />);
-
-        expect(screen.getAllByRole("tab")).toHaveLength(SIMPLE_MODE_TAB_COUNT);
-        expect(
-            screen.queryByRole("tab", { name: TAB_LABELS.billing })
-        ).toBeNull();
-        expect(
-            screen.queryByRole("option", { name: TAB_LABELS.billing })
-        ).toBeNull();
-    });
-
-    it("abre o perfil e normaliza a URL quando o link pede ?tab=billing no modo simple", async () => {
-        vi.stubEnv("NEXT_PUBLIC_PRODUCT_MODE", "simple");
-        useUrl("tab=billing");
-        const AccountTabs = await loadAccountTabs();
-
-        render(<AccountTabs account={undefined} />);
-
-        expect(selectedTab()?.textContent).toBe(TAB_LABELS.profile);
-        expect(screen.queryByText("billing-panel")).toBeNull();
-        expect(lastReplacedUrl()).toBe("/pt-br/account?tab=profile");
     });
 });

@@ -16,14 +16,11 @@ import FormattedError from "@repo/shared/utils/helpers/formattedError";
 import { handleClientError } from "@repo/shared/utils/helpers/handleClientError";
 import { useMutation } from "@tanstack/react-query";
 import type { UserCredential } from "firebase/auth";
-import Link from "next/link";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { FcGoogle } from "react-icons/fc";
 import { FullScreenLoader } from "@/shared/components/ui/FullScreenLoader";
-import { useEmailLinkAvailability } from "@/shared/hooks/useEmailLinkSignIn";
 import { useSignedInRedirect } from "@/shared/hooks/useSignedInRedirect";
-import { withRedirectQuery } from "@/shared/lib/authRedirectLink";
 import { apiClient } from "@/shared/lib/client";
 import { signInWithGoogleViaApi } from "@/shared/lib/googleSignInApi";
 import { resolveAppPostLoginPath } from "@/shared/lib/postLoginNavigation";
@@ -32,15 +29,10 @@ import {
     type SignInFormValues,
 } from "../validations/signInSchema";
 
-type SignInFormProps = {
-    redirect?: string | null;
-};
-
-export const SignInForm = ({ redirect = null }: SignInFormProps) => {
+export const SignInForm = () => {
     const { dictionary, locale } = getDictionary();
     const { errorAlert, successAlert } = useAlert();
     const { signIn, user, loading: authLoading } = useAuth();
-    const emailLinkAvailability = useEmailLinkAvailability();
     useSignedInRedirect();
 
     const trackEvent = useAnalyticsEvent();
@@ -165,41 +157,6 @@ export const SignInForm = ({ redirect = null }: SignInFormProps) => {
                     <FcGoogle />
                     {dictionary.apps.app.pages.signIn.googleSignIn}
                 </Button>
-
-                <div className="space-y-2 text-center text-sm">
-                    <p>
-                        <Link
-                            className="text-primary hover:underline"
-                            href={`/${locale}/forgot-password`}
-                        >
-                            {dictionary.apps.app.pages.signIn.forgotPassword}
-                        </Link>
-                    </p>
-                    {emailLinkAvailability.data?.enabled ? (
-                        <p>
-                            <Link
-                                className="text-primary hover:underline"
-                                href={`/${locale}/sign-in/email-link`}
-                            >
-                                {dictionary.apps.app.pages.signIn.emailLink}
-                            </Link>
-                        </p>
-                    ) : null}
-                    <p>
-                        <span className="text-muted-foreground">
-                            {dictionary.apps.app.pages.signIn.noAccount}
-                        </span>
-                        <Link
-                            className="text-primary hover:underline"
-                            href={withRedirectQuery(
-                                `/${locale}/sign-up`,
-                                redirect
-                            )}
-                        >
-                            {dictionary.apps.app.pages.signIn.signUp}
-                        </Link>
-                    </p>
-                </div>
             </div>
         </div>
     );

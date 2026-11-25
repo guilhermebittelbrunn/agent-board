@@ -157,9 +157,9 @@ describe("panelPageMetadata", () => {
     );
 
     it("falls back to the default language when the segment is not a supported locale", async () => {
-        expect((await metadataFor("/admin/audit", "xx")).title).toBe(
+        expect((await metadataFor("/admin/users", "xx")).title).toBe(
             globalTranslations["pt-br"].apps.app.pages.admin.routes.platform
-                .audit.list
+                .users.list
         );
     });
 });

@@ -10,13 +10,10 @@ import { useForm } from "react-hook-form";
 import { Container } from "@/shared/components/ui/Container";
 import { Footer } from "@/shared/components/ui/Footer";
 import { FormContainer } from "@/shared/components/ui/FormContainer";
-import { FormSkeleton } from "@/shared/components/ui/FormSkeleton";
 import { Header } from "@/shared/components/ui/Header";
 import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { PlanGate } from "@/shared/components/ui/PlanGate";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
-import { entityPlanRequirement } from "@/shared/lib/entityPlanRequirement";
 import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../paths";
 import { EntityFormFields } from "../../(components)/EntityFormFields";
@@ -34,9 +31,7 @@ export default function CreateEntityPage() {
     const routes = COMMON_ROUTES(dictionary, locale);
     const entitiesForm = dictionary.apps.app.pages.common.entities.form;
     const { createEntityMutation } = useEntityCrud();
-    const { uploadFile, isUploading } = useFileUpload({
-        scope: "organization",
-    });
+    const { uploadFile, isUploading } = useFileUpload();
 
     const schema = useMemo(
         () => buildEntityFormSchema(dictionary),
@@ -61,8 +56,6 @@ export default function CreateEntityPage() {
             onSuccess: () => router.push(routes.entities.list.url),
         });
     };
-
-    const planRequirement = entityPlanRequirement();
 
     const createForm = (
         <Form {...form}>
@@ -107,16 +100,7 @@ export default function CreateEntityPage() {
                 header={<PageHeader title={routes.entities.create.label} />}
                 width="narrow"
             >
-                {planRequirement ? (
-                    <PlanGate
-                        loadingFallback={<FormSkeleton />}
-                        requirement={planRequirement}
-                    >
-                        {createForm}
-                    </PlanGate>
-                ) : (
-                    createForm
-                )}
+                {createForm}
             </Container>
         </>
     );

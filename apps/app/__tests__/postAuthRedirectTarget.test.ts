@@ -12,10 +12,10 @@ describe("postAuthRedirectTarget", () => {
         expect(postAuthRedirectTarget("/pt-br/entities", FALLBACK)).toBe(
             "/pt-br/entities"
         );
-        expect(postAuthRedirectTarget("/en/admin/users", FALLBACK)).toBe(
-            "/en/admin/users"
+        expect(postAuthRedirectTarget("/pt-br/admin/users", FALLBACK)).toBe(
+            "/pt-br/admin/users"
         );
-        expect(postAuthRedirectTarget("/es", FALLBACK)).toBe("/es");
+        expect(postAuthRedirectTarget("/pt-br", FALLBACK)).toBe("/pt-br");
     });
 
     it("accepts a percent-encoded path", () => {
@@ -80,9 +80,9 @@ describe("postAuthRedirectTarget", () => {
         expect(postAuthRedirectTarget("/pt-br/x/../entities", FALLBACK)).toBe(
             "/pt-br/x/../entities"
         );
-        expect(postAuthRedirectTarget("/pt-br/../en/entities", FALLBACK)).toBe(
-            "/pt-br/../en/entities"
-        );
+        expect(
+            postAuthRedirectTarget("/pt-br/x/../../pt-br/entities", FALLBACK)
+        ).toBe("/pt-br/x/../../pt-br/entities");
     });
 
     it("keeps the query of an accepted deep link", () => {

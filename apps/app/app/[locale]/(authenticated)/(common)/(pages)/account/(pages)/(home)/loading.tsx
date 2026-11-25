@@ -1,7 +1,7 @@
 import { Skeleton } from "@repo/design-system/components/ui/skeleton";
 import { PageSkeleton } from "@/shared/components/ui/PageSkeleton";
 
-const sectionNavKeys = ["nav-1", "nav-2", "nav-3", "nav-4", "nav-5"];
+const sectionNavKeys = ["nav-1", "nav-2", "nav-3"];
 
 export default function Loading() {
     return (

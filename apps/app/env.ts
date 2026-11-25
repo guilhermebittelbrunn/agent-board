@@ -1,17 +1,10 @@
-import { keys as email } from "@repo/email/keys";
 import { keys as core } from "@repo/next-config/keys";
 import { keys as security } from "@repo/security/keys";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-const STRIPE_LOOKUP_KEY_MAX_LENGTH = 80;
-
 export const env = createEnv({
-    extends: [core(), email(), security()],
-    server: {
-        // Post-sign-up onboarding. Empty or absent keeps it on; only "false" turns it off.
-        ONBOARDING_ENABLED: z.string().optional(),
-    },
+    extends: [core(), security()],
     // Public Firebase and analytics settings the proxy needs to name the exact
     // third-party origins the browser is allowed to reach.
     client: {
@@ -26,18 +19,8 @@ export const env = createEnv({
         // bucket and the emulator origin is allowed in the image policy.
         NEXT_PUBLIC_FIREBASE_STORAGE_EMULATOR_HOST: z.string().optional(),
         NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().optional(),
-        // Lookup key of the provider feature that creating an entity demands while billing
-        // is on. Must match the API's value.
-        NEXT_PUBLIC_ENTITY_REQUIRED_FEATURE: z
-            .string()
-            .max(STRIPE_LOOKUP_KEY_MAX_LENGTH)
-            .optional(),
-        // "true" shows the team page and the invitation page. Anything else, empty
-        // included, keeps the product B2C. Must match the API's value.
-        NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED: z.string().optional(),
     },
     runtimeEnv: {
-        ONBOARDING_ENABLED: process.env.ONBOARDING_ENABLED,
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
             process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
         NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST:
@@ -48,9 +31,5 @@ export const env = createEnv({
             process.env.NEXT_PUBLIC_FIREBASE_STORAGE_EMULATOR_HOST,
         NEXT_PUBLIC_GA_MEASUREMENT_ID:
             process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
-        NEXT_PUBLIC_ENTITY_REQUIRED_FEATURE:
-            process.env.NEXT_PUBLIC_ENTITY_REQUIRED_FEATURE || undefined,
-        NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED:
-            process.env.NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED || undefined,
     },
 });

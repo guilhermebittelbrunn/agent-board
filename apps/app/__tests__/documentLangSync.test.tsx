@@ -15,7 +15,7 @@ const { DocumentLangSync } = await import(
 
 beforeEach(() => {
     paramsMock.mockReset();
-    document.documentElement.lang = "en";
+    document.documentElement.lang = "x-server";
 });
 
 afterEach(() => {
@@ -24,14 +24,14 @@ afterEach(() => {
 
 describe("DocumentLangSync", () => {
     it("follows the locale segment across a soft navigation", () => {
-        paramsMock.mockReturnValue({ locale: "en" });
+        paramsMock.mockReturnValue({});
         const { rerender } = render(<DocumentLangSync />);
-        expect(document.documentElement.lang).toBe("en");
+        expect(document.documentElement.lang).toBe("x-server");
 
-        paramsMock.mockReturnValue({ locale: "es" });
+        paramsMock.mockReturnValue({ locale: "pt-br" });
         rerender(<DocumentLangSync />);
 
-        expect(document.documentElement.lang).toBe("es");
+        expect(document.documentElement.lang).toBe("pt-br");
     });
 
     it("keeps the server-rendered value on a route without a locale segment", () => {
@@ -39,7 +39,7 @@ describe("DocumentLangSync", () => {
 
         render(<DocumentLangSync />);
 
-        expect(document.documentElement.lang).toBe("en");
+        expect(document.documentElement.lang).toBe("x-server");
     });
 
     it("ignores a segment that is not a supported locale", () => {
@@ -47,6 +47,6 @@ describe("DocumentLangSync", () => {
 
         render(<DocumentLangSync />);
 
-        expect(document.documentElement.lang).toBe("en");
+        expect(document.documentElement.lang).toBe("x-server");
     });
 });

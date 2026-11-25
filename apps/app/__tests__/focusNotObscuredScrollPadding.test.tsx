@@ -25,9 +25,6 @@ vi.mock("@repo/design-system/components/ui/sidebar", () => ({
 vi.mock("@repo/design-system/components/ui/mode-toggle", () => ({
     ModeToggle: () => null,
 }));
-vi.mock("@/shared/components/ui/LanguageSwitcher", () => ({
-    LanguageSwitcher: () => null,
-}));
 vi.mock("@/shared/components/ui/PanelNavbarControls", () => ({
     default: () => null,
 }));

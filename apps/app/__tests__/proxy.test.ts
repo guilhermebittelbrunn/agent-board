@@ -161,21 +161,21 @@ describe("proxy locale", () => {
     it("marks the locale cookie Secure when the request arrived over HTTPS", async () => {
         getUserFromSessionCookieMock.mockResolvedValue(null);
 
-        await proxy(makeRequest("/en/sign-in", { origin: HTTPS_ORIGIN }));
+        await proxy(makeRequest("/pt-br/sign-in", { origin: HTTPS_ORIGIN }));
         await proxy(makeRequest("/entities", { origin: HTTPS_ORIGIN }));
 
         expect(cookieSetMock.mock.calls).toEqual([
-            ["x-locale", "en", localeCookieOptions(true)],
+            ["x-locale", "pt-br", localeCookieOptions(true)],
             ["x-locale", "pt-br", localeCookieOptions(true)],
         ]);
     });
 
     it("hands the locale of the path to server rendering", async () => {
-        const anonymousResponse = await proxy(anonymous("/es/sign-in"));
-        const signedInResponse = await proxy(signedIn("/en/entities"));
+        const anonymousResponse = await proxy(anonymous("/pt-br/sign-in"));
+        const signedInResponse = await proxy(signedIn("/pt-br/entities"));
 
-        expect(anonymousResponse.headers.get(FORWARDED_LOCALE)).toBe("es");
-        expect(signedInResponse.headers.get(FORWARDED_LOCALE)).toBe("en");
+        expect(anonymousResponse.headers.get(FORWARDED_LOCALE)).toBe("pt-br");
+        expect(signedInResponse.headers.get(FORWARDED_LOCALE)).toBe("pt-br");
         expect(
             signedInResponse.headers.get("x-middleware-override-headers")
         ).toContain(LOCALE_REQUEST_HEADER);
@@ -241,18 +241,19 @@ describe("proxy default deny", () => {
         );
     });
 
-    it("lets an anonymous visitor reach the public paths", async () => {
-        for (const path of [
-            "/pt-br/sign-in",
-            "/pt-br/sign-up",
-            "/pt-br/forgot-password",
-            "/pt-br/reset-password",
-            "/pt-br/verify-email",
-            "/pt-br/invite",
-        ]) {
+    it("lets an anonymous visitor reach the sign-in page", async () => {
+        const response = await proxy(anonymous("/pt-br/sign-in"));
+
+        expect(locationOf(response)).toBeNull();
+    });
+
+    it("sends an anonymous visitor of a removed public page to sign-in", async () => {
+        for (const path of ["/pt-br/sign-up", "/pt-br/forgot-password"]) {
             const response = await proxy(anonymous(path));
 
-            expect(locationOf(response)).toBeNull();
+            expect(locationOf(response)?.startsWith("/pt-br/sign-in")).toBe(
+                true
+            );
         }
     });
 
@@ -290,12 +291,12 @@ describe("proxy bounce off the public paths", () => {
     it("keeps the query of the deep link, on the host the request came to", async () => {
         const response = await proxy(
             signedIn(
-                "/pt-br/sign-up?redirect=%2Fpt-br%2Faccount%3Ftab%3Dbilling%26plan%3Dprice_1"
+                "/pt-br/sign-in?redirect=%2Fpt-br%2Faccount%3Ftab%3Dpreferences%26from%3Dmenu"
             )
         );
 
         expect(response.headers.get("location")).toBe(
-            `${ORIGIN}/pt-br/account?tab=billing&plan=price_1`
+            `${ORIGIN}/pt-br/account?tab=preferences&from=menu`
         );
     });
 
@@ -305,52 +306,7 @@ describe("proxy bounce off the public paths", () => {
         expect(locationOf(response)).toBe("/pt-br");
     });
 
-    it("leaves a signed-in visitor on a recovery link, action code intact", async () => {
-        for (const path of [
-            "/pt-br/reset-password?oobCode=abc123",
-            "/pt-br/verify-email?oobCode=abc123",
-        ]) {
-            const response = await proxy(signedIn(path));
-
-            expect(locationOf(response)).toBeNull();
-        }
-    });
-
     /** Bouncing home would drop the token, and with it the only way to accept. */
-    it("leaves a signed-in visitor on an invitation link, token intact", async () => {
-        const response = await proxy(signedIn("/pt-br/invite?token=abc123"));
-
-        expect(locationOf(response)).toBeNull();
-    });
-
-    it("lets an anonymous visitor open an invitation link", async () => {
-        const response = await proxy(anonymous("/en/invite?token=abc123"));
-
-        expect(locationOf(response)).toBeNull();
-    });
-
-    it("lets an anonymous visitor open an email sign-in link", async () => {
-        const response = await proxy(
-            anonymous("/pt-br/sign-in/email-link?oobCode=abc123")
-        );
-
-        expect(locationOf(response)).toBeNull();
-    });
-
-    it("sends a signed-in visitor home from an email sign-in link instead of switching accounts", async () => {
-        const response = await proxy(
-            signedIn("/pt-br/sign-in/email-link?oobCode=abc123")
-        );
-
-        expect(locationOf(response)).toBe("/pt-br");
-    });
-
-    it("still bounces a signed-in visitor off the request screen", async () => {
-        const response = await proxy(signedIn("/pt-br/forgot-password"));
-
-        expect(locationOf(response)).toBe("/pt-br");
-    });
-
     it("refuses a deep link pointing off site", async () => {
         for (const redirect of [
             "https%3A%2F%2Fevil.example.com",
@@ -423,55 +379,22 @@ describe("proxy and a session ended from another device", () => {
     it("does not ask the API on an authenticated route or without a cookie", async () => {
         await proxy(signedIn("/pt-br/entities"));
         await proxy(anonymous("/pt-br/sign-in"));
-        await proxy(signedIn("/pt-br/reset-password?oobCode=abc123"));
 
         expect(sessionCheckMock).not.toHaveBeenCalled();
     });
 });
 
-describe("proxy requested path", () => {
-    it("forwards the path of an authenticated request to the server components", async () => {
-        const response = await proxy(signedIn("/pt-br/entities/create"));
-
-        expect(response.headers.get("x-middleware-request-x-app-path")).toBe(
-            "/pt-br/entities/create"
-        );
-    });
-
-    it("forwards the query with the path, so a detour can bring the visitor back to it", async () => {
-        const response = await proxy(
-            signedIn("/pt-br/account?tab=billing&plan=price_1")
-        );
-
-        expect(response.headers.get("x-middleware-request-x-app-path")).toBe(
-            "/pt-br/account?tab=billing&plan=price_1"
-        );
-    });
-
+describe("proxy forwarded headers", () => {
     it("still stores the locale cookie when it forwards the request headers", async () => {
-        const response = await proxy(signedIn("/en/entities"));
+        const response = await proxy(signedIn("/pt-br/entities"));
 
         expect(cookieSetMock).toHaveBeenCalledWith(
             "x-locale",
-            "en",
+            "pt-br",
             localeCookieOptions(false)
         );
-        expect(response.headers.get("x-middleware-request-x-app-path")).toBe(
-            "/en/entities"
-        );
         expect(response.headers.get("x-middleware-override-headers")).toContain(
-            "x-app-path"
-        );
-    });
-
-    it("replaces a value the browser sent instead of trusting it", async () => {
-        const request = signedIn("/pt-br/entities");
-        request.headers.set("x-app-path", "/pt-br/forged");
-
-        const response = await proxy(request);
-
-        expect(response.headers.get("x-middleware-request-x-app-path")).toBe(
-            "/pt-br/entities"
+            LOCALE_REQUEST_HEADER
         );
     });
 });

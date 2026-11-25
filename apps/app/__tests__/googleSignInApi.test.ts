@@ -117,7 +117,7 @@ describe("signInWithGoogleViaApi", () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it.each(["en", "es"])(
+    it.each(["pt-br"])(
         "signs the popup user out with the %s copy when the session cookie cannot be written",
         async (locale) => {
             setCookie("x-locale", locale, ONE_HOUR_IN_SECONDS);
@@ -136,7 +136,7 @@ describe("signInWithGoogleViaApi", () => {
     );
 
     it("signs the popup user out with the translated copy when the session request gets no response", async () => {
-        setCookie("x-locale", "en", ONE_HOUR_IN_SECONDS);
+        setCookie("x-locale", "pt-br", ONE_HOUR_IN_SECONDS);
         fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
 
         await expect(signInWithGoogleViaApi()).rejects.toThrow(
