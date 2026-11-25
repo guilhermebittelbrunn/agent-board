@@ -31,11 +31,11 @@ outra pessoa ou ver repositórios a que não tem acesso no GitHub.
 
 - `packages/kanban-contract/src/roles.ts` — `BOARD_ROLES`, `GITHUB_REPO_ROLES`, `resolveEffectiveRole`,
   `canViewBoard`, `canTriggerStages`, `canManageMembers`, `canConfigureBoard`, com testes.
-- `apps/api/app/(guards)/common-panel.ts:32` — padrão de guard por rota.
+- `apps/api/app/(guards)/common-panel.ts:30` — padrão de guard por rota.
 - Consulta de permissão no GitHub — spec `github-app-integration`.
-- `apps/api/app/(guards)/organization.ts:44` — `requireOrganizationApi`; `apps/api/app/(routes)/organization/` e
-  `apps/api/app/(routes)/invitations/` — organizações com membros e convites por e-mail, herdadas do core.
-  São o precedente mais próximo de membros por board.
+- `apps/api/(shared)/repositories/entity.repository.ts` — escopo por dono no repositório (`ownedBy`,
+  `findOwnedBy`), o padrão que o escopo por board vai seguir. As organizações do core, que tinham membros e
+  convites, saíram no `fork-cleanup`.
 - **Lacuna:** coleção `members`, convites e guard por papel efetivo.
 
 ## Referências
@@ -80,6 +80,3 @@ outra pessoa ou ver repositórios a que não tem acesso no GitHub.
 ## Perguntas em aberto
 
 - Convidar por e-mail também? — **recomendação:** não; só login do GitHub.
-- Modelar o board como uma organização do core ou como coleção própria? — **recomendação:** coleção própria
-  `members` por board (os papéis e a checagem no GitHub são outros), reaproveitando o padrão de guard e de
-  convite das organizações.

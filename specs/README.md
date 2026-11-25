@@ -6,7 +6,7 @@ tarefa foi construída. Spec entregue **sai daqui** (`/spec --sync` move para `d
 
 > **Este repo é uma ferramenta de uso próprio, não um core de MVPs.** Uma spec entra aqui se acelera o time que
 > usa o board. Não há "evidência de mercado": a seção equivalente é **Referências** (documentação do
-> Claude Code, do GitHub e decisões em [`docs/board/`](../docs/board/README.md)).
+> Claude Code, do GitHub e decisões em [`docs/board/DECISIONS.md`](../docs/board/DECISIONS.md)).
 
 ## O ciclo
 
@@ -30,7 +30,7 @@ status: proposed          # proposed | approved | in-progress | done | deferred 
 value: alto               # alto | médio | baixo
 effort: M                 # P (≤1 dia) | M (2–4 dias) | G (>1 semana)
 audience: time            # time | dx | confianca — quem colhe o benefício
-phase: 1                  # fase do roadmap (docs/board/README.md)
+phase: 1                  # fase do roadmap (docs/board/ROADMAP.md)
 area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: []            # ordem: specs que precisam vir antes
 contends_on: []           # arquivos compartilhados existentes que a spec altera

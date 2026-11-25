@@ -7,7 +7,7 @@ effort: M
 audience: confianca
 phase: 1
 area: [packages/auth, apps/app, apps/api, packages/sdk]
-depends_on: [fork-cleanup]
+depends_on: []
 contends_on: []
 feature: -
 updated: 2026-11-25
@@ -29,10 +29,10 @@ GitHub de quem entra.
 
 ## O que já existe no repo
 
-- `packages/auth/client.ts:171` — `signInWithGoogle` com `signInWithPopup`; o mesmo padrão serve para
+- `packages/auth/client.ts:152` — `signInWithGoogle` com `signInWithPopup`; o mesmo padrão serve para
   `GithubAuthProvider`.
 - `packages/auth/session.ts` e `packages/auth/session-routes.ts` — sessão por cookie já pronta.
-- `apps/api/app/(guards)/common-panel.ts:32` — `requireCommonPanelApi`, guard das rotas autenticadas.
+- `apps/api/app/(guards)/common-panel.ts:30` — `requireCommonPanelApi`, guard das rotas autenticadas.
 - **Lacuna:** não há provedor GitHub nem perfil com `githubId`/`login`.
 
 ## Referências

@@ -7,7 +7,7 @@ effort: M
 audience: confianca
 phase: 1
 area: [apps/api, packages/kanban-contract]
-depends_on: [fork-cleanup]
+depends_on: []
 contends_on: []
 feature: -
 updated: 2026-11-25
@@ -29,8 +29,8 @@ consegue começar.
 
 ## O que já existe no repo
 
-- `apps/api/app/(routes)/webhooks/payments/route.ts:288` — padrão de webhook com verificação de assinatura
-  (Stripe), útil como molde; a rota sai em `fork-cleanup`.
+- Nenhum webhook com verificação de assinatura sobrou depois do `fork-cleanup` (o da cobrança saiu); o
+  endpoint do GitHub é o primeiro e vira o molde.
 - `apps/api/env.ts` — env tipado da API.
 - **Lacuna:** nenhum cliente do GitHub, nenhum segredo de App, nenhum endpoint de webhook do GitHub.
 
