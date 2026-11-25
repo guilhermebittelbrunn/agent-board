@@ -24,13 +24,6 @@ vi.mock("@/env", () => ({
     env: { FIREBASE_STORAGE_BUCKET: "a-real-bucket.firebasestorage.app" },
 }));
 
-vi.mock("@/(shared)/lib/billing", () => ({ isBillingEnabled: () => false }));
-
-vi.mock("@/(shared)/lib/audit-recorder", () => ({
-    recordAuditEvent: vi.fn(),
-    recordImpersonationSession: vi.fn(),
-}));
-
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));

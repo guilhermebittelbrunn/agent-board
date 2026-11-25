@@ -12,30 +12,13 @@ const {
     putObjectMock,
     signReadUrlMock,
     parseUploadedImageMock,
-    resolveMembershipMock,
 } = vi.hoisted(() => ({
-    resolveMembershipMock: vi.fn(),
     resolveApiActorMock: vi.fn(),
     findByReferenceIdMock: vi.fn(),
     isStorageConfiguredMock: vi.fn(),
     putObjectMock: vi.fn(),
     signReadUrlMock: vi.fn(),
     parseUploadedImageMock: vi.fn(),
-}));
-
-// Billing reaches Stripe through `server-only`; switched off, nothing is plan-gated,
-// which is how every environment without Stripe keys behaves.
-vi.mock("@/(shared)/lib/billing", () => ({ isBillingEnabled: () => false }));
-vi.mock("@/env", () => ({ env: {} }));
-
-vi.mock("@/(shared)/lib/organization-membership", () => ({
-    resolveOrganizationMembership: (...args: unknown[]) =>
-        resolveMembershipMock(...args),
-}));
-
-vi.mock("@/(shared)/lib/audit-recorder", () => ({
-    recordAuditEvent: vi.fn(),
-    recordImpersonationSession: vi.fn(),
 }));
 
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
@@ -58,8 +41,6 @@ vi.mock("@/(shared)/lib/storage", () => ({
         `uploads/${ownerId}/${crypto.randomUUID()}.${extension}`,
     putObject: (...args: unknown[]) => putObjectMock(...args),
     signReadUrl: (...args: unknown[]) => signReadUrlMock(...args),
-    organizationOwnerSegment: (organizationId: string) =>
-        `org-${organizationId}`,
 }));
 
 vi.mock("@/(shared)/validation/file.schema", async (importOriginal) => ({
@@ -102,8 +83,6 @@ const ACCEPTED_IMAGE = {
         size: PNG_SIZE,
     },
 };
-
-const ORGANIZATION_ID = "org1";
 
 function uploadRequest(
     headers: Record<string, string>,
@@ -149,15 +128,9 @@ beforeEach(() => {
         putObjectMock,
         signReadUrlMock,
         parseUploadedImageMock,
-        resolveMembershipMock,
     ]) {
         mock.mockReset();
     }
-
-    resolveMembershipMock.mockResolvedValue({
-        organizationId: ORGANIZATION_ID,
-        role: "member",
-    });
 
     resolveApiActorMock.mockResolvedValue({ uid: OWNER_UID });
     findByReferenceIdMock.mockImplementation((uid: string) =>
@@ -192,34 +165,6 @@ describe("POST /files", () => {
             ACCEPTED_IMAGE.value.body,
             "image/png"
         );
-    });
-
-    it("stores a record photo under the organization when asked for that scope", async () => {
-        const response = await POST(asOwner("?scope=organization"));
-
-        expect(response.status).toBe(STATUS_CREATED);
-        const body = (await response.json()) as { data: { path: string } };
-        expect(body.data.path).toMatch(
-            new RegExp(`^uploads/org-${ORGANIZATION_ID}/[0-9a-f-]{36}\\.png$`)
-        );
-    });
-
-    it("keeps the personal prefix for an explicit personal scope", async () => {
-        const response = await POST(asOwner("?scope=personal"));
-
-        const body = (await response.json()) as { data: { path: string } };
-        expect(body.data.path.startsWith(`uploads/${OWNER_PROFILE.id}/`)).toBe(
-            true
-        );
-    });
-
-    it("refuses an unknown scope before reading the body", async () => {
-        const response = await POST(asOwner("?scope=everyone"));
-
-        expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
-        expect(await errorCode(response)).toBe("VALIDATION_FAILED");
-        expect(parseUploadedImageMock).not.toHaveBeenCalled();
-        expect(putObjectMock).not.toHaveBeenCalled();
     });
 
     /**

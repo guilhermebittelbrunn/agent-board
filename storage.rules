@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // =============================================================================
-// Cloud Storage Security Rules — boilerplate (next-forge fork)
+// Cloud Storage Security Rules — agent-board
 //
 // MODELO DE ACESSO
 //   Todo acesso ao bucket passa pela apps/api (guard → service account via
