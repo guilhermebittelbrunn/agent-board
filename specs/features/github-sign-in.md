@@ -37,6 +37,7 @@ GitHub de quem entra.
 
 ## Referências
 
+- Telas: [Entrar](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Login). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#identidade).
 - Firebase Auth — provedor GitHub (OAuth App do GitHub configurado no console do Firebase).
 

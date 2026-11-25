@@ -17,15 +17,15 @@ updated: 2026-11-25
 
 > **Resumo**
 > - **O quê:** cada membro dispara etapas com a própria credencial do Claude.
-> - **Por quê:** sem isso o papel de operador não serve e o custo fica todo com uma pessoa.
+> - **Por quê:** sem isso o papel de operador não serve e tudo roda na conta de uma pessoa só.
 > - **Status:** `proposed` · valor alto · esforço M · confianca
 > - **Próximo passo:** aguardando triagem
 
 ## Problema
 
 Para que outro membro arraste um card e dispare a etapa, a execução tem de rodar com a credencial **dele**,
-não com a do dono do board. Sem isso, o papel `operator` não serve para nada e o custo fica todo com uma
-pessoa.
+não com a do dono do board. Sem isso, o papel `operator` não serve para nada e tudo roda na conta
+de uma pessoa só.
 
 ## O que já existe no repo
 
@@ -35,7 +35,8 @@ pessoa.
 
 ## Referências
 
-- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#quem-paga-a-execução) — ordem de escolha da credencial.
+- Telas: [Minhas credenciais](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Credentials) · [Operador sem credencial](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-CredentialsEmpty) · [Disparar etapa](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-TriggerStage). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
+- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#com-que-credencial-a-execução-roda) — ordem de escolha da credencial.
 
 ## Proposta — corte de MVP
 

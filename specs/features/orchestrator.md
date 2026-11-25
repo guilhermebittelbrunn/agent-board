@@ -36,6 +36,7 @@ alguém). Sem um ponto único que faça isso, cada tela e cada agente moveria ca
 
 ## Referências
 
+- Telas: [Quadro](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Main) · [Disparar etapa](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-TriggerStage) · [mover card no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MMove) · aba Etapas da [Configuração](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Settings). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [`docs/board/ARCHITECTURE.md`](../../docs/board/ARCHITECTURE.md) — ciclo do card, executores e dados.
 
 ## Proposta — corte de MVP
@@ -53,7 +54,7 @@ alguém). Sem um ponto único que faça isso, cada tela e cada agente moveria ca
 ### Fora do corte
 
 - Executores reais — specs `local-runner` e `cloud-routines-runner`.
-- Agenda e orçamento — spec `schedules-and-budgets`.
+- Ciclos e agenda — specs `cycle-runs` e `cycle-schedule`.
 
 ## Impacto por camada
 

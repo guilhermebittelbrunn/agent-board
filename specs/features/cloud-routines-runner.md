@@ -35,6 +35,7 @@ quem as criou.
 
 ## Referências
 
+- Telas: tarefas agendadas em [Minhas credenciais](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Credentials). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [Automate work with scheduled tasks](https://code.claude.com/docs/en/routines) — `POST …/routines/{id}/fire`
   com `Authorization: Bearer`, header beta `experimental-cc-routine-2026-04-01`, campo `text`, resposta
   com a URL da sessão; 30 disparos/h por tarefa e 100/h por conta; o texto chega marcado como não confiável.

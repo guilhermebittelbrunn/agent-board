@@ -33,7 +33,7 @@ O `summary` de `complete_stage` segue um molde fixo, para que o card seja legív
 **Pendências:** o que ficou para depois, com dono.
 ```
 
-Tempo, custo, modelo e link da sessão são preenchidos pelo board a partir do `run`.
+Tempo, modelo e link da sessão são preenchidos pelo board a partir do `run`.
 
 ## Garantias do lado do board
 

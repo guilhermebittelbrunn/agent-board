@@ -24,8 +24,8 @@ updated: 2026-11-25
 ## Problema
 
 O board é colaborativo: o dono quer chamar outra pessoa para acompanhar as tarefas e, mais adiante, para
-arrastar cards e disparar etapas. Sem papéis, qualquer convidado poderia disparar execuções pagas por
-outra pessoa ou ver repositórios a que não tem acesso no GitHub.
+arrastar cards e disparar etapas. Sem papéis, qualquer convidado poderia disparar execuções com a
+credencial de outra pessoa ou ver repositórios a que não tem acesso no GitHub.
 
 ## O que já existe no repo
 
@@ -40,6 +40,7 @@ outra pessoa ou ver repositórios a que não tem acesso no GitHub.
 
 ## Referências
 
+- Telas: [Membros](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Members). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md) — papéis, regra do papel efetivo e quando checar.
 
 ## Proposta — corte de MVP

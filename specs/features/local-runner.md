@@ -35,10 +35,11 @@ login do Claude de quem registrou o runner.
 
 ## Referências
 
+- Telas: [Minhas credenciais](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Credentials). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview) — carrega `.claude/` do projeto,
   hooks, permissões, sessões.
 - [Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan).
-- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#quem-paga-a-execução).
+- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#com-que-credencial-a-execução-roda).
 
 ## Proposta — corte de MVP
 
@@ -46,7 +47,7 @@ login do Claude de quem registrou o runner.
       `start` (busca trabalho no board por polling, só conexões de saída).
 - [ ] Para cada `run`: clona ou atualiza o repositório numa pasta do runner, cria um worktree na branch do
       card e roda `/<comando> <slug> --board <card>` com o modelo e o esforço da coluna.
-- [ ] Transmite progresso para o card (`post_update`) e o custo da execução ao final.
+- [ ] Transmite progresso para o card (`post_update`) e o tempo da execução ao final.
 - [ ] Respeita `limits.maxTurnsPerStage`; Ctrl+C encerra a execução atual como `failed`.
 - [ ] Um runner atende um usuário (quem registrou) e um `run` por vez no MVP.
 
@@ -77,4 +78,4 @@ login do Claude de quem registrou o runner.
 ## Perguntas em aberto
 
 - Agent SDK em TypeScript ou `claude -p` como subprocesso? — **recomendação:** Agent SDK (stream tipado,
-  custo por execução).
+  controle de turnos por execução).

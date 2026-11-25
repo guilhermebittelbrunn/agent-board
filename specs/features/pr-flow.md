@@ -34,6 +34,7 @@ pedem ajustes, CI falhando e o merge que conclui a tarefa. Hoje isso é manual e
 
 ## Referências
 
+- Telas: [Card aguardando PR](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-CardPr). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#github-app-do-board) — permissões e eventos.
 
 ## Proposta — corte de MVP

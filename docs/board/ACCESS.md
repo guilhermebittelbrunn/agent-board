@@ -27,9 +27,9 @@ A permissão de um membro vem de `GET /repos/{owner}/{repo}/collaborators/{usern
 | Papel | O que pode fazer | Exige no GitHub |
 |-------|------------------|-----------------|
 | `owner` | Tudo, mais configurar colunas e a API key do board, e excluir o board | `admin` |
-| `maintainer` | Convidar e remover membros, editar colunas, agenda e orçamento | `maintain` |
-| `operator` | Criar e priorizar cards, arrastar (dispara a etapa), responder perguntas | `write` |
-| `viewer` | Ver board, cards, relatórios e custos; comentar | `read` |
+| `maintainer` | Convidar e remover membros, editar colunas e a agenda de ciclos | `maintain` |
+| `operator` | Escrever, descobrir e aprovar specs, priorizar e arrastar cards (dispara a etapa), rodar ciclos, responder perguntas | `write` |
+| `viewer` | Ver board, cards, ciclos e relatórios; comentar | `read` |
 
 **Papel efetivo = o maior papel que não passa do papel no board nem da permissão no GitHub** (`resolveEffectiveRole`). Exemplos: `operator` com `read` no GitHub vira `viewer`; `owner` com `write` vira `operator`; quem perdeu o repositório perde o board.
 
@@ -45,7 +45,7 @@ Quando checar:
 - Só `maintainer` e `owner` convidam; ninguém convida para um papel acima do próprio.
 - Remover um membro não apaga o que ele fez: `runs` e `events` guardam o autor.
 
-## Quem paga a execução
+## Com que credencial a execução roda
 
 Ordem de escolha da credencial quando alguém dispara uma etapa:
 
@@ -53,7 +53,7 @@ Ordem de escolha da credencial quando alguém dispara uma etapa:
 2. Se ele não tiver, a **API key do board**, se o `owner` configurou.
 3. Se nada servir, o disparo é recusado e o motivo aparece no card.
 
-Commits e PR saem no nome de quem executou. `viewer` nunca dispara. Toda execução grava em `runs` quem disparou, com qual credencial, o modelo e o custo.
+Commits e PR saem no nome de quem executou. `viewer` nunca dispara. Toda execução grava em `runs` quem disparou, com qual credencial e o modelo.
 
 Regra da Anthropic que isso respeita: o login de uma assinatura do Claude é para uso próprio. O board nunca usa a assinatura de uma pessoa para rodar o que outra disparou; quando a credencial não é de quem disparou, é uma API key.
 

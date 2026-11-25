@@ -36,6 +36,7 @@ consegue começar.
 
 ## Referências
 
+- Telas: [Novo board](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-NewBoard) · [Primeiro acesso](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardsEmpty). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#github-app-do-board) — permissões e eventos do App.
 - [REST API — collaborators](https://docs.github.com/en/enterprise-cloud@latest/rest/collaborators/collaborators).
 

@@ -37,6 +37,7 @@ quando as specs mudam no repositório.
 
 ## Referências
 
+- Telas: [Quadro](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Main) · [Board recém-criado](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardEmpty) · [quadro no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MBoard). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - Formato das specs: `specs/README.md` do repositório importado.
 - [`docs/board/ARCHITECTURE.md`](../../docs/board/ARCHITECTURE.md#ciclo-do-card).
 
@@ -46,7 +47,7 @@ quando as specs mudam no repositório.
       demais como "não prontas" (visíveis, mas fora de Tarefas).
 - [ ] Card guarda slug (id da spec), título, caminho e sha da spec, ordem e posição.
 - [ ] Tela do board: uma coluna por etapa do `board.yml`, mais Tarefas e Concluído; cards com título,
-      estado (selo) e custo acumulado.
+      estado (selo) e branch.
 - [ ] Reordenar cards em Tarefas (a ordem do board passa a valer sobre a do `BACKLOG.md`).
 - [ ] Arrastar um card para outra coluna: nesta spec só muda a posição, sem disparo (o disparo é do
       `orchestrator`).

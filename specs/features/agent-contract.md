@@ -35,6 +35,7 @@ execução.
 
 ## Referências
 
+- Telas: relatório da etapa no [Card aguardando PR](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-CardPr). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [`docs/board/CONTRACT.md`](../../docs/board/CONTRACT.md).
 - [Scheduled tasks — connectors](https://code.claude.com/docs/en/routines) (connectors passam pelos servidores
   da Anthropic, sem liberar domínio no ambiente).

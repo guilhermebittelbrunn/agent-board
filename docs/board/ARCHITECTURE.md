@@ -27,7 +27,7 @@ O board decide, os agentes executam e tudo volta para o card. Só uma peça é n
 |------|------|------------------|
 | Board | `apps/app` | Colunas, cards, linha do tempo, perguntas, membros, configuração |
 | API | `apps/api` | CRUD de boards/cards/membros, guards por papel efetivo |
-| Orquestrador | `apps/api` | Aplica `resolveTransition`, mantém a fila de execuções, limites WIP, retries e orçamento |
+| Orquestrador | `apps/api` | Aplica `resolveTransition`, mantém a fila de execuções, limites WIP, retries e a fila dos ciclos |
 | Contrato | `apps/api` | Endpoints HTTP e servidor MCP com as ferramentas de [CONTRACT.md](CONTRACT.md) |
 | Webhooks | `apps/api` | Eventos do GitHub App: PR aberta, review, comentários, checks, merge, mudança de membros |
 | Runner local | `packages/runner` (spec `local-runner`) | CLI na máquina-alvo: busca trabalho no board, cria worktree, roda a etapa com o Agent SDK, transmite o log |
@@ -37,7 +37,8 @@ O board decide, os agentes executam e tudo volta para o card. Só uma peça é n
 
 | Coluna | Comando | Sai quando |
 |--------|---------|------------|
-| Tarefas | — | Alguém arrasta o card, ou a agenda puxa o topo do backlog |
+| Rascunhos | `/spec "<pedido>" --board <card>` | Spec aprovada por alguém (spec `spec-authoring`) |
+| Tarefas | — | Alguém arrasta o card, ou um ciclo o puxa (spec `cycle-runs`) |
 | Análise | `/analyze <slug> --board <card>` | Plano pronto, sem perguntas abertas |
 | Executando | `/develop <slug> --board <card>` | Handoff escrito e type-check verde |
 | Revisando | `/review <slug> --board <card>` | Revisão escrita, commits e push na branch |
@@ -66,9 +67,11 @@ Na nuvem, cada etapa começa num clone novo. Por isso, no modo board, a branch d
 
 | Coleção | Campos principais |
 |---------|-------------------|
-| `boards` | repositório (`owner/name`), instalação do GitHub App, `board.yml` validado (snapshot + sha), runner padrão, agenda, orçamento |
+| `boards` | repositório (`owner/name`), instalação do GitHub App, `board.yml` validado (snapshot + sha), runner padrão, agenda de ciclos |
 | `members` | board, usuário (github id e login), papel no board, papel efetivo e data da última checagem, status do convite |
-| `cards` | board, slug, título, spec (caminho + sha), ordem, etapa, estado, branch, PR, voltas de rework, custo acumulado |
-| `runs` | card, etapa, quem disparou, credencial usada, executor, id/URL da sessão, modelo, esforço, início/fim, resultado, tokens, custo |
+| `cards` | board, slug, título, spec (caminho + sha), ordem, etapa, estado, branch, PR, voltas de rework, ciclo atual |
+| `runs` | card, etapa, quem disparou, credencial usada, executor, id/URL da sessão, modelo, esforço, início/fim, resultado, turnos, decisões registradas |
 | `events` | card, etapa, autor (agente ou pessoa), tipo (resumo, pergunta, resposta, artefato, log), corpo em markdown |
 | `credentials` | dono (membro ou board), tipo (runner local, tarefa agendada por etapa, API key), referência cifrada, última verificação |
+| `cycles` | board, specs em ordem, opções (até onde vai, quantas ao mesmo tempo, o que fazer se uma falhar), quem iniciou, estado, decisões |
+| `discoveries` | board, quem pediu, parâmetros (fontes, foco, quantidade), propostas com evidência e a decisão sobre cada uma |

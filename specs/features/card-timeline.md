@@ -34,6 +34,7 @@ Sem uma linha do tempo no card, quem decide prioridade ou revisa resultado preci
 
 ## Referências
 
+- Telas: [Card aguardando você](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-CardDetail) · [responder perguntas no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MCard). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
 - [`docs/board/CONTRACT.md`](../../docs/board/CONTRACT.md).
 
 ## Proposta — corte de MVP
