@@ -17,8 +17,6 @@ afterEach(() => {
 
 describe("a supported locale", () => {
     it.each(locales)("keeps %s as it is", (locale) => {
-        setDefaultLocale("en");
-
         expect(resolveLocale(locale)).toBe(locale);
     });
 });
@@ -28,7 +26,7 @@ describe("an unusable candidate", () => {
         ["an unsupported language", "fr"],
         ["a region variant we do not carry", "pt-PT"],
         ["the right language in the wrong case", "PT-BR"],
-        ["a padded value", " en "],
+        ["a padded value", " pt-br "],
         ["an empty string", ""],
         ["null", null],
         ["undefined", undefined],
@@ -44,30 +42,18 @@ describe("an unusable candidate", () => {
 
 describe("the configured default", () => {
     it("is used when the candidate is unusable", () => {
-        setDefaultLocale("es");
+        setDefaultLocale("pt-br");
 
-        expect(resolveLocale("fr")).toBe("es");
-    });
-
-    it("never overrides a usable candidate", () => {
-        setDefaultLocale("es");
-
-        expect(resolveLocale("en")).toBe("en");
+        expect(resolveLocale("fr")).toBe("pt-br");
     });
 
     it.each([
         ["an unsupported language", "fr"],
         ["an empty string", ""],
-        ["a locale with the wrong case", "ES"],
+        ["a locale with the wrong case", "PT-BR"],
     ])("is ignored when it holds %s", (_label, value) => {
         setDefaultLocale(value);
 
         expect(resolveLocale("fr")).toBe(locales[0]);
-    });
-
-    it("returns a locale the dictionary can be indexed by", () => {
-        setDefaultLocale("fr");
-
-        expect(locales).toContain(resolveLocale(null));
     });
 });

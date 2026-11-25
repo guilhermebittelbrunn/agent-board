@@ -8,14 +8,4 @@ export const globalTranslations = {
         apps: appsTranslations["pt-br"],
         packages: packagesTranslations["pt-br"],
     },
-    en: {
-        components: componentsTranslations.en,
-        apps: appsTranslations.en,
-        packages: packagesTranslations.en,
-    },
-    es: {
-        components: componentsTranslations.es,
-        apps: appsTranslations.es,
-        packages: packagesTranslations.es,
-    },
 };

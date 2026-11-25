@@ -1,6 +1,6 @@
 import type { globalTranslations } from "./translations/global";
 
-export const locales = ["pt-br", "en", "es"] as const;
+export const locales = ["pt-br"] as const;
 
 export type Locale = (typeof locales)[number];
 
