@@ -31,7 +31,7 @@
       "Bash(sed -n '1,60p' biome.json)",
       "Bash(echo \"app typecheck non-design-system errors: $\\(pnpm --filter app typecheck 2>&1)",
       "Bash(grep -vE \"^\\\\s*$\")",
-      "Bash(cd /Users/guilhermebittelbrunn/next-boilerplate *)",
+      "Bash(cd /Users/guilhermebittelbrunn/agent-board *)",
       "Bash(curl -s -o /tmp/signin.html -w \"%{http_code}\" -L \"http://localhost:3000/pt-br/sign-in\")",
       "Bash(curl -s -o /dev/null -w \"final_url=%{url_effective} http=%{http_code}\\\\n\" -L \"http://localhost:3000/pt-br/entities\")",
       "Bash(curl -s -L \"http://localhost:3000/en/sign-in\" -o /tmp/signin-en.html -w \"http=%{http_code}\\\\n\")",
@@ -95,10 +95,10 @@
       "Bash(pkill -f \"agent-browser\")"
     ],
     "additionalDirectories": [
-      "/Users/guilhermebittelbrunn/next-boilerplate/apps/app/app/[locale]/(unauthenticated)/sign-up/validations",
+      "/Users/guilhermebittelbrunn/agent-board/apps/app/app/[locale]/(unauthenticated)/sign-up/validations",
       "/tmp",
-      "/Users/guilhermebittelbrunn/next-boilerplate/.claude/skills",
-      "/Users/guilhermebittelbrunn/next-boilerplate/apps/web/app/[locale]"
+      "/Users/guilhermebittelbrunn/agent-board/.claude/skills",
+      "/Users/guilhermebittelbrunn/agent-board/apps/web/app/[locale]"
     ]
   },
   "hooks": {
