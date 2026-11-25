@@ -1,4 +1,4 @@
-import type { AccountSessionDeviceType } from "@repo/sdk/src/types";
+export type AccountSessionDeviceType = "desktop" | "mobile" | "tablet";
 
 export type DeviceDescription = {
     browser: string;

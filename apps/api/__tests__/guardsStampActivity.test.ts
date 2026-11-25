@@ -12,11 +12,6 @@ const { resolveApiActorMock, findByReferenceIdMock, touchLastAccessMock } =
         touchLastAccessMock: vi.fn(),
     }));
 
-vi.mock("@/(shared)/lib/audit-recorder", () => ({
-    recordAuditEvent: vi.fn(),
-    recordImpersonationSession: vi.fn(),
-}));
-
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));

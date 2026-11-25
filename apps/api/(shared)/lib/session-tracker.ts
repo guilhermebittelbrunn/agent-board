@@ -1,5 +1,3 @@
-import { isWithinAbsoluteCap } from "@repo/auth/session";
-import type { AccountSessionDTO } from "@repo/sdk/src/types";
 import { logEvent } from "@repo/shared/utils/helpers/log";
 import type { SessionRecord } from "../mappers/session.mapper";
 import { sessionRepository } from "../repositories/session.repository";
@@ -133,56 +131,4 @@ export async function trackSession(
         logEvent("auth", "session-touch-failed", { reason: reasonOf(error) });
     }
     return "active";
-}
-
-/**
- * Before this instant every credential of the account is dead: "sign out everywhere",
- * a password or email change and disabling the account all move it.
- */
-function revokedForAll(
-    session: SessionRecord,
-    tokensValidAfterTime: string | undefined
-): boolean {
-    if (!tokensValidAfterTime) {
-        return false;
-    }
-    const validAfterMs = Date.parse(tokensValidAfterTime);
-    return (
-        Number.isFinite(validAfterMs) &&
-        startedAtMs(session.sessionKey) < validAfterMs
-    );
-}
-
-export function selectActiveSessions(
-    records: SessionRecord[],
-    options: {
-        currentKey: string | null;
-        tokensValidAfterTime: string | undefined;
-    }
-): AccountSessionDTO[] {
-    return records
-        .filter(
-            (session) =>
-                !(
-                    session.revokedAt ||
-                    revokedForAll(session, options.tokensValidAfterTime)
-                ) && isWithinAbsoluteCap(Number(session.sessionKey))
-        )
-        .map(
-            (session): AccountSessionDTO => ({
-                id: session.sessionKey,
-                current: session.sessionKey === options.currentKey,
-                browser: session.browser,
-                os: session.os,
-                deviceType: session.deviceType,
-                signedInAt: session.signedInAt,
-                lastSeenAt: session.lastSeenAt,
-            })
-        )
-        .sort((a, b) => {
-            if (a.current !== b.current) {
-                return a.current ? -1 : 1;
-            }
-            return Date.parse(b.lastSeenAt) - Date.parse(a.lastSeenAt);
-        });
 }

@@ -184,9 +184,9 @@ describe("mergeAuthAndFirestore", () => {
 });
 
 describe("toSessionUser", () => {
-    const SESSION_KEYS = ["email", "onboarding", "preferences", "type", "uid"];
+    const SESSION_KEYS = ["email", "preferences", "type", "uid"];
 
-    it("keeps exactly the five session fields and drops the internal ones", () => {
+    it("keeps exactly the four session fields and drops the internal ones", () => {
         const merged = mergeAuthAndFirestore(
             authRecord({
                 customClaims: { role: "admin" },
@@ -198,11 +198,7 @@ describe("toSessionUser", () => {
                 reference_id: "auth-uid-1",
                 type: "common",
                 createdAt: Timestamp.fromDate(new Date(CREATED_AT_ISO)),
-                stripeCustomerId: "cus_internal",
-                subscription: { status: "active" },
-                entitlements: { plan: "pro" },
                 preferences: { theme: "dark", locale: "en" },
-                onboarding: { step: "preferences", completedAt: null },
                 someFieldAddedLater: "private",
             }
         );
@@ -215,7 +211,6 @@ describe("toSessionUser", () => {
             type: "common",
             email: "qa-common@example.com",
             preferences: { theme: "dark", locale: "en" },
-            onboarding: { step: "preferences", completedAt: null },
         });
     });
 
@@ -229,7 +224,6 @@ describe("toSessionUser", () => {
             type: null,
             email: null,
             preferences: null,
-            onboarding: null,
         });
     });
 
@@ -239,7 +233,6 @@ describe("toSessionUser", () => {
             type: "superuser",
             email: 42,
             preferences: ["dark"],
-            onboarding: "done",
         });
 
         expect(sessionUser).toEqual({
@@ -247,7 +240,6 @@ describe("toSessionUser", () => {
             type: null,
             email: null,
             preferences: null,
-            onboarding: null,
         });
     });
 });

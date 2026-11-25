@@ -53,7 +53,7 @@ async function resolveAvatarUrl(avatar: string | null): Promise<string | null> {
  */
 export async function withAvatarUrl(
     merged: Record<string, unknown>
-): Promise<Omit<AccountDTO, "planAccess">> {
+): Promise<AccountDTO> {
     const avatar =
         typeof merged.avatar === "string" && merged.avatar
             ? merged.avatar
@@ -62,7 +62,7 @@ export async function withAvatarUrl(
         typeof merged.phone === "string" && merged.phone ? merged.phone : null;
 
     return {
-        ...(merged as unknown as Omit<AccountDTO, "planAccess">),
+        ...(merged as unknown as AccountDTO),
         phone,
         avatar,
         avatarUrl: await resolveAvatarUrl(avatar),

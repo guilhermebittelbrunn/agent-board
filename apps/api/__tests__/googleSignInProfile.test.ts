@@ -18,12 +18,6 @@ const {
     emitNotificationMock: vi.fn(),
 }));
 
-// The organization resolver reaches Firestore through the repositories; it is not what
-// this file is about.
-vi.mock("@/(shared)/lib/organization-membership", () => ({
-    ensureOrganizationMembershipQuietly: vi.fn(),
-}));
-
 vi.mock("@/(shared)/lib/notifications", () => ({
     emitNotificationQuietly: (...args: unknown[]) =>
         emitNotificationMock(...args),
@@ -132,22 +126,6 @@ describe("POST /auth/sign-in/google", () => {
         expect(emitNotificationMock).toHaveBeenCalledTimes(1);
         expect(emitNotificationMock).toHaveBeenCalledWith(
             expect.objectContaining({ userId: "profile-1", type: "welcome" })
-        );
-    });
-
-    it("creates the profile with the onboarding pending at the first step", async () => {
-        findByReferenceIdMock.mockResolvedValue(null);
-        createMock.mockResolvedValue(existingProfile());
-
-        const { POST } = await import(
-            "@/app/(routes)/auth/sign-in/google/route"
-        );
-        await POST(googleRequest());
-
-        expect(createMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                onboarding: { step: "profile", completedAt: null },
-            })
         );
     });
 

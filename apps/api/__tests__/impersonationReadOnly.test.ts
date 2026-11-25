@@ -13,11 +13,6 @@ const { resolveApiActorMock, findByReferenceIdMock } = vi.hoisted(() => ({
     findByReferenceIdMock: vi.fn(),
 }));
 
-vi.mock("@/(shared)/lib/audit-recorder", () => ({
-    recordAuditEvent: vi.fn(),
-    recordImpersonationSession: vi.fn(),
-}));
-
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));
@@ -29,16 +24,11 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     },
 }));
 
-vi.mock("@/(shared)/lib/billing", () => ({
-    isBillingEnabled: () => true,
-}));
-
 const { assertReadOnlyWhileImpersonating } = await import(
     "@/(shared)/lib/impersonation-read-only"
 );
 const { requireAdminApi } = await import("@/app/(guards)/admin");
 const { requireCommonPanelApi } = await import("@/app/(guards)/common-panel");
-const { requirePlanApi } = await import("@/app/(guards)/plan");
 
 const ADMIN_UID = "admin-1";
 const TARGET_UID = "common-9";
@@ -156,26 +146,6 @@ describe("read-only impersonation is symmetric across panels", () => {
             expect(adminResponse.status).toBe(commonResponse.status);
             expect(adminResponse.status).toBe(HTTP_STATUS.FORBIDDEN);
             expect(await adminResponse.json()).toEqual(
-                await commonResponse.json()
-            );
-        }
-    });
-
-    it("answers the same on the plan guard, before the plan is looked at", async () => {
-        for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-            const handler = vi.fn();
-
-            const commonResponse = await requireCommonPanelApi(handler)(
-                request(method)
-            );
-            const planResponse = await requirePlanApi(
-                { feature: "any-feature" },
-                handler
-            )(request(method));
-
-            expect(handler).not.toHaveBeenCalled();
-            expect(planResponse.status).toBe(commonResponse.status);
-            expect(await planResponse.json()).toEqual(
                 await commonResponse.json()
             );
         }

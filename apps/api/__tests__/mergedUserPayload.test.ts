@@ -20,17 +20,6 @@ const {
     createMock: vi.fn(),
 }));
 
-// The organization resolver reaches Firestore through the repositories; it is not what
-// this file is about.
-vi.mock("@/(shared)/lib/organization-membership", () => ({
-    ensureOrganizationMembershipQuietly: vi.fn(),
-}));
-
-vi.mock("@/(shared)/lib/audit-recorder", () => ({
-    recordAuditEvent: vi.fn(),
-    recordImpersonationSession: vi.fn(),
-}));
-
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));
@@ -52,11 +41,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
         findById: (...args: unknown[]) => findByIdMock(...args),
         create: (...args: unknown[]) => createMock(...args),
     },
-}));
-
-vi.mock("@repo/payments", () => ({
-    getStripe: () => null,
-    isPaymentsConfigured: () => false,
 }));
 
 vi.mock("@/env", () => ({
@@ -143,7 +127,6 @@ describe("GET /auth/me", () => {
         expect(response.status).toBe(HTTP_STATUS.OK);
         expect(Object.keys(body.data).sort()).toEqual([
             "email",
-            "onboarding",
             "preferences",
             "type",
             "uid",
@@ -153,7 +136,6 @@ describe("GET /auth/me", () => {
             type: UserType.ADMIN,
             email: `${ADMIN_UID}@example.com`,
             preferences: null,
-            onboarding: null,
         });
     });
 

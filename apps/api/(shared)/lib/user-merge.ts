@@ -6,8 +6,6 @@ import { mergeAuthAndFirestore } from "../mappers/user.mapper";
 import { userRepository } from "../repositories/user.repository";
 import { revokeAccountAccess } from "./account-access";
 import { emitNotificationQuietly } from "./notifications";
-import { initialOnboardingState } from "./onboarding";
-import { ensureOrganizationMembershipQuietly } from "./organization-membership";
 import { adminAuthErrorReason } from "./toolkit-error-codes";
 
 export const USER_COLLECTION = "user";
@@ -71,11 +69,7 @@ async function findOrCreateProfile(uid: string): Promise<UserDTO | null> {
     return createDefaultUserProfile(uid);
 }
 
-/**
- * The organization and the welcome notice are quiet on purpose: sign-up deletes the
- * account when this function throws, and neither must undo an account that was created.
- * A missing organization is created by the first request to a scoped route.
- */
+/** The welcome notice is quiet on purpose: a failed notice must not undo the profile. */
 export async function createDefaultUserProfile(
     uid: string,
     dto?: Partial<UserDTO>
@@ -83,14 +77,12 @@ export async function createDefaultUserProfile(
     const defaultProps = {
         type: UserType.COMMON,
         reference_id: uid,
-        onboarding: initialOnboardingState(),
         ...dto,
     };
 
     const created = await userRepository.create({ ...defaultProps });
 
     if (created.type === UserType.COMMON) {
-        await ensureOrganizationMembershipQuietly(created.id);
         await emitNotificationQuietly({
             userId: created.id,
             type: "welcome",
