@@ -84,6 +84,5 @@ export function toSessionUser(merged: Record<string, unknown>): AuthMePayload {
         type: userTypeOrNull(merged.type),
         email: typeof merged.email === "string" ? merged.email : null,
         preferences: plainObjectOrNull(merged.preferences),
-        onboarding: plainObjectOrNull(merged.onboarding),
     };
 }

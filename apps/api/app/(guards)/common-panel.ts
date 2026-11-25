@@ -1,9 +1,7 @@
 import { type UserDTO, UserType } from "@repo/sdk/src/types";
-import { requestIdFrom } from "@repo/shared/utils/helpers/request-id";
 import type { UserRecord } from "firebase-admin/auth";
 import type { NextRequest } from "next/server";
 import { recordUserActivity } from "@/(shared)/lib/activity-recorder";
-import { recordImpersonationSession } from "@/(shared)/lib/audit-recorder";
 import {
     type ResolvedAuthRequestContext,
     resolveAuthRequestContext,
@@ -85,19 +83,6 @@ export function requireCommonPanelApi<
         // the product, and stamping the subject would mark a dormant account as active
         // exactly when the operator is looking for dormant accounts.
         await recordUserActivity(actorProfile);
-
-        // Recorded on the server, from the headers the impersonation needs anyway, so the
-        // admin has no way of operating on someone's account without leaving the window.
-        if (resolved.data.isImpersonating) {
-            await recordImpersonationSession({
-                actorUserId: actorProfile.id,
-                actorUid: userRecord.uid,
-                actorLabel: userRecord.email ?? userRecord.displayName ?? null,
-                subjectUserId: subjectProfile.id,
-                subjectUid: resolved.data.requestUserId,
-                requestId: requestIdFrom(req),
-            });
-        }
 
         const enrichedContext = {
             ...(routeContext ?? {}),

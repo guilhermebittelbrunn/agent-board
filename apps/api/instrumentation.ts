@@ -4,26 +4,6 @@ import type { Instrumentation } from "next";
 import { parseAllowedOrigins } from "@/(shared)/lib/cors";
 
 /**
- * One Stripe key without the other leaves billing switched off, which is safe but easy to
- * miss: the panel quietly shows the placeholder. Said once, at boot, naming what is missing.
- */
-function warnOnHalfConfiguredPayments(): void {
-    const hasSecretKey = Boolean(process.env.STRIPE_SECRET_KEY);
-    const hasWebhookSecret = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
-
-    if (hasSecretKey === hasWebhookSecret) {
-        return;
-    }
-
-    const missing = hasSecretKey
-        ? "STRIPE_WEBHOOK_SECRET"
-        : "STRIPE_SECRET_KEY";
-    console.warn(
-        `[payments] billing is DISABLED (no ${missing}). Set both Stripe keys or neither.`
-    );
-}
-
-/**
  * A key without the Arcjet prefix is read as no key, so the limiter stays off rather than
  * failing every request. That is a configuration mistake, not a choice, hence an error. The
  * value is never logged: whatever was pasted there may be another service's credential.
@@ -67,7 +47,6 @@ async function prepareServer(): Promise<void> {
     }
 
     warnOnDisabledRateLimit();
-    warnOnHalfConfiguredPayments();
 
     const { getFirestoreAdmin } = await import("@repo/auth/server");
     getFirestoreAdmin();

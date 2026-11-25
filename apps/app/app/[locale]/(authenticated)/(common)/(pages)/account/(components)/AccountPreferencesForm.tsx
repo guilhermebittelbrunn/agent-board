@@ -1,27 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-    HookFormRadioGroup,
-    HookFormSelect,
-} from "@repo/design-system/components/form/hookform";
+import { HookFormRadioGroup } from "@repo/design-system/components/form/hookform";
 import { Form } from "@repo/design-system/components/ui/form";
 import type { RadioOption } from "@repo/design-system/components/ui/radio-group-input";
 import { getDictionary } from "@repo/internationalization/client";
 import type { AccountDTO } from "@repo/sdk/src/types";
-import { setCookie } from "@repo/shared/utils";
-import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Footer } from "@/shared/components/ui/Footer";
 import { FormContainer } from "@/shared/components/ui/FormContainer";
 import { SettingsSection } from "@/shared/components/ui/SettingsSection";
-import { withLocalePath } from "@/shared/lib/localePath";
-import {
-    PREFERENCE_COOKIE_TTL_SECONDS,
-    storeActiveTheme,
-} from "@/shared/lib/themePreference";
+import { storeActiveTheme } from "@/shared/lib/themePreference";
 import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { useAccountMutations } from "../(hooks)/useAccountMutations";
 import {
@@ -29,13 +20,6 @@ import {
     accountThemeValues,
     buildAccountPreferencesSchema,
 } from "../(validations)/accountFormSchema";
-
-/** Endonyms: a language is always offered in its own language, never translated. */
-const languageOptions = [
-    { value: "pt-br", label: "Português" },
-    { value: "en", label: "English" },
-    { value: "es", label: "Español" },
-];
 
 type AccountPreferencesFormProps = {
     account: AccountDTO | undefined;
@@ -45,7 +29,6 @@ export function AccountPreferencesForm({
     account,
 }: AccountPreferencesFormProps) {
     const { dictionary } = getDictionary();
-    const router = useRouter();
     const { setTheme } = useTheme();
     const { isImpersonating } = useAuthRequestPanel();
     const accountPreferences =
@@ -56,15 +39,12 @@ export function AccountPreferencesForm({
 
     const form = useForm<AccountPreferencesFormValues>({
         resolver: zodResolver(schema),
-        defaultValues: { theme: "system", locale: "pt-br" },
+        defaultValues: { theme: "system" },
     });
 
     useEffect(() => {
         if (account) {
-            form.reset({
-                theme: account.preferences.theme,
-                locale: account.preferences.locale,
-            });
+            form.reset({ theme: account.preferences.theme });
         }
     }, [account, form]);
 
@@ -82,22 +62,8 @@ export function AccountPreferencesForm({
             { preferences: values },
             {
                 onSuccess: () => {
-                    // Both cookies are read on the server for the first paint, so they
-                    // are written before navigating, not after.
                     setTheme(values.theme);
                     storeActiveTheme(values.theme);
-                    setCookie(
-                        "x-locale",
-                        values.locale,
-                        PREFERENCE_COOKIE_TTL_SECONDS
-                    );
-                    router.push(
-                        withLocalePath(
-                            values.locale,
-                            "/account?tab=preferences"
-                        )
-                    );
-                    router.refresh();
                 },
             }
         );
@@ -119,15 +85,6 @@ export function AccountPreferencesForm({
                                 label={accountPreferences.theme}
                                 name="theme"
                                 options={themeOptions}
-                            />
-                        </div>
-                        <div className="col-span-1 md:col-span-2">
-                            <HookFormSelect
-                                label={accountPreferences.language}
-                                name="locale"
-                                options={languageOptions}
-                                placeholder={accountPreferences.language}
-                                searchable={false}
                             />
                         </div>
                     </FormContainer>

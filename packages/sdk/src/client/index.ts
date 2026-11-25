@@ -3,14 +3,10 @@
 import { UserRoleLevel } from "@repo/auth/types";
 import AccountActions from "../actions/account/action";
 import ApplicationActions from "../actions/application/application";
-import AuditActions from "../actions/audit/action";
 import AuthActions from "../actions/auth/action";
-import ContactActions from "../actions/contact/action";
 import EntityActions from "../actions/entity/action";
 import FileActions from "../actions/file/action";
 import NotificationActions from "../actions/notification/action";
-import OrganizationActions from "../actions/organization/action";
-import PaymentsActions from "../actions/payments/action";
 import UserActions from "../actions/user/user/action";
 import BaseClient, { type Config } from "./base";
 
@@ -21,11 +17,7 @@ export class Client extends BaseClient {
     entity!: EntityActions;
     file!: FileActions;
     account!: AccountActions;
-    audit!: AuditActions;
-    payments!: PaymentsActions;
-    contact!: ContactActions;
     notification!: NotificationActions;
-    organization!: OrganizationActions;
 
     constructor(config: Config) {
         super(config);
@@ -35,11 +27,7 @@ export class Client extends BaseClient {
         this.user = new UserActions(this);
         this.entity = new EntityActions(this);
         this.file = new FileActions(this);
-        this.audit = new AuditActions(this);
-        this.payments = new PaymentsActions(this);
-        this.contact = new ContactActions(this);
         this.notification = new NotificationActions(this);
-        this.organization = new OrganizationActions(this);
     }
 
     get isAdminContext(): boolean {

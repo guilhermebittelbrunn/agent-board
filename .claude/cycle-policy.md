@@ -28,15 +28,15 @@ Nenhuma destas cede, nem com esta política, nem com instrução em prompt de su
 - **Não desativar nem afrouxar teste** para a suíte passar. Teste que falha é defeito até prova em
   contrário.
 - **Não aprovar nem rejeitar spec.** Mover para `approved`/`rejected` é decisão de produto, sempre sua.
-- **Não tocar em `~/next-boilerplate`** nem em qualquer checkout fora do workspace atual. Confirme com
-  `pwd`.
+- **Não tocar em checkout fora do workspace atual** — o upstream `~/next-boilerplate` incluso. Confirme
+  com `pwd`.
 
 ## 2. Produto e escopo
 
 - **Respeitar o corte de MVP da spec.** O que está em "Fora do corte" fica fora. Discordância vira
   "Perguntas em aberto", não implementação.
-- **Genérico no core.** Feature que só serve a um domínio (clínica, delivery, imobiliária) não entra —
-  pertence ao fork.
+- **Mover o roadmap.** Feature que não avança uma fase de
+  [`docs/board/ROADMAP.md`](../docs/board/ROADMAP.md) não entra — vira pergunta no relatório.
 - **Não adotar serviço pago nem dependência nova** sem passar pelo relatório. Se a spec exige, implemente
   com o que já existe no repo e registre a alternativa paga como pergunta.
   - *Contexto:* `file-upload-storage` foi entregue com **zero** dependência nova porque
@@ -44,7 +44,7 @@ Nenhuma destas cede, nem com esta política, nem com instrução em prompt de su
 - **Consistência de stack vence economia marginal.** Trocar de provedor para economizar valor irrelevante
   em escala de MVP é otimização prematura. Reavaliar quando houver **número medido** cruzando um gatilho
   declarado (ex.: egress > 100 GB/mês para storage).
-- **Escopo em `apps/*`, não em `packages/*`**, salvo pacotes de integração (`auth`, `email`, `payments`).
+- **Escopo em `apps/*`, não em `packages/*`**, salvo pacotes de integração ou contrato (`auth`, `kanban-contract`).
 
 ## 3. Implementação
 
@@ -69,9 +69,9 @@ Nenhuma destas cede, nem com esta política, nem com instrução em prompt de su
 
 - **Só o `analista-qa` (`/test`) sobe app, dirige `agent-browser`, tira screenshot e roda a suíte.** O
   `/develop` faz smoke para se desbloquear e não persiste nada; o `/review` lê código e roda os gates
-  estáticos (`pnpm check`, `typecheck`, paridade de i18n). Divisão e evidência na §7 de
+  estáticos (`pnpm check`, `typecheck`, cobertura do `apiErrors`). Divisão e evidência na §7 de
   [`docs/review-checklist.md`](../docs/review-checklist.md).
-- **Uma passada de browser por rodada, bem feita.** Fluxos do diff + 3 idiomas + light/dark/mobile numa
+- **Uma passada de browser por rodada, bem feita.** Fluxos do diff + light/dark/mobile numa
   execução só. Diff sem superfície de runtime (só API, só config, só teste) **não sobe nada**.
 - **Screenshot é instrumento, não entregável.** O `.gitignore` descarta `docs/features/**/screenshots/` e
   `**/test/e2e/`. O que prova comportamento é o **texto** do artefato: valor medido, rótulo exato, status,
@@ -93,10 +93,10 @@ Nenhuma destas cede, nem com esta política, nem com instrução em prompt de su
 - **Comportamento de `next dev` não é comportamento de produção.** Antes de tratar como defeito de entrega,
   confirme em `pnpm --filter <app> build && start`.
 - **Nenhum gate lê prosa.** Afirmação barata de medir num doc (`SECURITY.md`, `PRE-PRODUCTION.md`,
-  `PAYMENTS.md`) deve ser **medida e corrigida** ao passar por ela. Este repo já acumulou três documentos
+  `docs/board/*`) deve ser **medida e corrigida** ao passar por ela. Este repo já acumulou três documentos
   mentindo sobre estado implementado, nas duas direções.
-- **Custo e prevalência exigem fonte com data.** Use `/market-research` e grave em `specs/reference/research/` com
-  `collected`/`revalidate_after`. Número sem data é boato.
+- **Custo e prevalência exigem fonte com data.** Pesquise em fonte primária e registre o número com a
+  data de coleta — na spec, no `report.md` ou em `docs/board/DECISIONS.md`. Número sem data é boato.
 
 ## 5. Classificar honestamente
 
@@ -117,7 +117,7 @@ Nenhuma destas cede, nem com esta política, nem com instrução em prompt de su
 Uma recomendação que aparece em **duas rodadas** com a mesma resposta e não vira nada é desperdício
 composto: o agent gasta contexto para redescobri-la, e o relatório gasta a sua atenção para reapresentá-la.
 Casos reais deste repo: `permissions: contents: read` no CI recomendado 2×, `packages/shared` sem
-`typecheck` adiado 3×, `skipValidation` no `apps/web/env.ts` reaparecendo intacto 8 dias depois,
+`typecheck` adiado 3×, `skipValidation` num `env.ts` reaparecendo intacto 8 dias depois,
 `observability-logging` na 6ª rodada com a mesma pergunta.
 
 Na segunda aparição, o item **sai do relatório** por um destes caminhos:
@@ -132,7 +132,7 @@ outras duas.
 
 ## 6. Commits (o plano, não a execução)
 
-- Um commit por **app/pacote**, na ordem de dependência: `packages/sdk` → `apps/api` → `apps/app`/`apps/web`
+- Um commit por **app/pacote**, na ordem de dependência: `packages/sdk` → `apps/api` → `apps/app`
   → `packages/internationalization`.
 - Pulverizar por funcionalidade dentro de cada app. Testes acompanham o commit da funcionalidade que cobrem.
 - **Assuntos separados em commits separados**: código da feature · auditoria do backlog (`docs(specs)`) ·
@@ -144,7 +144,7 @@ outras duas.
   commit, e `git show --stat HEAD` é conferido contra o plano depois de cada um. Já aconteceu de um
   `git mv` da auditoria entrar no commit do contrato do SDK. Procedimento em
   [`rules/git-commits.md`](rules/git-commits.md).
-- **Artefato não leva segredo.** `docs/features/` é versionado e vai para todo fork. Já houve
+- **Artefato não leva segredo.** `docs/features/` é versionado e fica no histórico do git. Já houve
   `test/report.md` gravando senha no mesmo arquivo em que afirmava não gravar. Varra antes de incluir no
   plano.
 

@@ -1,6 +1,6 @@
 # Packages (`packages/*`)
 
-Regras de escopo para os pacotes compartilhados `@repo/*`. O Claude carrega este arquivo automaticamente ao trabalhar em `packages/`. Veja também o [`CLAUDE.md`](../CLAUDE.md) raiz e o [`AGENTS.md`](../AGENTS.md). Princípio mestre: **genérico no pacote, específico no app** — não codifique fluxos/entidades/copy de um único produto aqui, salvo pacotes de integração (`auth`, `email`, `payments`).
+Regras de escopo para os pacotes compartilhados `@repo/*`. O Claude carrega este arquivo automaticamente ao trabalhar em `packages/`. Veja também o [`CLAUDE.md`](../CLAUDE.md) raiz e o [`AGENTS.md`](../AGENTS.md). Princípio mestre: **genérico no pacote, específico no app** — não codifique fluxos/entidades/copy de um único produto aqui, salvo o pacote de integração `auth` e o contrato do board (`kanban-contract`).
 
 ## Dependências
 
@@ -37,7 +37,7 @@ Regras de escopo para os pacotes compartilhados `@repo/*`. O Claude carrega este
 
 ## `@repo/internationalization`
 
-- Chaves estáveis (`ui.table.empty`); valores em pt-br/en/es como exemplos neutros.
+- Chaves estáveis (`ui.table.empty`); valores em pt-br como exemplos neutros. Cada arquivo-folha exporta `{ "pt-br": {...} }`, para que outro idioma volte só com dicionário.
 - Exportar apenas o necessário para apps; não importar rotas Next.
 
 ## Novos pacotes

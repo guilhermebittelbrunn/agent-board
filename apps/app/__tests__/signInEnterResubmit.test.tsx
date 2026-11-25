@@ -1,13 +1,6 @@
-import { globalTranslations } from "@repo/internationalization/translations/global";
 import { EXISTING_PASSWORD_MIN_LENGTH } from "@repo/shared/utils/helpers/passwordPolicy";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-    act,
-    cleanup,
-    fireEvent,
-    render,
-    screen,
-} from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -80,7 +73,7 @@ const WRONG_PASSWORD = "b".repeat(EXISTING_PASSWORD_MIN_LENGTH);
 const MICROTASK_ROUNDS = 20;
 const pendingSignIns: ((value: unknown) => void)[] = [];
 
-function renderForm(redirect?: string) {
+function renderForm() {
     const queryClient = new QueryClient({
         defaultOptions: {
             mutations: { retry: false },
@@ -91,7 +84,7 @@ function renderForm(redirect?: string) {
         <QueryClientProvider client={queryClient}>
             <AuthTestProvider>
                 <LocaleProvider>
-                    <SignInForm redirect={redirect} />
+                    <SignInForm />
                 </LocaleProvider>
             </AuthTestProvider>
         </QueryClientProvider>
@@ -186,18 +179,5 @@ describe("validação do formulário de login", () => {
         renderForm();
 
         expect(inputNamed("email").form?.noValidate).toBe(true);
-    });
-});
-
-describe("link para o cadastro", () => {
-    it("leva junto o destino que o login recebeu", () => {
-        renderForm("/pt-br/account?tab=billing&plan=price_1");
-
-        const signUpLink = screen.getByRole("link", {
-            name: globalTranslations["pt-br"].apps.app.pages.signIn.signUp,
-        });
-        expect(signUpLink.getAttribute("href")).toBe(
-            "/pt-br/sign-up?redirect=%2Fpt-br%2Faccount%3Ftab%3Dbilling%26plan%3Dprice_1"
-        );
     });
 });

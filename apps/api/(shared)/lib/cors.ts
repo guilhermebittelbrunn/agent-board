@@ -6,7 +6,7 @@ import { REQUEST_ID_HEADER } from "@repo/shared/utils/helpers/request-id";
  * is unset outside production, so a freshly cloned fork talks to its own API on
  * day one without configuration. It is still an allowlist, never a wildcard.
  */
-const DEVELOPMENT_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
+const DEVELOPMENT_ORIGINS = ["http://localhost:3000"];
 
 const ALLOWED_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 

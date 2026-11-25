@@ -1,5 +1,5 @@
 ---
-description: Implementa uma tarefa já planejada (lê o plano gerado pelo /analyze em analyze/plan.md) seguindo os padrões do repo — SDK → API → app/web → i18n, com smoke local só para se desbloquear. Não cria branch nem commita (isso é do /review); quem executa o produto e guarda evidência é o /test.
+description: Implementa uma tarefa já planejada (lê o plano gerado pelo /analyze em analyze/plan.md) seguindo os padrões do repo — SDK → API → app → i18n, com smoke local só para se desbloquear. Não cria branch nem commita (isso é do /review); quem executa o produto e guarda evidência é o /test.
 argument-hint: '[slug/caminho da feature | vazio = feature mais recente | --force]'
 allowed-tools: Agent, AskUserQuestion, Read, Write, Edit, Grep, Glob, Bash, Skill
 ---
@@ -9,6 +9,18 @@ allowed-tools: Agent, AskUserQuestion, Read, Write, Edit, Grep, Glob, Bash, Skil
 Foco (opcional): **$ARGUMENTS**
 
 Você é o orquestrador (loop principal) do papel **Desenvolvedor**.
+
+<!-- board-mode:start -->
+## Modo board (`--board <card-id>`)
+
+Se `$ARGUMENTS` contiver `--board <card-id>`, esta execução foi disparada pelo agent-board e **não há
+ninguém no teclado**. Siga [`.claude/rules/board-mode.md`](../rules/board-mode.md): onde ela conflitar com
+os passos abaixo, ela vence. Nesta etapa, em resumo:
+
+- Slug explícito; as decisões em aberto seguem a mesma política do `/analyze` (pergunta só de produto).
+- Trabalhe na branch do card. Termine com os commits da implementação (um por aplicação, pulverizados por
+  funcionalidade) e push — a próxima etapa pode rodar num clone novo.
+<!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)
 
@@ -45,11 +57,11 @@ Invoque o subagent **`desenvolvedor`** (Agent tool, `subagent_type: "desenvolved
 **caminho do plano** e o **caminho da pasta da feature**. Peça para:
 
 - implementar o blueprint na **ordem do slice vertical**: `packages/sdk` (contrato) → `apps/api`
-  (guard + Zod + repo/mapper) → `apps/app`/`apps/web` (hooks, formulário, tabela, prefetch RSC) →
-  `packages/internationalization` (chaves nos 3 idiomas + `apiErrors`);
+  (guard + Zod + repo/mapper) → `apps/app` (hooks, formulário, tabela, prefetch RSC) →
+  `packages/internationalization` (chaves pt-br + `apiErrors`);
 - usar as skills do repo quando couber (`/new-crud`, `/new-api-route`, `/i18n-sync`, `/write-tests`);
-- rodar `pnpm --filter <app> typecheck`, `pnpm check` e, se tocou i18n ou adicionou `error.code`,
-  `pnpm --filter @repo/internationalization test`;
+- rodar `pnpm --filter <app> typecheck`, `pnpm check` e, se adicionou `error.code`,
+  `pnpm --filter api test apiErrorCodes`;
 - fazer no máximo um **smoke local** para se desbloquear: abrir o que acabou de escrever e saber se dá
   para seguir. Smoke **não persiste evidência** — nada de screenshot em `docs/features/` (o `.gitignore`
   descarta essas pastas de qualquer jeito). Quem executa o produto, dirige o `agent-browser` e guarda

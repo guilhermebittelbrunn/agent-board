@@ -78,15 +78,6 @@ describe("LocaleProvider no servidor", () => {
         }
     );
 
-    it("não usa o cookie do servidor: sem window, en na URL continua en", () => {
-        paramsMock.mockReturnValue({ locale: "en" });
-
-        const html = decode(renderToString(withProvider(createElement(Probe))));
-
-        expect(html).toContain(`en|${knownText("en")}`);
-        expect(html).not.toContain("pt-br|");
-    });
-
     it.each<{ label: string; params: Record<string, string> }>([
         { label: "idioma não suportado", params: { locale: "fr" } },
         { label: "sem segmento de idioma", params: {} },
@@ -99,11 +90,11 @@ describe("LocaleProvider no servidor", () => {
     });
 
     it("useDictionary lê o mesmo idioma do provider", () => {
-        paramsMock.mockReturnValue({ locale: "es" });
+        paramsMock.mockReturnValue({ locale: "pt-br" });
 
         const html = renderToString(withProvider(createElement(HookProbe)));
 
-        expect(html).toContain("hook:es");
+        expect(html).toContain("hook:pt-br");
     });
 
     it("isola duas requisições concorrentes", async () => {
@@ -117,7 +108,7 @@ describe("LocaleProvider no servidor", () => {
             return createElement(Probe);
         }
 
-        paramsMock.mockReturnValue({ locale: "en" });
+        paramsMock.mockReturnValue({ locale: "pt-br" });
         const slowStream = await renderToReadableStream(
             withProvider(
                 createElement(
@@ -128,7 +119,7 @@ describe("LocaleProvider no servidor", () => {
             )
         );
 
-        paramsMock.mockReturnValue({ locale: "es" });
+        paramsMock.mockReturnValue({ locale: "fr" });
         const fastStream = await renderToReadableStream(
             withProvider(createElement(Probe))
         );
@@ -137,49 +128,32 @@ describe("LocaleProvider no servidor", () => {
         release?.();
         await slowStream.allReady;
 
-        expect(await readStream(fastStream)).toContain(`es|${knownText("es")}`);
-        const slowHtml = await readStream(slowStream);
-        expect(slowHtml).toContain(`en|${knownText("en")}`);
-        expect(slowHtml).not.toContain("es|");
-    });
-
-    it("não guarda o idioma em estado de módulo entre requisições", () => {
-        paramsMock.mockReturnValue({ locale: "es" });
-        renderToString(withProvider(createElement(Probe)));
-
-        const html = decode(renderToString(createElement(Probe)));
-
-        expect(html).toContain(`pt-br|${knownText("pt-br")}`);
+        expect(await readStream(fastStream)).toContain(
+            `pt-br|${knownText("pt-br")}`
+        );
+        expect(await readStream(slowStream)).toContain(
+            `pt-br|${knownText("pt-br")}`
+        );
     });
 });
 
 describe("LocaleProvider no navegador", () => {
-    it("a URL vence o cookie antigo, inclusive fora do render", () => {
-        browserWithCookie("x-locale=pt-br");
-        paramsMock.mockReturnValue({ locale: "en" });
-
-        const html = decode(renderToString(withProvider(createElement(Probe))));
-
-        expect(html).toContain(`en|${knownText("en")}`);
-        expect(client.getDictionary().locale).toBe("en");
-    });
-
-    it("segue a última URL renderizada depois de uma troca de idioma", () => {
+    it("ignora um cookie com idioma não suportado", () => {
         browserWithCookie("x-locale=en");
-        paramsMock.mockReturnValue({ locale: "en" });
-        renderToString(withProvider(createElement(Probe)));
+        paramsMock.mockReturnValue({ locale: "pt-br" });
 
-        paramsMock.mockReturnValue({ locale: "es" });
         const html = decode(renderToString(withProvider(createElement(Probe))));
 
-        expect(html).toContain(`es|${knownText("es")}`);
-        expect(client.getDictionary().locale).toBe("es");
+        expect(html).toContain(`pt-br|${knownText("pt-br")}`);
+        expect(client.getDictionary().locale).toBe("pt-br");
     });
 
-    it("sem provider montado, mantém a leitura do cookie", () => {
+    it("sem provider montado, cai no idioma padrão", () => {
         browserWithCookie("x-locale=es");
 
-        expect(client.getDictionary().locale).toBe("es");
-        expect(renderToString(createElement(HookProbe))).toContain("hook:es");
+        expect(client.getDictionary().locale).toBe("pt-br");
+        expect(renderToString(createElement(HookProbe))).toContain(
+            "hook:pt-br"
+        );
     });
 });

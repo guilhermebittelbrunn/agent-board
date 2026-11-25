@@ -37,15 +37,13 @@ deixou, sem depender da conversa.
 | Comando | Papel | O que faz |
 |---------|-------|-----------|
 | `/spec [ideia \| --sync \| --next]` | Estrategista de Produto | Varre o repo, confronta com padrões de mercado (**com fontes**) e escreve/atualiza as specs em `specs/`. `--sync` reconcilia o backlog com o código **e arquiva as specs entregues**; `--next` recomenda a próxima. |
-| `/analyze <nome-da-spec>` | PO + Tech Lead | **O argumento padrão é o nome de uma spec** (`/analyze audit-log`). Também aceita descrição livre ou ID/link do ClickUp; vazio, oferece as specs aprovadas do backlog. Salva **o plano** em `analyze/plan.md` + inicializa o `STATE.md`. |
-| `/develop [slug? / --force]` | Desenvolvedor | Lê o plano e **implementa** o slice vertical (SDK → API → app/web → i18n); smoke local; escreve `develop/handoff.md` declarando o instrumento de cada afirmação. Não cria branch nem commita. |
+| `/analyze <nome-da-spec>` | PO + Tech Lead | **O argumento padrão é o nome de uma spec** (`/analyze card-timeline`). Também aceita descrição livre ou ID/link do ClickUp; vazio, oferece as specs aprovadas do backlog. Salva **o plano** em `analyze/plan.md` + inicializa o `STATE.md`. |
+| `/develop [slug? / --force]` | Desenvolvedor | Lê o plano e **implementa** o slice vertical (SDK → API → app → i18n); smoke local; escreve `develop/handoff.md` declarando o instrumento de cada afirmação. Não cria branch nem commita. |
 | `/review [foco? / --force]` | Revisor | Revisa o diff contra [`review-checklist.md`](review-checklist.md) **por leitura** + gates estáticos, aplica correções, deixa a lista "Verificar no `/test`", **resolve a branch**, escreve `review/review.md`, **pede aprovação antes de commitar** e, ao final, pergunta se deve dar **push**. |
 | `/test [foco? / manual / --force]` | QA | Gera os critérios de aceite (§9.1) **E** roda os testes Vitest dos workspaces afetados + `pnpm test` do root; cria os testes que faltam; dirige o app com `agent-browser`. **Única etapa que executa o produto.** |
 | `/observe [slug?]` | Observador *(opcional)* | Observação final de 2–3 parágrafos em linguagem de negócio, pronta para colar num card. Exige só o `/review`. |
 | `/mediate [PR?]` | Mediador de PR *(avulso)* | Triagem dos comentários de uma PR aberta → markdown de replies com status por item. **Independente** do pipeline. |
 | `/cycle [id? / --audit-only / --max-rounds N]` | Orquestrador do ciclo | Roda a linha inteira — `/spec --sync` → `/analyze` → `/develop` → `/review` → `/test` — **sem parar para perguntar**, acumulando as decisões para um relatório final. Para quando você **não vai acompanhar**. Detalhes em [`AI-WORKFLOW.md`](AI-WORKFLOW.md#cycle--o-ciclo-inteiro-numa-tacada). |
-| `/kickoff [--refine etapa \| --specs]` | Orquestrador do começo de um fork | Lê `docs/product/`, que o formulário visual do `pnpm kickoff` grava (produto, domínio, telas com o design anexado, marca e prompt para o Claude Design), completa as lacunas e gera as specs do MVP em `specs/features/` com `depends_on`. Não escreve código nem commita. |
-| `/deliver [partes?]` | Orquestrador da entrega | **Etapa de entrega** de um fork, obrigatória antes da entrega final: segurança, infra e hardening, qualidade do produto, documentação e políticas legais, conforme [`docs/delivery/`](delivery/README.md). Grava `docs/delivery/reports/<data>/report.md`; não corrige código nem commita. |
 
 > ⚠️ **Colisão de nome**: existe um `/review` global (revisão de PR do GitHub); o deste projeto tem
 > precedência. Para a revisão genérica de diff, use `/code-review`.
@@ -88,7 +86,7 @@ Use via `@menção` para rodar isolado/em paralelo, ou deixe os comandos os acio
   spec entregue (`spec.md` + o campo `spec:` no `STATE.md`).
 - **`planejador-tarefa`** — análise PO+TechLead; lê ClickUp/links; escreve `analyze/plan.md` + `STATE.md`;
   devolve blueprint + "Perguntas em aberto".
-- **`desenvolvedor`** — lê o plano, implementa na ordem SDK → API → app/web → i18n, faz smoke local,
+- **`desenvolvedor`** — lê o plano, implementa na ordem SDK → API → app → i18n, faz smoke local,
   escreve `develop/handoff.md`; **não cria branch nem commita**.
 - **`revisor-codigo`** — revisa o diff + handoff, aplica correções, **é o dono da branch**, escreve
   `review/review.md`, devolve o plano de commits (**não commita nem pusha**).
@@ -100,10 +98,27 @@ Use via `@menção` para rodar isolado/em paralelo, ou deixe os comandos os acio
 - **`code-reviewer`** — revisor **read-only** avulso ("revise o diff"), mesmo checklist do
   `revisor-codigo`, sem tocar em arquivos, em branch nem no produto.
 
+## Modo board
+
+Os mesmos comandos rodam sem ninguém no terminal quando o board os chama com `--board <card-id>`
+(ou `--board local` para testar sem o board). A regra está em
+[`.claude/rules/board-mode.md`](../.claude/rules/board-mode.md) e o contrato em
+[`docs/board/CONTRACT.md`](board/CONTRACT.md). O que muda:
+
+- Perguntas não usam `AskUserQuestion`: viram `ask` no card, a etapa termina como `needs_input` e a
+  resposta volta no próximo disparo. O que a [`.claude/cycle-policy.md`](../.claude/cycle-policy.md) já decide
+  não vira pergunta.
+- A branch nasce na Análise (`branchPattern` do `.kanban/board.yml`) e cada etapa termina com commit e push
+  nela; o `/review` revisa `main...HEAD` em vez do working tree.
+- O slug vem sempre explícito no disparo, nunca do `ls -t`.
+- Cada etapa fecha com `complete_stage` e o board decide a próxima coluna.
+
+Sem o argumento, tudo funciona como descrito acima.
+
 ## Regras que valem para todos
 
 **Convenções de código** — a fonte de verdade é o [`CLAUDE.md`](../CLAUDE.md) raiz + os `CLAUDE.md`
-aninhados (`apps/api`, `apps/app`, `apps/web`, `packages`), **carregados automaticamente** ao trabalhar em
+aninhados (`apps/api`, `apps/app`, `packages`), **carregados automaticamente** ao trabalhar em
 cada árvore, + [`AGENTS.md`](../AGENTS.md) para design system/RHF. O destilado acionável sobre um diff é
 [`review-checklist.md`](review-checklist.md) — **fonte única** do que uma revisão cobra.
 
@@ -138,10 +153,10 @@ contra o documento. Teste caro roda em todo `pnpm test` e em toda PR; quando exi
 no `test/report.md`.
 
 **O CI é o gate final, não o `/review`.** Toda PR roda `pnpm turbo run lint typecheck test test:emulator` no GitHub
-Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)), então lint, tipos, testes e paridade
-de i18n deixam de depender de alguém lembrar de rodá-los. Isso não desobriga ninguém: rodar antes de
+Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)), então lint, tipos e testes
+deixam de depender de alguém lembrar de rodá-los. Isso não desobriga ninguém: rodar antes de
 commitar continua sendo mais rápido que descobrir na PR. O que muda é o **foco** — o `/review` e o `/test`
-passam a valer pelo que a máquina não vê (convenção de camada, autorização, copy errada nos 3 idiomas,
+passam a valer pelo que a máquina não vê (convenção de camada, autorização, copy errada,
 comportamento na tela). ⚠️ O `build` **não** está no CI: `apps/api` exige as `FIREBASE_ADMIN_*`.
 
 **Comentários no código** ([`.claude/rules/code-comments.md`](../.claude/rules/code-comments.md)) — o padrão
@@ -158,7 +173,7 @@ intenção de um momento e o ponteiro apodrece; comentário precisa ser autossuf
   entregar o plano de commits. Nome fora do formato barra a entrega. Os demais param e sinalizam.
 - **Commit só com aprovação explícita** do usuário, bloco a bloco, no `/review`.
 - **Push** só no fim do `/review`, depois de todos os commits, e **com confirmação**.
-- Ordem de commit: **`packages/sdk` → `apps/api` → `apps/app`/`apps/web` → `packages/internationalization`**.
+- Ordem de commit: **`packages/sdk` → `apps/api` → `apps/app` → `packages/internationalization`**.
 
 **ClickUp é somente leitura.** Nenhum agent ou comando escreve lá (sem `clickup_create_comment`,
 `clickup_update_task`, anexos). Os artefatos ficam em `docs/features/<slug>/`; levar algo para o card é
@@ -230,18 +245,18 @@ Depois, **cada subtarefa roda o pipeline completo**: `/develop <subtask> → /re
 
 ```text
 0. /spec                                                                    (opcional, mas é a entrada)
-   → varre o repo, pesquisa o mercado, propõe specs em specs/; você aprova "audit-log";
+   → varre o repo, pesquisa o mercado, propõe specs em specs/; você aprova "card-timeline";
      spec fica approved no specs/BACKLOG.md.
-1. /analyze audit-log                          ← o nome da spec é o argumento padrão
-   → lê specs/features/audit-log.md (problema, evidência, corte de MVP já decidido) e produz o blueprint em
-     docs/features/audit-log/analyze/plan.md + STATE.md (analyze=done, spec: audit-log);
+1. /analyze card-timeline                          ← o nome da spec é o argumento padrão
+   → lê specs/features/card-timeline.md (problema, evidência, corte de MVP já decidido) e produz o blueprint em
+     docs/features/card-timeline/analyze/plan.md + STATE.md (analyze=done, spec: card-timeline);
      a spec passa a in-progress e CONTINUA em specs/ durante todo o desenvolvimento.
 2. /develop
-   → implementa SDK → API → app → i18n; typecheck + pnpm check + paridade de i18n;
+   → implementa SDK → API → app → i18n; typecheck + pnpm check;
      valida no browser (light/dark/mobile); escreve develop/handoff.md; develop=done.
 3. /review
    → revisa (handoff + diff + raio de impacto) por leitura, corrige, cria a branch
-     app/feat/user-notifications, propõe os commits e commita bloco a bloco após sua aprovação;
+     app/feat/card-timeline, propõe os commits e commita bloco a bloco após sua aprovação;
      no fim pergunta se deve dar push; review=done.
 4. /test
    → gera critérios (§9.1), roda pnpm --filter app test + pnpm test, cria os testes que faltam,
@@ -249,8 +264,8 @@ Depois, **cada subtarefa roda o pipeline completo**: `/develop <subtask> → /re
 5. /observe            (opcional)
    → observação de negócio pronta para colar no card.
 6. /spec --sync
-   → confere no código que o corte de MVP foi entregue; audit-log vira done e é MOVIDA
-     (git mv specs/features/audit-log.md docs/features/audit-log/spec.md);
+   → confere no código que o corte de MVP foi entregue; card-timeline vira done e é MOVIDA
+     (git mv specs/features/card-timeline.md docs/features/card-timeline/spec.md);
      o BACKLOG.md a registra em "Entregues" e specs/ volta a conter só o que falta.
 ```
 
@@ -267,5 +282,4 @@ Catálogo completo em [`AI-WORKFLOW.md`](AI-WORKFLOW.md). As que o fluxo aciona 
 | `humanizer` · `caveman` | todos — arquivo humanizado, conversa comprimida |
 | `/code-review` | `/review` — passada genérica de bugs/simplificação |
 | `brainstorming` | antes do `/develop`, quando a tarefa cria UI nova |
-| `/payments-flow` | `/develop`, em tarefas de assinatura |
-| `/security-review` | após o `/review`, em mudanças de auth/pagamento/dados |
+| `/security-review` | após o `/review`, em mudanças de auth, permissão ou dados |

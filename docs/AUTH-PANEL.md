@@ -2,14 +2,14 @@
 
 **Fonte única** da regra de negócio de acesso do `apps/app`: quem entra onde, como o admin assume o
 contexto de um usuário comum, e o que a API valida. Visão de sistema em
-[`ARCHITECTURE.md`](ARCHITECTURE.md) · sessão compartilhada entre apps em [`AUTH-SSO.md`](AUTH-SSO.md) ·
-vocabulário em [`GLOSSARY.md`](GLOSSARY.md).
+[`ARCHITECTURE.md`](ARCHITECTURE.md) · vocabulário em [`GLOSSARY.md`](GLOSSARY.md). Os papéis do board
+(owner/maintainer/operator/viewer) são outra camada, descrita em [`board/ACCESS.md`](board/ACCESS.md).
 
 ## 1. Papéis
 
 | Papel | Origem | Onde opera |
 |-------|--------|-----------|
-| **comum** (`UserType.COMMON`) | cadastro público | `/{locale}/…` — área comum |
+| **comum** (`UserType.COMMON`) | seed, criação pelo admin ou primeiro login com Google | `/{locale}/…` — área comum |
 | **admin** (`UserType.ADMIN`) | criado por outro admin | `/{locale}/admin/…` — área administrativa |
 
 O papel vive no documento `user` do Firestore (campo `type`), **não** no token. O token só prova
@@ -35,11 +35,9 @@ layout redireciona — em vez de deixar o usuário numa área que não funciona.
 ## 3. Cadeia de gates (todos no servidor)
 
 ```
-proxy.ts                  default-deny: tudo exige sessão, exceto /sign-in e /sign-up
+proxy.ts                  default-deny: tudo exige sessão, exceto /sign-in
   └── (authenticated)/layout.tsx     requireSession()      → sem sessão: /sign-in
         ├── (common)/layout.tsx      admin não-impersonando → /{locale}/admin
-        │                            comum com onboarding pendente → /{locale}/onboarding
-        ├── onboarding/page.tsx      nada pendente (ou admin) → destino do ?redirect=
         └── (admin)/admin/layout.tsx requireAdmin()        → não-admin: /{locale}
               └── guard da API       requireAdminApi / requireCommonPanelApi
 ```
@@ -59,12 +57,6 @@ proxy.ts                  default-deny: tudo exige sessão, exceto /sign-in e /s
   listagem já vem restrita a usuários comuns pelo contexto da request, então nada de admin vaza.
 - **UI oculta nunca é proteção.** Cada camada acima é redundante de propósito; a última palavra é sempre
   o guard da API, que revalida papel e alvo a cada request.
-- **Onboarding pós-cadastro.** O layout comum desvia o usuário comum cujo perfil tem
-  `onboarding.completedAt: null` para `/{locale}/onboarding`, levando o caminho pedido em `?redirect=`.
-  O layout não lê a URL: o proxy repassa o `pathname` no header de requisição `x-app-path`, sempre
-  sobrescrevendo o que o navegador mandou. Perfil sem o campo (legado, seed, criado pelo admin) conta
-  como concluído. Admin personificando nunca é desviado, porque o `/auth/me` do servidor resolve o ator.
-  `ONBOARDING_ENABLED="false"` desliga o desvio e a página; vazio ou ausente mantém ligado.
 - O proxy **não** conhece o papel (ele está no Firestore, não no cookie de sessão): resolver isso ali
   custaria uma chamada de API no caminho quente. Ele manda todo mundo para `/{locale}` e o layout comum
   encaminha admins para `/admin` — um hop server-side, sem flash.
@@ -215,8 +207,7 @@ Definições: `AUTH_REQUEST_HEADER` (`packages/shared/utils/helpers/auth-request
 | `AUTH_REQUEST_IMPERSONATION_TARGET_INVALID` | 403 | alvo inexistente ou não-comum |
 | `AUTH_REQUEST_IMPERSONATION_READ_ONLY` | 403 | método mutante enquanto o admin atua como outro usuário (qualquer painel) |
 
-Todo código tem copy nos 3 idiomas em `translations/packages/shared/utils.ts` (`apiErrors`) — o teste de
-paridade falha se faltar. Use `/i18n-sync`.
+Todo código tem copy em `translations/packages/shared/utils.ts` (`apiErrors`). Use `/i18n-sync`.
 
 ## 8. Listagem de usuários (o que alimenta o seletor)
 

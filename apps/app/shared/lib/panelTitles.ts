@@ -25,8 +25,6 @@ export const PANEL_PAGE_TITLES = {
         dictionary.apps.app.pages.common.routes.platform.entities.create,
     "/entities/edit/[id]": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.common.routes.platform.entities.update,
-    "/organization": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.common.routes.platform.organization,
     "/account": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.common.account.title,
     "/playground": (dictionary: Dictionary) =>
@@ -37,8 +35,6 @@ export const PANEL_PAGE_TITLES = {
         dictionary.apps.app.pages.admin.routes.platform.users.create,
     "/admin/users/edit/[id]": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.admin.routes.platform.users.update,
-    "/admin/audit": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.admin.routes.platform.audit.list,
 } as const;
 
 export type PanelPageRoute = keyof typeof PANEL_PAGE_TITLES;

@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: Escreve testes Vitest neste monorepo (next-forge fork) seguindo o setup do repo — schemas Zod, mappers, handlers de rota da API, hooks de dados (React Query) e componentes RHF, com mocks de SDK/Firebase. Use quando o usuário pedir "escrever testes", "adicionar testes para X", "cobrir com testes", "testar essa rota/hook/componente". Roda com Vitest (jsdom) + @testing-library/react.
+description: Escreve testes Vitest neste monorepo seguindo o setup do repo — schemas Zod, mappers, handlers de rota da API, hooks de dados (React Query) e componentes RHF, com mocks de SDK/Firebase. Use quando o usuário pedir "escrever testes", "adicionar testes para X", "cobrir com testes", "testar essa rota/hook/componente". Roda com Vitest (jsdom) + @testing-library/react.
 ---
 
 # Escrever testes (Vitest)
@@ -45,24 +45,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/(shared)/repositories/entity.repository", () => ({
   entityRepository: {
-    listByOrganization: vi
+    listByUser: vi
       .fn()
       .mockResolvedValue({ items: [], nextCursorId: null }),
   },
 }));
 // Mocke o guard para injetar um ctx falso e apenas executar o handler:
-vi.mock("@/app/(guards)/organization", () => ({
-  requireOrganizationApi: (h: any) => (req: any) =>
-    h(req, {
-      subjectProfile: { id: "u1" },
-      organization: { organizationId: "org-1", role: "owner" },
-    }),
+vi.mock("@/app/(guards)/common-panel", () => ({
+  requireCommonPanelApi: (h: any) => (req: any) =>
+    h(req, { subjectProfile: { id: "p1" } }),
 }));
 
 const { GET } = await import("@/app/(routes)/entities/route");
 
 describe("GET /entities", () => {
-  it("retorna { data } da organização em contexto", async () => {
+  it("retorna { data } da pessoa em contexto", async () => {
     const res = await GET(new Request("http://t/entities") as any, {} as any);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ data: { items: [], nextCursor: null } });
@@ -70,10 +67,10 @@ describe("GET /entities", () => {
 });
 ```
 
-> Teste também os 404 de escopo e o 400 de validação. Recurso da organização (`entity`): o repositório
-> devolve `null` para registro de outra organização (`findInOrganization`) e a rota responde 404, com o
-> `resolveOrganizationMembership` mockado. Recurso da pessoa (`notification`): `row.userId !==
-> ctx.subjectProfile.id` → 404.
+> Teste também os 404 de escopo e o 400 de validação. O repositório devolve `null` para registro de
+> outra pessoa (`findOwnedBy`) e a rota responde 404 — `entitiesRouteOwnerScope.test.ts` é o modelo.
+> Para exercitar o guard de verdade (impersonação, painel errado), mocke `resolveApiActor` e o
+> `userRepository` em vez do guard, como em `entitiesRouteList.test.ts`.
 
 ## 3. Hook de dados (React Query)
 
@@ -130,4 +127,4 @@ describe("EntityFormFields", () => {
 - Nomeie o arquivo `*.test.ts(x)`; rode `pnpm --filter <workspace> test` e garanta verde antes de concluir.
 
 ## Onde rodar
-`pnpm test` (turbo, todos) · `pnpm --filter app test` · `pnpm --filter api test` · `pnpm --filter @repo/internationalization test` (inclui a paridade i18n).
+`pnpm test` (turbo, todos) · `pnpm --filter app test` · `pnpm --filter api test` · `pnpm --filter @repo/internationalization test` · `pnpm --filter api test apiErrorCodes` (cobertura do `apiErrors`).

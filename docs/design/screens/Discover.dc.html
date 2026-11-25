@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Descobrir specs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/vanillaui/tokens.css">
+<link rel="stylesheet" href="ds/vanillaui/components/bundle.css">
+<script src="ds/vanillaui/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="{{themeClass}}" style="min-height: 100vh; background: var(--color-bg); color: var(--color-ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;">
+
+<header style="background: var(--color-surface); border-bottom: 1px solid var(--color-line);">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-height: 64px; padding: 8px 24px; box-sizing: border-box;">
+    <a href="Boards.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--color-ink);">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--color-accent-fill)"></rect><rect x="7" y="7" width="3.5" height="14" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="12.25" y="7" width="3.5" height="9" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="17.5" y="7" width="3.5" height="11.5" rx="1.75" fill="var(--color-on-accent)"></rect></svg>
+      <span style="font-family: var(--font-display); font-weight: 600; font-size: 16px;">agent-board</span>
+    </a>
+    <span aria-hidden="true" style="color: var(--color-muted);">/</span>
+    <span style="font-weight: 600;">agent-board</span>
+    <nav aria-label="Seções do board" style="display: flex; flex-wrap: wrap; gap: 4px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Quadro</a>
+      <a href="CycleRun.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Ciclos</a>
+      <a href="Discover.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); background: var(--color-accent-tint); color: var(--color-accent); font-weight: 600; text-decoration: none;">Descobertas</a>
+      <a href="Members.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Membros</a>
+      <a href="Credentials.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Minhas credenciais</a>
+      <a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Configuração</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+      <button type="button" onClick="{{toggleTheme}}" aria-label="{{themeLabel}}" style="display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink-2); cursor: pointer;">
+        <sc-if value="{{isDark}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></sc-if>
+        <sc-if value="{{isLight}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+      </button>
+      <x-import component-from-global-scope="VanillaUI.Avatar"><x-import component-from-global-scope="VanillaUI.AvatarFallback">GB</x-import></x-import>
+    </div>
+  </div>
+</header>
+
+<main style="max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 24px;">
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <h1 style="margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.3;">Descobrir specs</h1>
+    <p style="margin: 0; color: var(--color-ink-2); max-width: 72ch;">Um agente lê o código e o backlog, olha o que ferramentas parecidas oferecem e propõe specs novas, com as fontes. Nada entra no board sem você aceitar.</p>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+    <x-import component-from-global-scope="VanillaUI.Card" style="flex: 999 1 560px; min-width: 0; gap: 20px;">
+      <h2 style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">Nova descoberta</h2>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 13px; font-weight: 600;">Onde procurar</span>
+        <x-import component-from-global-scope="VanillaUI.ToggleGroup" type="multiple" default-value="{{sources}}">
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="code">Código do repositório</x-import>
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="backlog">Backlog e specs atuais</x-import>
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="web">Pesquisa na web</x-import>
+        </x-import>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 13px; font-weight: 600;">Foco</span>
+        <x-import component-from-global-scope="VanillaUI.ToggleGroup" type="single" default-value="balanced" style="flex-wrap: wrap;">
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="balanced">Equilibrado</x-import>
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="product">Produto</x-import>
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="dx">Experiência de dev</x-import>
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="trust">Confiança</x-import>
+        </x-import>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label for="discover-context" style="font-size: 13px; font-weight: 600;">Contexto <span style="font-weight: 400; color: var(--color-muted);">(opcional)</span></label>
+        <x-import component-from-global-scope="VanillaUI.Textarea" id="discover-context" rows="{{three}}" placeholder="O que está acontecendo agora? Por exemplo: vamos usar o board com mais 2 pessoas a partir de janeiro."></x-import>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 13px; font-weight: 600;">Quantas propostas</span>
+        <x-import component-from-global-scope="VanillaUI.ToggleGroup" type="single" default-value="5">
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="3">3</x-import>
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="5">5</x-import>
+          <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="8">8</x-import>
+        </x-import>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--color-line);">
+        <x-import component-from-global-scope="VanillaUI.Button">Começar descoberta</x-import>
+        <span style="font-size: 13px; color: var(--color-muted);">Roda <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">/spec</span> no seu runner macbook-gui</span>
+      </div>
+    </x-import>
+
+    <section aria-labelledby="history-title" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="history-title" style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">Descobertas deste board</h2>
+      <x-import component-from-global-scope="VanillaUI.Card" style="padding: 14px 16px; gap: 6px;">
+        <span style="display: flex; align-items: center; gap: 8px;"><span style="flex: 1; font-weight: 600;">Agora</span><x-import component-from-global-scope="VanillaUI.Badge" variant="info">Pesquisando</x-import></span>
+        <span style="font-size: 13px; color: var(--color-ink-2);">Foco em confiança · olhando ferramentas parecidas</span>
+      </x-import>
+      <a href="DiscoverResults.dc.html" style="text-decoration: none; color: inherit;">
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 14px 16px; gap: 6px;">
+          <span style="display: flex; align-items: center; gap: 8px;"><span style="flex: 1; font-weight: 600;">Hoje, 15:20</span><x-import component-from-global-scope="VanillaUI.Badge" variant="warn">2 para decidir</x-import></span>
+          <span style="font-size: 13px; color: var(--color-ink-2);">5 propostas · 2 aceitas · 1 descartada</span>
+        </x-import>
+      </a>
+      <x-import component-from-global-scope="VanillaUI.Card" style="padding: 14px 16px; gap: 6px;">
+        <span style="font-weight: 600;">18/11</span>
+        <span style="font-size: 13px; color: var(--color-ink-2);">8 propostas · 3 aceitas · 5 descartadas</span>
+      </x-import>
+      <x-import component-from-global-scope="VanillaUI.Card" style="padding: 14px 16px; gap: 6px;">
+        <span style="font-weight: 600;">02/11</span>
+        <span style="font-size: 13px; color: var(--color-ink-2);">3 propostas · 1 aceita</span>
+      </x-import>
+    </section>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.state && typeof this.state.dark === 'boolean' ? (this.state.dark ? 'dark' : 'light') : (this.props.theme ?? 'light');
+    return {
+      theme: theme,
+      themeClass: theme === 'dark' ? 'dark' : '',
+      isDark: theme === 'dark',
+      isLight: theme !== 'dark',
+      themeLabel: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro',
+      toggleTheme: () => this.setState({ dark: theme !== 'dark' }),
+      sources: ['code', 'backlog', 'web'],
+      three: 3
+    };
+  }
+}
+</script>
+</body>
+</html>

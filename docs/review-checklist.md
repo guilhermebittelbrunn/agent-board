@@ -5,7 +5,7 @@
 outro lugar; corrija aqui.
 
 A fonte de verdade das convenções é o [`CLAUDE.md`](../CLAUDE.md) raiz + os `CLAUDE.md` aninhados
-(`apps/api`, `apps/app`, `apps/web`, `packages`) + [`AGENTS.md`](../AGENTS.md). Este arquivo é o destilado
+(`apps/api`, `apps/app`, `packages`) + [`AGENTS.md`](../AGENTS.md). Este arquivo é o destilado
 **acionável sobre um diff**.
 
 Verifique **apenas o que o diff toca**. Cite sempre `arquivo:linha` e a regra violada.
@@ -20,12 +20,12 @@ reexecutados à mão numa revisão**, e um "está verde" só vale como resposta 
 |---|---|
 | `pnpm check` (Biome) | formatação, ordenação de imports/atributos, `console.log`, regras de lint |
 | `typecheck` nos workspaces que declaram o script | erro de tipo em qualquer app ou pacote |
-| `pnpm test` | as suítes Vitest, **inclusive a paridade pt-br/en/es** do `@repo/internationalization` |
-| `test:emulator` (`apps/api`) | `firestore.rules` e `storage.rules` negando cliente anônimo e autenticado; upload, leitura pela URL devolvida, troca de avatar e expurgo contra o Storage emulado |
-| `pnpm e2e` (job `e2e`, pulado em PR só de documentação) | cadastro, login, CRUD de `entity`, troca de painel e landing no navegador, contra o emulador, e axe sem violação `critical`/`serious` fora da allowlist nas telas percorridas |
+| `pnpm test` | as suítes Vitest de todos os workspaces |
+| `test:emulator` (`apps/api`) | `firestore.rules` e `storage.rules` negando cliente anônimo e autenticado; upload, leitura pela URL devolvida e troca de avatar contra o Storage emulado |
+| `pnpm e2e` (job `e2e`, pulado em PR só de documentação) | login, CRUD de `entity`, troca de painel e seções da conta no navegador, contra o emulador, e axe sem violação `critical`/`serious` fora da allowlist nas telas percorridas |
 
 A consequência prática é onde a revisão humana precisa se concentrar — e é o resto deste arquivo:
-convenção de camada, autorização, ownership, escolha de `queryKey`, string de UI que existe nos 3 idiomas
+convenção de camada, autorização, ownership, escolha de `queryKey`, string de UI que existe no dicionário
 mas está **errada**, e afirmação de comportamento que ninguém mediu. Nada disso um linter enxerga.
 
 ⚠️ **O `build` não está no CI**: `apps/api` exige as `FIREBASE_ADMIN_*` para buildar. Mudança que pode
@@ -36,8 +36,8 @@ responsabilidade da revisão e do deploy da Vercel.
 
 ## 0. Transversal
 
-- [ ] Domínio específico de produto **não** vazou para `packages/*` (exceção: pacotes de integração
-      `auth`, `email`, `payments`). Genérico no pacote, específico no app.
+- [ ] Domínio específico **não** vazou para `packages/*` (exceções: o pacote de integração `auth` e o
+      contrato do board, `kanban-contract`). Genérico no pacote, específico no app.
 - [ ] Pacote não importa de `apps/*`; sem ciclo entre pacotes.
 - [ ] Nenhuma URL de API hardcoded fora do SDK / env tipado.
 - [ ] **Mudança mínima**: nada refatorado fora do escopo da tarefa.
@@ -59,17 +59,14 @@ responsabilidade da revisão e do deploy da Vercel.
 ## 1. `apps/api`
 
 - [ ] Handler é `export const GET = guard(async (req, ctx) => …)` — **nunca** `export async function GET`.
-- [ ] Protegido por guard: `requireOrganizationApi` (comum, dado da organização; expõe também
-      `ctx.organization`), `requireCommonPanelApi` (comum, expõe `ctx.subjectProfile`) ou
-      `requireAdminApi` (admin, **sem** `subjectProfile`). Autorização repetida no servidor — UI oculta
+- [ ] Protegido por guard: `requireCommonPanelApi` (comum, expõe `ctx.subjectProfile`) ou
+      `requireAdminApi` (admin, **sem** `subjectProfile`); rotas de board, pelo guard de papel do board. Autorização repetida no servidor — UI oculta
       não é proteção.
-- [ ] Rota `[id]`: genérico no guard (`requireOrganizationApi<RouteIdParamsContext>`, ou o do painel
-      comum) + `resolveIdFromContext(ctx)`.
-- [ ] **Ownership**: recurso **da organização** (como `entity`) passa por `requireOrganizationApi` e
-      só é lido pelo predicado do repositório (`findInOrganization(id, ctx.organization.organizationId)`
-      → `null` → 404; listas e contagens pelo helper privado `inOrganization`), nunca por
-      `ctx.subjectProfile.id`. Recurso **da pessoa** (como `notification`) verifica
-      `if (!row || row.userId !== ctx.subjectProfile.id) → 404`. Vale em **todos** os handlers que
+- [ ] Rota `[id]`: genérico no guard (`requireCommonPanelApi<RouteIdParamsContext>`) +
+      `resolveIdFromContext(ctx)`.
+- [ ] **Ownership**: recurso da pessoa (como `entity` e `notification`) só é lido pelo predicado do
+      repositório (`findOwnedBy(id, ctx.subjectProfile.id)` → `null` → 404; listas e contagens pelo helper
+      privado `ownedBy`). Recurso de um board é lido pelo escopo do board depois do guard de papel. Vale em **todos** os handlers que
       recebem id (404, não 403 — não vaze existência). Nenhum id do body é confiado sem checar o vínculo.
 - [ ] Input validado na borda com Zod: `parseCreateX`/`parseUpdateX` retornando
       `{ ok: true; value } | { ok: false; response }`; body via `parseRequestJson`; patch via
@@ -77,9 +74,9 @@ responsabilidade da revisão e do deploy da Vercel.
 - [ ] Magic numbers do schema extraídos em consts (regra do Biome).
 - [ ] Erro é sempre `{ error: { code: "SCREAMING_SNAKE" } }` + status (prefira `HTTP_STATUS`).
       Nunca stack trace nem mensagem interna como copy.
-- [ ] **Código de erro novo tem entrada em `apiErrors` nos 3 idiomas**
-      (`packages/internationalization/translations/packages/shared/utils.ts`) — senão o teste de paridade
-      quebra.
+- [ ] **Código de erro novo tem entrada em `apiErrors`**
+      (`packages/internationalization/translations/packages/shared/utils.ts`) — senão a tela mostra o
+      texto genérico. `pnpm --filter api test apiErrorCodes` falha citando o código e o arquivo.
 - [ ] Contrato de resposta: `list`/`get` → `{ data }` 200 · `create` → `{ data }` 201 ·
       `update` → `{ data: { id } }` 200 · `delete` → sem body 204.
 - [ ] Persistência via repositório que estende `BaseRepository<DTO>`, mapper como **3º argumento do
@@ -121,14 +118,7 @@ responsabilidade da revisão e do deploy da Vercel.
       — ver [`AUTH-PANEL.md`](AUTH-PANEL.md).
 - [ ] Nome de arquivo de módulo de feature em camelCase; componente exportado em PascalCase.
 
-## 3. `apps/web`
-
-- [ ] Landing continua Server Component / estática onde possível; sem `"use client"` desnecessário.
-- [ ] Metadata/SEO (canonical, hreflang, JSON-LD) coerente com o padrão existente.
-- [ ] Roteamento respeita `NEXT_PUBLIC_PRODUCT_MODE` (no `simple` o comum opera na web; no
-      `subscription` é redirecionado ao painel) — ver [`AUTH-SSO.md`](AUTH-SSO.md).
-
-## 4. `packages/*`
+## 3. `packages/*`
 
 - [ ] `@repo/sdk`: `export default class XActions` recebendo o `Client`; chamadas via
       `this.client.request<Response<T>>({...})` retornando `data.data`; tipos exportados do mesmo módulo
@@ -140,20 +130,20 @@ responsabilidade da revisão e do deploy da Vercel.
       `components/ui/*` reexportado em `components/ui/index.ts`. `HookForm*` = `Omit<...>` das props
       geridas pelo RHF + `{...rest}` repassado ao componente base; `HookFormSwitch` tem **um único**
       `Switch` dentro do `FormControl`.
-- [ ] `@repo/internationalization`: chave existe nos **3 idiomas** com a mesma estrutura; valores neutros;
+- [ ] `@repo/internationalization`: chave existe em `pt-br`; valores neutros;
       não importa rota do Next.
 - [ ] Pacote novo: `"private": true`, estende `@repo/typescript-config`.
 
-## 5. i18n
+## 4. i18n
 
 - [ ] **Zero string de UI literal em JSX**: label, placeholder, `aria-label`, toast, título de coluna,
       texto de confirmação, `emptyText`, mensagem de Zod.
-- [ ] Chave nova nos 3 idiomas (`pt-br`, `en`, `es`) com estrutura idêntica — rode
-      `pnpm --filter @repo/internationalization test` (teste de paridade determinístico).
+- [ ] Chave nova no dicionário `pt-br`, no arquivo-folha da área — rode
+      `pnpm --filter @repo/internationalization typecheck`.
 - [ ] Variável do dicionário com nome descritivo (`entitiesList`, `entityMessages`) — **nunca** `t`/`d`.
 - [ ] Locale via `getDictionary()` ou `getDictionaryForLocale(locale)` quando a rota já dá o `[locale]`.
 
-## 6. Testes
+## 5. Testes
 
 - [ ] Lógica nova tem teste: schema (com o dicionário real), mapper, helper puro, hook, rota.
 - [ ] Localização `apps/<app>/__tests__/<assunto>.test.ts(x)`; imports explícitos de `vitest`
@@ -177,7 +167,7 @@ responsabilidade da revisão e do deploy da Vercel.
 - [ ] ⚠️ `turbo build` depende de `test` — teste quebrado bloqueia build. E o CI roda `test` em toda PR,
       então teste quebrado também bloqueia o merge.
 
-## 7. Execução — quem roda o quê
+## 6. Execução — quem roda o quê
 
 **A revisão não executa o produto.** Ela lê código, confere invariantes e roda os gates estáticos. Rodar
 teste — de unidade ou de ponta a ponta — é do `analista-qa` (`/test`), único dono do `agent-browser` e de
@@ -186,7 +176,7 @@ screenshot.
 | etapa | executa | evidência que persiste |
 |-------|---------|------------------------|
 | `/develop` | smoke local, só para se desbloquear | nenhuma |
-| `/review` | `pnpm check` · `typecheck` · paridade de i18n | nenhuma |
+| `/review` | `pnpm check` · `typecheck` · cobertura do `apiErrors` | nenhuma |
 | `/test` | suíte Vitest **e** fluxo ponta a ponta com `agent-browser` | o **texto** do `test/report.md` |
 | CI | lint · typecheck · test · E2E (Playwright) · cobertura | log e artefatos do job |
 
@@ -223,7 +213,7 @@ Em **15 das 17** features entregues o `develop/handoff.md` afirmou algo que a et
 ### Portas: derrube só o que você subiu
 
 Vale para quem sobe processo — na prática, o `analista-qa`. Agents e usuário disputam as mesmas portas —
-**3000** `app` · **3001** `web` · **3002** `api` · **3003** `email` · **9099** Auth emulator · **8080**
+**3000** `app` · **3002** `api` · **9099** Auth emulator · **8080**
 Firestore emulator · **4001** UI do emulador. Processo pendurado no fim da validação quebra o próximo
 `pnpm dev` do usuário, e o processo é do agent.
 
@@ -238,7 +228,7 @@ Firestore emulator · **4001** UI do emulador. Processo pendurado no fim da vali
       usuário e os outros workspaces abertos na máquina. Mate por PID; `lsof -ti tcp:<porta> | xargs kill`
       só na porta que **você** abriu.
 
-## 8. Formato do relatório
+## 7. Formato do relatório
 
 ```
 ## Revisão — <escopo>

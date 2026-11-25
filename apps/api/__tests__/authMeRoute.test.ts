@@ -25,15 +25,11 @@ const USER = {
     reference_id: UID,
     type: "common",
     createdAt: "2024-03-01T10:00:00.000Z",
-    stripeCustomerId: "cus_internal",
-    subscription: { status: "active" },
-    entitlements: { plan: "pro" },
     customClaims: { role: "admin" },
     tokensValidAfterTime: "Mon, 01 Jan 2024 00:00:00 GMT",
     providerData: [{ providerId: "password" }],
     metadata: { creationTime: "Mon, 01 Jan 2024 00:00:00 GMT" },
     preferences: { theme: "dark", locale: "pt-br" },
-    onboarding: { step: "profile", completedAt: null },
     someFieldAddedLater: "private",
 };
 const SESSION_USER = {
@@ -41,7 +37,6 @@ const SESSION_USER = {
     type: "common",
     email: USER.email,
     preferences: { theme: "dark", locale: "pt-br" },
-    onboarding: { step: "profile", completedAt: null },
 };
 
 function request(): NextRequest {

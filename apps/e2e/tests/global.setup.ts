@@ -6,7 +6,7 @@ import { APPS_ROOT, AUTH_STATE } from "../support/paths";
 import { SEED_ACCOUNTS } from "../support/seedAccounts";
 import { signInThroughForm } from "../support/signIn";
 import { buildStackEnv } from "../support/stackEnv";
-import { APP_URL, WEB_URL } from "../support/urls";
+import { APP_URL } from "../support/urls";
 
 // `next dev` compiles a route on its first request, which can take longer than any
 // assertion budget in the specs. Setup pays that cost once, up front.
@@ -36,15 +36,6 @@ setup("reset the emulators to the seed", () => {
     });
 });
 
-setup("compile the signed-out routes", async ({ page }) => {
-    setup.setTimeout(WARM_UP_TEST_TIMEOUT);
-    await compileRoutes(page, [
-        `/${LOCALE}/sign-up`,
-        `${WEB_URL}/${LOCALE}/sign-up`,
-        `${WEB_URL}/${LOCALE}/sign-in`,
-    ]);
-});
-
 setup("sign in as the common user", async ({ page }) => {
     setup.setTimeout(WARM_UP_TEST_TIMEOUT);
     await signInThroughForm(page, SEED_ACCOUNTS.common);
@@ -59,9 +50,7 @@ setup("sign in as the common user", async ({ page }) => {
         `/${LOCALE}/entities`,
         `/${LOCALE}/entities/create`,
         `/${LOCALE}/entities/edit/route-warm-up`,
-        `/${LOCALE}/onboarding`,
-        `/${LOCALE}/organization`,
-        `/${LOCALE}/invite`,
+        `/${LOCALE}/account`,
     ]);
 });
 

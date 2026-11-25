@@ -352,7 +352,6 @@ const TWO_BYTE_CHAR = "é";
 
 function entityRow(overrides: Row = {}): Row {
     return {
-        organizationId: "org-1",
         userId: "profile-1",
         name: "Acme",
         description: "an entity",
@@ -363,12 +362,6 @@ function entityRow(overrides: Row = {}): Row {
         deletedAt: null,
         ...overrides,
     };
-}
-
-/** A record written before organizations existed: the field is absent, not null. */
-function unstampedRow(overrides: Row = {}): Row {
-    const { organizationId: _absent, ...row } = entityRow(overrides);
-    return row;
 }
 
 /** Stand-in for a firebase-admin Timestamp: only `toDate()` is relied upon. */
@@ -551,7 +544,6 @@ describe("BaseRepository.findAll", () => {
 describe("BaseRepository.create", () => {
     it("stamps the timestamps, clears deletedAt and returns a mapped DTO", async () => {
         const created = await repository.create({
-            organizationId: "org-1",
             userId: "profile-1",
             name: "Acme",
             description: "an entity",
@@ -617,10 +609,10 @@ describe("BaseRepository.update and delete", () => {
     });
 });
 
-describe("EntityRepository.listByOrganization", () => {
+describe("EntityRepository.listByUser", () => {
     const firstPage = { limit: 20, cursorId: null };
 
-    it("scopes by organization, drops soft-deleted rows and sorts by createdAt desc", async () => {
+    it("scopes by owner, drops soft-deleted rows and sorts by createdAt desc", async () => {
         fakeDb.seed(
             "entity",
             "older",
@@ -638,36 +630,23 @@ describe("EntityRepository.listByOrganization", () => {
         );
         fakeDb.seed(
             "entity",
-            "other-organization",
-            entityRow({ organizationId: "org-2" })
-        );
-        fakeDb.seed(
-            "entity",
-            "by-another-member",
+            "someone-else",
             entityRow({
                 userId: "profile-2",
                 createdAt: adminTimestamp("2024-03-01T00:00:00.000Z"),
             })
         );
-        fakeDb.seed("entity", "unstamped", unstampedRow());
 
-        const page = await entityRepository.listByOrganization(
-            "org-1",
-            firstPage
-        );
+        const page = await entityRepository.listByUser("profile-1", firstPage);
 
-        expect(page.items.map((row) => row.id)).toEqual([
-            "newer",
-            "by-another-member",
-            "older",
-        ]);
+        expect(page.items.map((row) => row.id)).toEqual(["newer", "older"]);
         expect(page.nextCursorId).toBeNull();
     });
 
     it("pushes the soft-delete filter, the ordering and the size into the query", async () => {
         fakeDb.seed("entity", "kept", entityRow());
 
-        await entityRepository.listByOrganization("org-1", {
+        await entityRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: null,
         });
@@ -675,7 +654,7 @@ describe("EntityRepository.listByOrganization", () => {
         expect(fakeDb.queries.at(-1)).toEqual({
             table: "entity",
             clauses: [
-                ["organizationId", "==", "org-1"],
+                ["userId", "==", "profile-1"],
                 ["deletedAt", "==", null],
             ],
             orders: [
@@ -691,7 +670,7 @@ describe("EntityRepository.listByOrganization", () => {
     it("hands back the requested size plus a cursor when more rows exist", async () => {
         seedTiedEntities();
 
-        const page = await entityRepository.listByOrganization("org-1", {
+        const page = await entityRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: null,
         });
@@ -703,11 +682,11 @@ describe("EntityRepository.listByOrganization", () => {
     it("walks every row exactly once when createdAt is identical across the page break", async () => {
         seedTiedEntities();
 
-        const first = await entityRepository.listByOrganization("org-1", {
+        const first = await entityRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: null,
         });
-        const second = await entityRepository.listByOrganization("org-1", {
+        const second = await entityRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: first.nextCursorId,
         });
@@ -732,7 +711,7 @@ describe("EntityRepository.listByOrganization", () => {
             })
         );
 
-        const page = await entityRepository.listByOrganization("org-1", {
+        const page = await entityRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: "doc-c",
         });
@@ -744,25 +723,25 @@ describe("EntityRepository.listByOrganization", () => {
         seedTiedEntities();
 
         await expect(
-            entityRepository.listByOrganization("org-1", {
+            entityRepository.listByUser("profile-1", {
                 limit: 2,
                 cursorId: "never-existed",
             })
         ).rejects.toBeInstanceOf(PaginationCursorError);
     });
 
-    it("never returns another organization's rows when the cursor points at their document", async () => {
+    it("never returns someone else's rows when the cursor points at their document", async () => {
         seedTiedEntities();
         fakeDb.seed(
             "entity",
             "doc-intruder",
             entityRow({
                 createdAt: adminTimestamp(CREATED_AT_ISO),
-                organizationId: "org-2",
+                userId: "profile-2",
             })
         );
 
-        const page = await entityRepository.listByOrganization("org-1", {
+        const page = await entityRepository.listByUser("profile-1", {
             limit: 20,
             cursorId: "doc-intruder",
         });
@@ -773,7 +752,7 @@ describe("EntityRepository.listByOrganization", () => {
             "doc-b",
             "doc-a",
         ]);
-        expect(page.items.every((row) => row.organizationId === "org-1")).toBe(
+        expect(page.items.every((row) => row.userId === "profile-1")).toBe(
             true
         );
     });
@@ -959,7 +938,7 @@ describe("UserRepository.touchLastAccess", () => {
     });
 });
 
-describe("EntityRepository.summaryByOrganization", () => {
+describe("EntityRepository.summaryByUser", () => {
     const LIVE_OWNED_ENTITIES = 3;
     const AGGREGATIONS_PER_SUMMARY = 5;
 
@@ -986,15 +965,15 @@ describe("EntityRepository.summaryByOrganization", () => {
         );
         fakeDb.seed(
             "entity",
-            "another-organization",
-            entityRow({ organizationId: "org-2", type: EntityType.CUSTOMER })
+            "someone-else",
+            entityRow({ userId: "profile-2", type: EntityType.CUSTOMER })
         );
     }
 
-    it("counts only the organization's live records", async () => {
+    it("counts only the owner's live records", async () => {
         seedSummaryFixture();
 
-        const summary = await entityRepository.summaryByOrganization("org-1");
+        const summary = await entityRepository.summaryByUser("profile-1");
 
         expect(summary.total).toBe(LIVE_OWNED_ENTITIES);
         expect(summary.enabled).toBe(2);
@@ -1005,17 +984,17 @@ describe("EntityRepository.summaryByOrganization", () => {
         });
     });
 
-    it("scopes every count by organization and soft delete", async () => {
+    it("scopes every count by owner and soft delete", async () => {
         seedSummaryFixture();
 
-        await entityRepository.summaryByOrganization("org-1");
+        await entityRepository.summaryByUser("profile-1");
 
         expect(fakeDb.queries).toHaveLength(AGGREGATIONS_PER_SUMMARY);
         for (const query of fakeDb.queries) {
             expect(query.table).toBe("entity");
             expect(query.clauses).toEqual(
                 expect.arrayContaining([
-                    ["organizationId", "==", "org-1"],
+                    ["userId", "==", "profile-1"],
                     ["deletedAt", "==", null],
                 ])
             );
@@ -1031,7 +1010,6 @@ describe("EntityRepository.summaryByOrganization", () => {
         // Written outside the API, so it carries no `type` and falls out of all three
         // per-type counts. The total is what must not lose it.
         fakeDb.seed("entity", "untyped", {
-            organizationId: "org-1",
             userId: "profile-1",
             name: "No type",
             enabled: true,
@@ -1040,7 +1018,7 @@ describe("EntityRepository.summaryByOrganization", () => {
             deletedAt: null,
         });
 
-        const summary = await entityRepository.summaryByOrganization("org-1");
+        const summary = await entityRepository.summaryByUser("profile-1");
 
         expect(summary.total).toBe(2);
         expect(
@@ -1053,7 +1031,7 @@ describe("EntityRepository.summaryByOrganization", () => {
     it("never reads the documents it is counting", async () => {
         seedSummaryFixture();
 
-        await entityRepository.summaryByOrganization("org-1");
+        await entityRepository.summaryByUser("profile-1");
 
         expect(fakeDb.queries.every((query) => query.limit === null)).toBe(
             true
@@ -1172,86 +1150,19 @@ describe("purge vs. delete", () => {
         expect(fakeDb.read("entity", "e1")?.deletedAt).toBeInstanceOf(Date);
     });
 
-    it("removes the profile document for good", async () => {
-        fakeDb.seed("user", "p1", {
-            reference_id: "auth-1",
-            type: UserType.COMMON,
-            phone: "+55 51 99999-0000",
-            lastAccessAt: new Date(CREATED_AT_ISO),
-            deletedAt: null,
-        });
-
-        await userRepository.purgeProfile("p1");
-
-        expect(fakeDb.read("user", "p1")).toBeUndefined();
-    });
-
-    it("erases the organization's records, soft-deleted ones included and whoever wrote them", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
-        fakeDb.seed(
-            "entity",
-            "e2",
-            entityRow({ deletedAt: new Date("2024-04-01T00:00:00.000Z") })
-        );
-        fakeDb.seed("entity", "e3", entityRow({ userId: "profile-2" }));
-        fakeDb.seed("entity", "e4", entityRow({ organizationId: "org-2" }));
-
-        const removed = await entityRepository.purgeByOrganization("org-1");
-
-        expect(removed).toBe(["e1", "e2", "e3"].length);
-        expect(fakeDb.read("entity", "e1")).toBeUndefined();
-        expect(fakeDb.read("entity", "e2")).toBeUndefined();
-        expect(fakeDb.read("entity", "e3")).toBeUndefined();
-        expect(fakeDb.read("entity", "e4")).toBeDefined();
-    });
-
-    it("erases only the person's unstamped records, never a stamped one", async () => {
-        fakeDb.seed("entity", "legacy", unstampedRow());
-        fakeDb.seed("entity", "home", entityRow());
-        fakeDb.seed(
-            "entity",
-            "elsewhere",
-            entityRow({ organizationId: "org-2" })
-        );
-        fakeDb.seed(
-            "entity",
-            "legacy-of-someone-else",
-            unstampedRow({ userId: "profile-2" })
-        );
-
-        const removed =
-            await entityRepository.purgeUnscopedByUserId("profile-1");
-
-        expect(removed).toBe(1);
-        expect(fakeDb.read("entity", "legacy")).toBeUndefined();
-        expect(fakeDb.read("entity", "home")).toBeDefined();
-        expect(fakeDb.read("entity", "elsewhere")).toBeDefined();
-        expect(fakeDb.read("entity", "legacy-of-someone-else")).toBeDefined();
-    });
-
     it("drains the collection in batches of 500", async () => {
         for (let index = 0; index < BATCH_LIMIT + 1; index++) {
             fakeDb.seed("entity", `e${index}`, entityRow());
         }
 
-        const removed = await entityRepository.purgeByOrganization("org-1");
+        const removed = await new PurgeableRepository(
+            fakeDb as never,
+            "entity"
+        ).purgeEverything();
 
         expect(removed).toBe(BATCH_LIMIT + 1);
         expect(fakeDb.batches).toEqual([BATCH_LIMIT, 1]);
         expect(fakeDb.count("entity")).toBe(0);
-    });
-
-    it("never orders the erasure query, so it needs no composite index", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
-
-        await entityRepository.purgeByOrganization("org-1");
-        await entityRepository.purgeUnscopedByUserId("profile-1");
-
-        for (const query of fakeDb.queries.filter(
-            (emitted) => emitted.table === "entity"
-        )) {
-            expect(query.orders).toEqual([]);
-        }
     });
 
     it("stops and reports instead of looping when the query never drains", async () => {
@@ -1269,123 +1180,30 @@ describe("purge vs. delete", () => {
     });
 });
 
-describe("EntityRepository.findAllByUserId", () => {
-    it("reads every record of the owner, soft-deleted ones included", async () => {
+describe("EntityRepository.findOwnedBy", () => {
+    it("hands back a record of the owner", async () => {
         fakeDb.seed("entity", "e1", entityRow());
-        fakeDb.seed(
-            "entity",
-            "e2",
-            entityRow({ deletedAt: new Date("2024-04-01T00:00:00.000Z") })
-        );
-        fakeDb.seed("entity", "e3", entityRow({ userId: "profile-2" }));
 
-        const page = await entityRepository.findAllByUserId("profile-1", 10);
-
-        expect(page.items.map((item) => item.id).sort()).toEqual(["e1", "e2"]);
-        expect(page.truncated).toBe(false);
-    });
-
-    it("reports truncation instead of silently dropping records", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
-        fakeDb.seed("entity", "e2", entityRow());
-
-        const page = await entityRepository.findAllByUserId("profile-1", 1);
-
-        expect(page.items).toHaveLength(1);
-        expect(page.truncated).toBe(true);
-    });
-});
-
-describe("EntityRepository.findInOrganization", () => {
-    it("hands back a record of the organization, whoever created it", async () => {
-        fakeDb.seed("entity", "e1", entityRow({ userId: "profile-2" }));
-
-        const row = await entityRepository.findInOrganization("e1", "org-1");
+        const row = await entityRepository.findOwnedBy("e1", "profile-1");
 
         expect(row?.id).toBe("e1");
-        expect(row?.organizationId).toBe("org-1");
+        expect(row?.userId).toBe("profile-1");
     });
 
     it.each([
-        ["of another organization", entityRow({ organizationId: "org-2" })],
+        ["of someone else", entityRow({ userId: "profile-2" })],
         ["soft-deleted", entityRow({ deletedAt: new Date(CREATED_AT_ISO) })],
-        ["not stamped yet", unstampedRow()],
     ])("answers null for a record %s", async (_label, row) => {
         fakeDb.seed("entity", "e1", row);
 
         expect(
-            await entityRepository.findInOrganization("e1", "org-1")
+            await entityRepository.findOwnedBy("e1", "profile-1")
         ).toBeNull();
     });
 
-    /** An unstamped record maps to an empty id; an empty scope must not match it. */
-    it("answers null for an empty organization id", async () => {
-        fakeDb.seed("entity", "e1", unstampedRow());
+    it("answers null for an empty owner id", async () => {
+        fakeDb.seed("entity", "e1", entityRow({ userId: "" }));
 
-        expect(await entityRepository.findInOrganization("e1", "")).toBeNull();
-    });
-});
-
-describe("EntityRepository.claimUnscopedByUserId", () => {
-    it("stamps only the person's unstamped records and leaves updatedAt alone", async () => {
-        const untouched = new Date("2023-05-05T00:00:00.000Z");
-        fakeDb.seed("entity", "legacy", unstampedRow({ updatedAt: untouched }));
-        fakeDb.seed(
-            "entity",
-            "legacy-deleted",
-            unstampedRow({ deletedAt: new Date(CREATED_AT_ISO) })
-        );
-        fakeDb.seed(
-            "entity",
-            "elsewhere",
-            entityRow({ organizationId: "org-2" })
-        );
-        fakeDb.seed(
-            "entity",
-            "someone-else",
-            unstampedRow({ userId: "profile-2" })
-        );
-
-        const outcome = await entityRepository.claimUnscopedByUserId(
-            "profile-1",
-            "org-1"
-        );
-
-        expect(outcome).toBe("finished");
-        expect(fakeDb.read("entity", "legacy")).toMatchObject({
-            organizationId: "org-1",
-            updatedAt: untouched,
-        });
-        expect(fakeDb.read("entity", "legacy-deleted")?.organizationId).toBe(
-            "org-1"
-        );
-        expect(fakeDb.read("entity", "elsewhere")?.organizationId).toBe(
-            "org-2"
-        );
-        expect(fakeDb.read("entity", "someone-else")).not.toHaveProperty(
-            "organizationId"
-        );
-    });
-
-    it("writes nothing on a second pass", async () => {
-        fakeDb.seed("entity", "legacy", unstampedRow());
-
-        await entityRepository.claimUnscopedByUserId("profile-1", "org-1");
-        const batchesAfterFirst = fakeDb.batches.length;
-        await entityRepository.claimUnscopedByUserId("profile-1", "org-1");
-
-        expect(fakeDb.batches).toHaveLength(batchesAfterFirst);
-    });
-
-    it("needs no composite index: one equality, no ordering", async () => {
-        fakeDb.seed("entity", "legacy", unstampedRow());
-
-        await entityRepository.claimUnscopedByUserId("profile-1", "org-1");
-
-        expect(fakeDb.queries.at(-1)).toMatchObject({
-            table: "entity",
-            clauses: [["userId", "==", "profile-1"]],
-            orders: [],
-        });
+        expect(await entityRepository.findOwnedBy("e1", "")).toBeNull();
     });
 });

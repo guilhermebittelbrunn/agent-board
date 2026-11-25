@@ -1,49 +1,43 @@
 # Segurança
 
-Modelo de segurança do boilerplate e como mantê-lo. Leia junto com [`docs/ARCHITECTURE.md`](ARCHITECTURE.md). Regra de ouro transversal: **autorização é sempre repetida no servidor** — UI oculta nunca é a única proteção.
+Modelo de segurança do agent-board e como mantê-lo. Leia junto com [`docs/ARCHITECTURE.md`](ARCHITECTURE.md). Regra de ouro transversal: **autorização é sempre repetida no servidor** — UI oculta nunca é a única proteção.
 
 ## Autenticação
 
-- **Provider**: Firebase. No cliente (`@repo/auth/client`), o usuário faz sign-in (e-mail/senha ou Google) e obtém um **ID token**, sincronizado num cookie de sessão. O cadastro por e-mail e senha não sai do navegador direto para o Firebase: as duas front-ends chamam `POST /auth/sign-up` na `apps/api`, que valida o corpo com Zod, cria a conta pelo Admin SDK (`createUser`) e grava o perfil. Em seguida o front entra com `signIn`, como no login.
-- **Política de senha**: mínimo de 8 e máximo de 1024 caracteres para toda senha **definida** (cadastro, redefinição por link, troca na área de conta, definição da primeira senha na área de conta, criação pelo admin), sem regra de composição e sem aparar espaços. Quem confere uma senha que já existe (login, senha atual na troca e na exclusão de conta) segue aceitando 6, porque contas antigas podem ter senha de 6 ou 7. As três constantes vivem em `packages/shared/utils/helpers/passwordPolicy.ts`; a API responde `400 AUTH_PASSWORD_TOO_SHORT` para senha nova curta. Contornar o produto e chamar `identitytoolkit.googleapis.com/v1/accounts:signUp` com a chave web pública ainda cria conta com 6 ou 7 caracteres; fechar esse caminho exige Identity Platform (ver `docs/PRE-PRODUCTION.md`, "Declaração — o que a política de senha não alcança").
+- **Provider**: Firebase. No cliente (`@repo/auth/client`), o usuário entra com e-mail/senha ou Google e obtém um **ID token**, sincronizado num cookie de sessão. Não há cadastro aberto: as contas vêm do seed do emulador, da criação pelo admin (`POST /users`) ou do primeiro login com Google. O login com GitHub substitui os dois na spec `github-sign-in`.
+- **Política de senha**: mínimo de 8 e máximo de 1024 caracteres para toda senha **definida** (troca na área de conta e criação pelo admin), sem regra de composição e sem aparar espaços. Quem confere uma senha que já existe (login e senha atual na troca) segue aceitando 6. As três constantes vivem em `packages/shared/utils/helpers/passwordPolicy.ts`; a API responde `400 AUTH_PASSWORD_TOO_SHORT` para senha nova curta.
 - **No servidor** (`@repo/auth/server`), o Firebase **Admin SDK** verifica o token (`verifyIdToken`) a partir do cookie `access-token` ou do header `Authorization: Bearer`. Falhas benignas (token expirado/ inválido) viram "sem sessão", não erro 500.
-- **Identity Toolkit REST** (`FIREBASE_WEB_API_KEY`) é usado no servidor para o login (inclusive a conferência da senha atual na troca de senha, na troca de e-mail e na exclusão de conta), o login com Google, a redefinição de senha por link, a confirmação de e-mail, a confirmação da troca de e-mail e a criação de usuário pelo admin (`POST /users`).
-- **`POST /auth/sign-in`** (login pela API, sem consumidor nas front-ends do repo) valida o corpo com Zod e responde `400 VALIDATION_FAILED` para corpo ausente, JSON inválido, e-mail inválido ou senha com menos de 6 caracteres, sem chamar o Identity Toolkit. Toda recusa do provedor (senha errada, conta inexistente, conta desativada) vira o mesmo `400 AUTH_INVALID_CREDENTIALS`, que não diz se o e-mail existe nem ecoa a mensagem do provedor; o limite do provedor vira `429 USERS_AUTH_RATE_LIMITED`. `404 USERS_NOT_FOUND` só aparece depois de uma senha aceita, quando a conta sumiu do Auth entre o login e a leitura do perfil.
-- **Métodos de login**: a aba Segurança da conta lista os provedores do `providerData`. Definir a primeira senha numa conta só Google (`POST /account/password/set`) exige um ID token Firebase emitido por login com Google nos últimos 5 minutos: a API confere `uid`, `firebase.sign_in_provider === "google.com"` e `auth_time` (`apps/api/(shared)/lib/recent-google-sign-in.ts`). O token da sessão cunhado pelo bootstrap do cookie tem provedor `custom` e é recusado com `400 ACCOUNT_REAUTH_INVALID`, então a idade da sessão não serve de prova. Definida a senha, todas as sessões da conta são encerradas; se o Firebase recusar a revogação, a senha fica gravada e a rota responde `500 AUTH_SESSIONS_NOT_REVOKED`, como a troca (`POST /account/password`) e a redefinição (`POST /auth/password/reset`). Vincular o Google acontece no navegador (`linkWithPopup`), onde o Firebase confere a posse da conta Google; a API só grava o evento quando o provedor já aparece na conta (`POST /account/sign-in-methods/linked`). Desvincular roda no servidor (`DELETE /account/sign-in-methods/:id`) e recusa o último método com `409 ACCOUNT_SIGN_IN_METHOD_LAST`. Desvincular a senha faz o Firebase apagar o e-mail e o `emailVerified` da conta (medido no emulador de Auth), e a rota devolve os dois na mesma requisição. O Firebase trata essa devolução como troca de e-mail e revoga os refresh tokens; a rota chama `revokeUserSessions` em seguida para deixar isso explícito, e a tela sai da conta. Se a devolução falhar, a rota tenta de novo uma vez. Se falhar outra vez, encerra as sessões mesmo assim, responde `500 ACCOUNT_UPDATE_FAILED` e registra `[account] password-unlink-email-restore-failed` com o `uid` e o `requestId`, sem o endereço. O endereço a devolver fica no `targetLabel` do evento `account.signInMethod.unlink` da trilha, gravado antes da devolução com o mesmo `requestId`; se essa gravação falhou, a linha `[audit] write-failed` com o mesmo `requestId` avisa. Desvincular o Google não encerra sessão. O vínculo feito direto pelo SDK do Firebase, fora do produto, não passa pela API (ver `docs/PRE-PRODUCTION.md`, "Declaração — o que o vínculo de métodos de login não alcança").
-- **Troca de e-mail**: `POST /account/email` pede a senha atual e só manda um link ao endereço novo depois que a Resend aceitou o aviso ao endereço antigo. Nada muda na conta até o link ser aberto. `POST /auth/email-change/confirm` é pública, porque o link pode ser aberto noutro aparelho: ela confere que o código é do tipo `VERIFY_AND_CHANGE_EMAIL` antes de aplicá-lo, e só então encerra todas as sessões da conta (`revokeUserSessionsOrThrow`) e grava `account.email.change` na trilha. Se a revogação falhar, o evento é gravado do mesmo jeito (o endereço já mudou) e a rota responde `500 AUTH_SESSIONS_NOT_REVOKED`; a tela de confirmação mostra o título de sucesso com essa mensagem, que diz que a alteração foi salva e manda usar "Sair de todos os dispositivos". `POST /auth/email-verification/confirm` faz a conferência inversa e só aplica código `VERIFY_EMAIL`; sem isso, um link de troca aberto sem o parâmetro `mode` mudaria o e-mail por ela, sem revogação nem evento. Quem tem o link consegue aplicar o código direto no Identity Toolkit com a chave web pública; nesse caso o e-mail muda, mas a revogação explícita e o evento de auditoria não acontecem.
+- **Identity Toolkit REST** (`FIREBASE_WEB_API_KEY`) é usado no servidor para o login, a conferência da senha atual na troca de senha, o login com Google e a criação de usuário pelo admin (`POST /users`).
+- **`POST /auth/sign-in`** valida o corpo com Zod e responde `400 VALIDATION_FAILED` para corpo ausente, JSON inválido, e-mail inválido ou senha com menos de 6 caracteres, sem chamar o Identity Toolkit. Toda recusa do provedor (senha errada, conta inexistente, conta desativada) vira o mesmo `400 AUTH_INVALID_CREDENTIALS`, que não diz se o e-mail existe nem ecoa a mensagem do provedor; o limite do provedor vira `429 USERS_AUTH_RATE_LIMITED`.
+- **Troca de senha** (`POST /account/password`) confere a senha atual e encerra todas as sessões da conta; se o Firebase recusar a revogação, a senha fica gravada e a rota responde `500 AUTH_SESSIONS_NOT_REVOKED`. Conta que só entra pelo Google não tem senha para trocar (`400 ACCOUNT_PASSWORD_UNSUPPORTED`).
 
 ## Autorização (guards da API)
 
-São **56** arquivos de rota em `apps/api/app/(routes)/`. **Trinta e oito** exportam o handler embrulhado num
-guard, que roda **antes** da lógica; **dezoito** exportam handler nu, e cada grupo tem um motivo próprio
-(medido em 2026-10-28 com `find "apps/api/app/(routes)" -name route.ts` e
-`grep -LE "require(CommonPanel|Admin|Plan|Organization)Api"`):
+São **20** arquivos de rota em `apps/api/app/(routes)/`. **Catorze** exportam o handler embrulhado num
+guard, que roda **antes** da lógica; **seis** exportam handler nu (medido com
+`find "apps/api/app/(routes)" -name route.ts` e `grep -LE "require(CommonPanel|Admin)Api"`):
 
 | grupo | quantas | por que não tem guard |
 |-------|---------|------------------------|
-| `/auth/*` — `me`, `session`, `sign-in`, `sign-in/google`, `sign-in/email-link`, `sign-in/email-link/request`, `sign-up`, `password/reset`, `password/reset-request`, `email-verification/send`, `email-verification/confirm`, `email-change/confirm` | 12 | é a superfície **anterior à sessão**: um guard que exige sessão recusaria justamente quem vem criar uma. `/auth/me` e `/auth/session` são a exceção dentro da exceção: resolvem a credencial por dentro (`resolveApiActor`, `auth/me/route.ts:13`; `resolveApiCredential`, `auth/session/route.ts:13`). Sem credencial ativa, ou com conta que não existe mais no Auth, `/auth/me` responde `401 AUTH_INVALID_TOKEN`, o mesmo código dos guards |
+| `/auth/*` — `me`, `session`, `sign-in`, `sign-in/google` | 4 | é a superfície **anterior à sessão**: um guard que exige sessão recusaria justamente quem vem criar uma. `/auth/me` e `/auth/session` resolvem a credencial por dentro (`resolveApiActor`, `resolveApiCredential`). Sem credencial ativa, ou com conta que não existe mais no Auth, `/auth/me` responde `401 AUTH_INVALID_TOKEN`, o mesmo código dos guards |
 | `/health`, `/health/ready` | 2 | sondas de plataforma, precisam responder sem credencial |
-| `/webhooks/payments` | 1 | autentica pela assinatura da Stripe (`constructEvent`), não por sessão. Header `stripe-signature` ausente ou assinatura que não confere responde `400 VALIDATION_FAILED` |
-| `/payments/catalog` | 1 | a landing mostra os planos a visitantes que ainda não têm conta. Só lê o catálogo da Stripe; sem cobrança configurada responde `{ enabled: false, plans: [] }` |
-| `/contact` | 1 | o formulário de contato da landing recebe quem ainda não tem conta. O destino é fixo no servidor (a caixa de `NEXT_PUBLIC_APP_SUPPORT_EMAIL`), então quem chama não escolhe para quem o e-mail vai; o corpo é validado com Zod e a rota está na lista de rate limit. Sem caixa ou sem Resend responde `503 CONTACT_UNAVAILABLE` antes de ler o corpo |
-| `/invitations/preview` | 1 | o convidado abre o link do convite antes de entrar, muitas vezes antes de ter conta. O token (32 bytes aleatórios) vai no corpo, não na URL da API, e é procurado pelo hash: o Firestore nunca guarda o token. A resposta mostra só o e-mail convidado, o e-mail de quem convidou e a validade, o que o próprio e-mail do convite já carregava. Com `NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED` diferente de `"true"` responde `404 ORGANIZATION_MEMBERS_DISABLED` antes de ler qualquer coisa. Está na lista de rate limit |
 
-As **trinta e oito** rotas de negócio restantes — `account/*` ×13, `entities` ×3, `files`, `users` ×4,
-`audit-events`, `payments/*` ×4, `notifications/*` ×4, `organization/*` ×7 e `invitations/accept` — passam
-por um dos quatro guards:
+As **catorze** rotas de negócio — `account` ×2, `entities` ×3, `files`, `notifications/*` ×4 e `users` ×4 —
+passam por um dos dois guards:
 
-- `requireCommonPanelApi` — exige um usuário comum válido; resolve `ctx.subjectProfile` (titular **ou** usuário personificado).
-- `requireOrganizationApi` — composto sobre o `requireCommonPanelApi` (`apps/api/app/(guards)/organization.ts`); depois dele, aplica o gate de plano quando a rota pede e resolve a organização do sujeito em `ctx.organization` (`organizationId` e o papel `owner`/`member`, sem olhar o `UserType`). Com `role: "owner"`, recusa o membro com `403 ORGANIZATION_FORBIDDEN`. Usado por `entities` ×3, `files` e `organization/*` ×6; o `POST /entities` passa o requisito de plano. As rotas de `organization/*` e `invitations/*` ficam embrulhadas por `whenOrganizationMembersEnabled` (`apps/api/(shared)/lib/organization-members.ts`), que responde `404 ORGANIZATION_MEMBERS_DISABLED` antes de autenticar quando a chave da fase B está desligada. `invitations/accept` passa pelo `requireCommonPanelApi` e compara o e-mail da conta com o do convite numa transação.
-- `requirePlanApi` — composto sobre o `requireCommonPanelApi` (`apps/api/app/(guards)/plan.ts`); depois dele, recusa quem não tem o plano exigido. Nenhuma rota usa hoje; o `requireOrganizationApi` aplica a mesma checagem (`refusePlanRequirement`).
+- `requireCommonPanelApi` — exige um usuário comum válido; resolve `ctx.subjectProfile` (titular **ou** usuário personificado). Todo registro do painel comum é do perfil que o criou (`userId`), e o escopo é sempre `ctx.subjectProfile.id`.
 - `requireAdminApi` — exige perfil admin.
-  - `PUT` e `DELETE /users/:id` recusam com `403 USERS_SELF_LOCKOUT_FORBIDDEN` desativar, rebaixar (`type` diferente de `ADMIN`) ou arquivar a própria conta, comparando o `reference_id` do perfil alvo com o uid de quem chama (`apps/api/app/(routes)/users/[id]/route.ts:46-48`, `:134-136`, `:187-189`). Nenhum admin tira o próprio acesso pelo painel, mas isso não garante que sobre um admin ativo: dois admins que desativam um ao outro em pedidos simultâneos passam pelo guard antes de qualquer gravação. O console do Firebase e o Firestore direto continuam fora desse alcance.
-  - `DELETE /users/:id` recusa com `409 USERS_DELETE_ORGANIZATION_HAS_MEMBERS` o dono de uma organização que ainda tem outros membros (`apps/api/app/(routes)/users/[id]/route.ts:191-196`), pela mesma regra da exclusão pelo titular (`ownsOrganizationWithMembers`, `apps/api/(shared)/lib/organization-membership.ts:102-132`), que olha todas as organizações de que a pessoa é dona. Membro com perfil arquivado ou inexistente não conta: essa conta está desativada e o core não a restaura. Arquivar o dono deixaria os membros numa organização que ninguém gerencia; a saída é ele transferir a propriedade a um membro (`POST /organization/members/:id/ownership`) ou remover os membros antes. Organização cujo dono foi arquivado mesmo assim (por exemplo, numa corrida entre o arquivamento e a transferência) recusa a prévia e o aceite de convite com `400 ORGANIZATION_INVITATION_INVALID`. A recusa vem antes de qualquer efeito: Stripe, Auth, soft delete e trilha de auditoria. O bloqueio (`PUT` com `disabled: true`) não tem essa recusa, porque é a ferramenta de contenção de uma conta comprometida.
+  - `PUT` e `DELETE /users/:id` recusam com `403 USERS_SELF_LOCKOUT_FORBIDDEN` desativar, rebaixar (`type` diferente de `ADMIN`) ou arquivar a própria conta, comparando o `reference_id` do perfil alvo com o uid de quem chama. Nenhum admin tira o próprio acesso pelo painel, mas isso não garante que sobre um admin ativo: dois admins que desativam um ao outro em pedidos simultâneos passam pelo guard antes de qualquer gravação.
+
+Os papéis do board (owner/maintainer/operator/viewer, limitados pela permissão no GitHub) chegam com a spec
+`board-members`, como um guard composto sobre o `requireCommonPanelApi`; o modelo está em
+[`docs/board/ACCESS.md`](board/ACCESS.md).
 
 Os guards:
 1. Validam o Bearer token (Firebase Admin).
 2. Resolvem o perfil Firestore do **ator** (`userRepository.findByReferenceId(uid)`).
 3. Resolvem o **subject** e validam o contexto de impersonação em `resolveAuthRequestContext` — os headers `x-role` / `requestUserId` enviados pelo SDK **não são confiados cegamente**: são validados server-side (papel, posse, permissão de painel).
-4. Checam o **escopo** do recurso: o da organização pelo repositório (`entityRepository.findInOrganization(id, ctx.organization.organizationId)` → 404), o da pessoa por `row.userId !== ctx.subjectProfile.id` → 404.
+4. Checam o **escopo** do recurso pelo repositório: `entityRepository.findOwnedBy(id, ctx.subjectProfile.id)` devolve `null` para registro de outra pessoa → 404.
 
 > Ao criar rotas, repita a checagem mesmo que o front já restrinja a navegação. Ver [`apps/api/CLAUDE.md`](../apps/api/CLAUDE.md) e a skill `/new-api-route`.
 
@@ -51,19 +45,8 @@ Os guards:
 
 **Postura vigente**: a `apps/api` acessa o Firestore pelo **Admin SDK** — `getFirestoreAdmin()` de `@repo/auth/server`, resolvido em `apps/api/(shared)/infra/database.ts` e injetado no `BaseRepository`. Como serviço confiável, a API **ignora** as security rules; então [`firestore.rules`](../firestore.rules) pode **negar todo acesso direto de cliente** (`allow read, write: if false`) sem afetar a API.
 
-> ✅ **ESTADO ATUAL: as rules estão publicadas e em vigor** no projeto de referência
-> (`next-boilerplate-576d0`). Medido em **2026-09-11** — a leitura direta via REST com a chave pública
-> devolve **403 `PERMISSION_DENIED`** (ver [Verificar que o furo está fechado](#verificar-que-o-furo-está-fechado)) — e
-> reconferido em **2026-09-14** lendo as rules publicadas direto do projeto, que batem com o arquivo
-> versionado.
->
-> ⚠️ **Versões anteriores deste documento afirmavam o oposto** ("NÃO estão publicadas", "200 com dados
-> reais") e mandavam tratar isso como a pendência #1 de segurança. **Era falso.** Não republique rules
-> "para corrigir a falha": não há falha, e a ordem errada de publicação/rollback é o que de fato reexpõe a
-> base (ver o aviso abaixo).
->
-> ⛔ **Um fork não herda isso.** Outro projeto Firebase = outras rules, e lá nada foi publicado. Para um
-> fork, o `deploy` abaixo é obrigatório e a base nasce aberta até ele rodar.
+> O projeto Firebase do agent-board ainda não existe. Publique as rules antes de o primeiro dado real
+> entrar e confira com o passo [Verificar que o furo está fechado](#verificar-que-o-furo-está-fechado).
 
 Consequências:
 
@@ -79,7 +62,7 @@ npx -y firebase-tools@latest deploy --only firestore:rules --dry-run        # va
 npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes
 ```
 
-O projeto alvo vem do [`.firebaserc`](../.firebaserc) versionado. **Um fork publica com `--project <id-do-fork>`** — ver [`docs/SETUP.md`](SETUP.md).
+O repositório não versiona `.firebaserc`: publique sempre com `--project <id-do-projeto>` — ver [`docs/SETUP.md`](SETUP.md).
 
 ⛔ **Ordem e rollback**: publique as rules **depois** de a API estar rodando no Admin SDK; o inverso deixa a API sem acesso. E o rollback correto é **reverter o código da API primeiro** — republicar rules permissivas sem reverter reexpõe a base inteira, o que não é rollback.
 
@@ -95,7 +78,7 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 Esperado **403** (`PERMISSION_DENIED`). Com rules permissivas o mesmo comando devolve **200 com os dados** — é a medida da vulnerabilidade. Não salve o corpo da resposta: ele contém dados reais.
 
 ### Auditar as rules
-- **Firebase MCP** (já conectado): use a skill `firebase:firebase-security-rules-auditor` para avaliar a robustez das rules — especialmente útil **se** adotar o modelo alternativo (regras por dono) comentado em `firestore.rules`. Para `allow ... if false` o resultado é trivialmente "máximo de restrição".
+- **Firebase MCP**: use a skill `firebase:firebase-security-rules-auditor` para avaliar a robustez das rules — especialmente útil **se** adotar o modelo alternativo (regras por dono) comentado em `firestore.rules`. Para `allow ... if false` o resultado é trivialmente "máximo de restrição".
 - CLI: `npx -y firebase-tools@latest deploy --only firestore:rules --dry-run` para validar sintaxe.
 
 ## Cloud Storage: bucket privado, leitura por URL assinada
@@ -104,8 +87,8 @@ Mesma postura do Firestore — **a API é a única autoridade** — com uma dife
 **duas** camadas de acesso, e publicar as rules fecha só uma.
 
 - O upload atravessa a API (`POST /files`, sob guard de painel comum), que valida **tipo real** (magic
-  bytes) e tamanho. O caminho do objeto é derivado no servidor: dono (o perfil, ou `org-<organizationId>` com
-  `?scope=organization`) + UUID + extensão do tipo sniffado —
+  bytes) e tamanho. O caminho do objeto é derivado no servidor: o perfil de quem envia + UUID + extensão
+  do tipo sniffado —
   nada que o cliente envia entra no path.
 - A imagem é gravada **sem metadados** (`apps/api/(shared)/lib/image-metadata.ts`). Saem EXIF (com GPS,
   modelo da câmera e número de série), XMP, IPTC, comentários, blocos de texto e o que vier depois do fim da
@@ -113,13 +96,13 @@ Mesma postura do Firestore — **a API é a única autoridade** — com uma dife
   tag. No WebP a orientação se perde. A remoção copia os blocos da imagem sem decodificar pixel, por lista de
   permissão: bloco desconhecido sai. Arquivo cuja estrutura ela não consegue percorrer recebe
   `415 UPLOAD_FILE_TYPE_NOT_ALLOWED`. Objetos gravados antes dessa regra continuam com o EXIF original.
-- Foto de entidade e avatar aceitam só um objeto do bucket do próprio dono (ou da organização, na foto) ou
+- Foto de entidade e avatar aceitam só um objeto do bucket do próprio dono ou
   uma URL `https://lh3.googleusercontent.com/...`, o único host externo que o `img-src` da CSP do painel
   deixa aparecer (`EXTERNAL_IMAGE_HOSTS` em `apps/api/(shared)/lib/entity-photo.ts`, espelho de
   `apps/app/proxy.ts`). URL `http`, com porta, com credencial ou de outro host recebe `400
   ENTITY_PHOTO_INVALID` ou `400 ACCOUNT_AVATAR_INVALID`. O valor que já está gravado e volta sem mudança
   continua aceito, para que um registro antigo com URL externa siga salvável. Nenhum código do servidor busca
-  essas URLs. Fork com CDN próprio edita a constante e a CSP juntas.
+  essas URLs. Um CDN próprio exige editar a constante e a CSP juntas.
 - A leitura sai por **URL assinada V4, expirável (15 min)**, emitida só depois do check de posse do
   recurso. O documento no Firestore guarda o **caminho**, nunca uma URL assinada.
   A exceção é o emulador de Storage (`FIREBASE_STORAGE_EMULATOR_HOST` preenchido): ali a URL é o caminho do
@@ -133,7 +116,7 @@ Mesma postura do Firestore — **a API é a única autoridade** — com uma dife
 desenho. Verificação: `curl -o /dev/null -w '%{http_code}' https://storage.googleapis.com/<bucket>/<objeto>`
 → **403**.
 
-Ativação, permissões e custo (exige plano **Blaze**): [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md) §6. Sem
+Ativação, permissões e custo (exige plano **Blaze**): [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md). Sem
 configurar, a capacidade fica desligada e `POST /files` responde `STORAGE_NOT_CONFIGURED` (503).
 
 ## Borda HTTP: cabeçalhos, CSP, CORS e limite de requisições
@@ -147,31 +130,23 @@ Os três controles vivem no `proxy.ts` de cada app e na política genérica de `
 |-----|----------|------------|
 | `apps/app` | `Content-Security-Policy` **bloqueante** | Maior superfície: analytics, avatar do Google, popup de login |
 | `apps/api` | `Content-Security-Policy` **bloqueante**, `default-src 'none'` | Responde JSON; o único HTML é a página de erro do Next |
-| `apps/web` | `Content-Security-Policy-Report-Only` | Só relata no console — rede de segurança para o que a landing venha a carregar |
 
-Os três apps mandam também `Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(),
+Os dois apps mandam também `Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(),
 magnetometer=(), microphone=(), payment=(), usb=()`, que desliga no navegador APIs que nenhum deles usa. O
 nosecone não tem essa opção, então `applySecurityHeaders` põe o cabeçalho à mão, com o valor da constante
-`PERMISSIONS_POLICY` de `packages/security/middleware.ts`. Na landing, com a CSP só relatando, o
-`Permissions-Policy` continua valendo. Um fork que precise de uma dessas APIs edita a constante e libera só a
-origem necessária, sem tirar o cabeçalho: o botão Payment Request da Stripe, por exemplo, pede
-`payment=(self "https://js.stripe.com")`.
+`PERMISSIONS_POLICY` de `packages/security/middleware.ts`. Quem precisar de uma dessas APIs edita a constante
+e libera só a origem necessária, sem tirar o cabeçalho.
 
-As rotas de sessão das front-ends (`/api/auth/session`, `/api/auth/session/refresh` e
-`/api/auth/custom-token`, em `apps/app` e `apps/web`) passam pelo proxy e saem com a mesma política das
+As rotas de sessão do painel (`/api/auth/session`, `/api/auth/session/refresh` e
+`/api/auth/custom-token`, em `apps/app`) passam pelo proxy e saem com a mesma política das
 páginas. O proxy responde cedo nesses caminhos: aplica os cabeçalhos e não resolve idioma, não grava o
 cookie `x-locale`, não confere sessão e não consulta o Arcjet.
 
 O painel e a API mandam `X-Robots-Tag: noindex` em toda resposta que passa pelo proxy, inclusive redirect
 para o login, `/api/auth/*`, recusa de origem, 429 e preflight. Quem liga é a opção `noIndex` de
-`applySecurityHeaders`, passada só em `apps/app/proxy.ts` e `apps/api/proxy.ts`; o padrão é não mandar. A
-landing não recebe o cabeçalho de propósito, porque nela ele tira o site inteiro da busca, e o teste
-`apps/web/__tests__/securityHeaders.test.ts` afirma essa ausência. Login e cadastro da landing saem do índice
-por `<meta name="robots" content="noindex, follow">` e não por `Disallow` no `robots.txt`: o rastreador precisa
-ler a página para ver o `noindex`. Nas previews da Vercel, qualquer `noindex` da landing vem da plataforma e
-não deste código; confira com `curl -sI <URL da preview>`.
+`applySecurityHeaders`, passada em `apps/app/proxy.ts` e `apps/api/proxy.ts`; o padrão é não mandar.
 
-Três defaults do nosecone são **deliberadamente afrouxados** nos front-ends, porque derrubam o login:
+Três defaults do nosecone são **deliberadamente afrouxados** no painel, porque derrubam o login:
 
 - `Cross-Origin-Opener-Policy` vai para `same-origin-allow-popups` — `same-origin` corta `window.opener` e o popup do Google nunca devolve a credencial (falha silenciosa: o popup fecha e nada acontece).
 - `Cross-Origin-Embedder-Policy` fica **desligado** — `require-corp` exigiria CORP no avatar servido pelo Google.
@@ -179,7 +154,7 @@ Três defaults do nosecone são **deliberadamente afrouxados** nos front-ends, p
 
 ⚠️ **`script-src` ainda usa `'unsafe-inline'`.** O script anti-flash do `next-themes`, o bootstrap de hidratação do App Router e o `gtag` são inline **sem nonce**, e fiar nonce nos três é tarefa própria. O valor desta política vem das demais diretivas (`frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'self'` e as allowlists de `connect-src`/`img-src`/`frame-src`); o bloqueio de XSS por `script-src` é parcial até lá. `style-src 'unsafe-inline'` é irremovível nesta stack (antd CSS-in-JS, `next-themes`, `sonner`).
 
-> **Ao introduzir um terceiro, acrescente-o à CSP do app** — é o custo herdado. Ex.: levar o checkout da Stripe ao browser exige `script-src https://js.stripe.com`, `frame-src https://js.stripe.com https://hooks.stripe.com` e `connect-src https://api.stripe.com`.
+> **Ao introduzir um terceiro, acrescente-o à CSP do app** — é o custo herdado. Ex.: o avatar do GitHub (`avatars.githubusercontent.com`) entra em `img-src` junto com o login GitHub.
 
 ### CORS (allowlist, sem coringa)
 
@@ -187,7 +162,7 @@ Três defaults do nosecone são **deliberadamente afrouxados** nos front-ends, p
 
 | Situação | Resposta |
 |----------|----------|
-| Sem header `Origin` em leitura (`GET`/`HEAD`/`OPTIONS`), ou em escrita sem o cookie `access-token`, com `Authorization` ou com `Sec-Fetch-Site: same-origin` (servidor→servidor, prefetch RSC, webhook da Stripe) | Passa, **sem** cabeçalho de CORS |
+| Sem header `Origin` em leitura (`GET`/`HEAD`/`OPTIONS`), ou em escrita sem o cookie `access-token`, com `Authorization` ou com `Sec-Fetch-Site: same-origin` (servidor→servidor, prefetch RSC, webhook) | Passa, **sem** cabeçalho de CORS |
 | `POST`/`PUT`/`PATCH`/`DELETE` sem `Origin`, com o cookie `access-token`, sem `Authorization` e sem `Sec-Fetch-Site: same-origin` | `403 { "error": { "code": "AUTH_FORBIDDEN_ORIGIN" } }` + `Vary: Origin`, antes do limite de requisições e do guard; o log registra `reason=missing-origin` (`isUnprovenCookieWrite`, `apps/api/(shared)/lib/cookie-write-origin.ts:12`) |
 | `Origin` na allowlist | Ecoa aquela origem + `Vary: Origin` |
 | `Origin` fora da allowlist | `403 { "error": { "code": "AUTH_FORBIDDEN_ORIGIN" } }`; preflight recebe `204` **sem** `Access-Control-Allow-Origin` |
@@ -198,68 +173,58 @@ Refletir a origem **após** conferir a allowlist é a implementação canônica 
 
 ### Limite de requisições
 
-`checkRateLimit()` (Arcjet, `slidingWindow` de 60 s) roda no proxy da API com dois orçamentos, e uma requisição gasta no máximo um deles (`rateLimitBudgetFor`, `apps/api/proxy.ts:106`, medido em 2026-11-24):
+`checkRateLimit()` (Arcjet, `slidingWindow` de 60 s) roda no proxy da API com dois orçamentos, e uma requisição gasta no máximo um deles (`rateLimitBudgetFor`, `apps/api/proxy.ts:62`, medido em 2026-11-25):
 
 | Requisição | Orçamento | Chave | Limite |
 |------------|-----------|-------|--------|
 | Caminho da lista estrita (e método, quando a lista restringe) | `strict` | IP | 20 / 60 s |
 | `POST`, `PUT`, `PATCH` ou `DELETE` em qualquer outro caminho | `standard` | IP + sujeito | 60 / 60 s |
 | `GET`, `HEAD` e `OPTIONS` fora da lista estrita | nenhum | — | — |
-| `/webhooks/payments` | nenhum | — | — |
 
-A **lista estrita** tem **21 caminhos**, casados por igualdade exata (`STRICT_RATE_LIMITED_PATHS`, `apps/api/proxy.ts:74`): `/auth/sign-in`, `/auth/sign-up`, `/auth/sign-in/google`, `/auth/sign-in/email-link/request`, `/auth/password/reset-request`, `/auth/password/reset`, `/auth/email-verification/send`, `/auth/email-verification/confirm`, `/auth/email-change/confirm`, `/files`, `/account/export`, `/account/deletion`, `/account/email`, `/account/password`, `/account/password/set`, `/contact`, `/organization/invitations`, `/invitations/preview`, `/invitations/accept`, `/payments/checkout` e `/payments/portal`. Cada um gasta cota do Identity Toolkit, manda e-mail, grava no bucket ou abre sessão na Stripe por conta do fork. Em `/organization/invitations` só o `POST` conta, porque cada um manda um e-mail e a tabela de convites do dono lê o mesmo caminho por `GET` depois de cada convite e de cada revogação (`STRICT_RATE_LIMITED_METHODS`, `apps/api/proxy.ts:99`). O `/contact` é público e cada envio aceito manda um e-mail para a caixa de suporte do fork; quem chama é o navegador do visitante, então o IP contado é o dele.
+A **lista estrita** tem **4 caminhos**, casados por igualdade exata (`STRICT_RATE_LIMITED_PATHS`, `apps/api/proxy.ts`): `/auth/sign-in`, `/auth/sign-in/google`, `/files` e `/account/password`. Cada um gasta cota do Identity Toolkit ou grava no bucket.
 
-O **orçamento padrão** casa por método, não por caminho: uma rota mutável nova nasce limitada sem ninguém mexer no proxy, e o vizinho de um caminho estrito (`/auth/sign-in/apple`, `/contact/x`) cai nele. A chave soma o IP e o **sujeito**, um hash SHA-256 truncado do `sub` do JWT que chega em `Authorization: Bearer` (`apps/api/(shared)/lib/rate-limit-subject.ts`). Sem bearer, ou com um bearer que não é JWT, o sujeito é `"anonymous"` e a chave fica só o IP. O token é decodificado **sem verificação**: um `sub` forjado só compra um balde novo para uma requisição que o guard recusa em seguida, e por isso o valor nunca serve para autorizar. O hash existe porque o valor vai para o Arcjet, e um identificador estável de conta não tem por que sair daqui. Somar o sujeito ao IP evita que um escritório atrás de um NAT divida um orçamento só. Personificando, o sujeito é o admin, porque o bearer é dele.
+O **orçamento padrão** casa por método, não por caminho: uma rota mutável nova nasce limitada sem ninguém mexer no proxy, e o vizinho de um caminho estrito (`/auth/sign-in/apple`, `/files/x`) cai nele. A chave soma o IP e o **sujeito**, um hash SHA-256 truncado do `sub` do JWT que chega em `Authorization: Bearer` (`apps/api/(shared)/lib/rate-limit-subject.ts`). Sem bearer, ou com um bearer que não é JWT, o sujeito é `"anonymous"` e a chave fica só o IP. O token é decodificado **sem verificação**: um `sub` forjado só compra um balde novo para uma requisição que o guard recusa em seguida, e por isso o valor nunca serve para autorizar. O hash existe porque o valor vai para o Arcjet, e um identificador estável de conta não tem por que sair daqui. Somar o sujeito ao IP evita que um escritório atrás de um NAT divida um orçamento só. Personificando, o sujeito é o admin, porque o bearer é dele.
 
-Estouro, nos dois orçamentos, devolve `429 AUTH_RATE_LIMITED` + `Retry-After`. Ficam fora dos dois `/auth/me` (autenticada, hot path, e `GET`), `/webhooks/payments` (a Stripe faz retry agressivo de poucos endereços; um 429 nosso viraria evento perdido), `/health`, `/health/ready` e `/payments/catalog`. Esta última é pública, mas quem a chama é o servidor da landing em nome de cada visitante, de um endereço só: um orçamento por IP pararia a página de preços na 21ª visita do minuto. O cache de uma hora da rota já mantém a Stripe fora do caminho da requisição, e o pior caso de abuso é custo de invocação da função, como no `/health`.
+Estouro, nos dois orçamentos, devolve `429 AUTH_RATE_LIMITED` + `Retry-After`. Ficam fora dos dois `/auth/me` (autenticada, hot path, e `GET`), `/health` e `/health/ready`.
 
-Para mudar o comportamento, o fork edita as listas em `apps/api/proxy.ts`: endpoint que confere segredo, manda e-mail ou custa dinheiro entra na lista estrita; endpoint chamado por um provedor que faz retry entra em `RATE_LIMIT_EXEMPT_PATHS`. O número do orçamento padrão é `STANDARD_RATE_LIMIT_MAX` em `packages/security/index.ts:22`. Uma importação em lote pelo painel bateria nos 60 por minuto; o core não tem nenhuma.
+Para mudar o comportamento, edite a lista em `apps/api/proxy.ts`: endpoint que confere segredo, manda e-mail ou custa dinheiro entra na lista estrita. Os webhooks do GitHub App (spec `github-app-integration`) e o contrato dos agentes (spec `agent-contract`) vão precisar decidir o orçamento deles ao nascer. O número do orçamento padrão é `STANDARD_RATE_LIMIT_MAX` em `packages/security/index.ts`.
 
-`/auth/session` fica fora da lista estrita de propósito. Quem chama é o servidor dos front-ends, antes de gravar o cookie de sessão, no logout e no proxy da `apps/app`, e chama com o IP do servidor: um limite só por IP contaria todos os usuários juntos e derrubaria o login de todo mundo de uma vez. O `GET` não conta em orçamento nenhum. O `DELETE` (logout) é método mutável e cai no orçamento padrão: o servidor encaminha o cookie de sessão como bearer (`createSessionAuthority`, `packages/sdk/src/client/sessionAuthority.ts`), e esse cookie é um JWT com o `uid` no `sub`, então cada pessoa gasta o próprio balde mesmo saindo do IP do servidor. As rotas de sessão de `/account` passam pelo guard do painel comum e só leem ou escrevem documentos do próprio titular.
+`/auth/session` fica fora da lista estrita de propósito. Quem chama é o servidor do painel, antes de gravar o cookie de sessão, no logout e no proxy da `apps/app`, e chama com o IP do servidor: um limite só por IP contaria todos os usuários juntos e derrubaria o login de todo mundo de uma vez. O `GET` não conta em orçamento nenhum. O `DELETE` (logout) é método mutável e cai no orçamento padrão: o servidor encaminha o cookie de sessão como bearer (`createSessionAuthority`, `packages/sdk/src/client/sessionAuthority.ts`), e esse cookie é um JWT com o `uid` no `sub`, então cada pessoa gasta o próprio balde mesmo saindo do IP do servidor.
 
-⚠️ **O limite só alcança a `apps/api`.** `POST /api/auth/session/refresh` (`packages/auth/session-routes.ts:125`), reexportado pela `apps/app` e pela `apps/web`, regrava o cookie de sessão e vive nos front-ends, fora deste proxy, sem limite de requisições. A barreira dele é `isSameOriginRequest` (`packages/auth/session.ts:79-90`), que exige `Origin` do próprio host ou, sem `Origin`, `Sec-Fetch-Site: same-origin`; o resto recebe `403 AUTH_FORBIDDEN_ORIGIN`. A mesma checagem vale para `POST /api/auth/session`, `POST /api/auth/custom-token` e `DELETE /api/auth/session`. Antes de renovar, a rota exige um ID token de até 4096 caracteres, confere a sessão atual no Firebase Admin e pergunta à API se ela não foi encerrada noutro aparelho.
+⚠️ **O limite só alcança a `apps/api`.** `POST /api/auth/session/refresh` (`packages/auth/session-routes.ts`), reexportado pela `apps/app`, regrava o cookie de sessão e vive nos front-ends, fora deste proxy, sem limite de requisições. A barreira dele é `isSameOriginRequest` (`packages/auth/session.ts:79-90`), que exige `Origin` do próprio host ou, sem `Origin`, `Sec-Fetch-Site: same-origin`; o resto recebe `403 AUTH_FORBIDDEN_ORIGIN`. A mesma checagem vale para `POST /api/auth/session`, `POST /api/auth/custom-token` e `DELETE /api/auth/session`. Antes de renovar, a rota exige um ID token de até 4096 caracteres, confere a sessão atual no Firebase Admin e pergunta à API se ela não foi encerrada noutro aparelho.
 
 - **Sem `ARCJET_KEY` o limite é um no-op explícito**, nos dois orçamentos: nada é contado, nenhuma chamada de rede é feita, e a API avisa **uma vez, no boot** que as rotas mutáveis aceitam requisições sem limite. Nunca há contador em memória — em serverless ele não limita nada.
-- **Chave sem o prefixo `ajkey_` conta como ausente na API.** O pacote lê a chave a cada chamada com `readArcjetKey()` (`packages/security/keys.ts:23-26`), que não lança: o limite vira no-op e as requisições seguem. O boot registra `console.error` dizendo que a chave não começa com `ajkey_`, sem imprimir o valor (`apps/api/instrumentation.ts:31-46`). Em `apps/app` e `apps/web` a mesma chave faz o build falhar, porque o `env.ts` das duas estende o schema estrito de `keys()` (`packages/security/keys.ts:35-41`); na Vercel, o deploy anterior continua no ar.
+- **Chave sem o prefixo `ajkey_` conta como ausente na API.** O pacote lê a chave a cada chamada com `readArcjetKey()` (`packages/security/keys.ts:23-26`), que não lança: o limite vira no-op e as requisições seguem. O boot registra `console.error` dizendo que a chave não começa com `ajkey_`, sem imprimir o valor (`apps/api/instrumentation.ts:31-46`). Na `apps/app` a mesma chave faz o build falhar, porque o `env.ts` estende o schema estrito de `keys()` (`packages/security/keys.ts:35-41`); na Vercel, o deploy anterior continua no ar.
 - **Shield do Arcjet em observação.** Os dois orçamentos levam também a regra `shield` em `DRY_RUN`
   (`API_SHIELD_MODE`, `packages/security/index.ts:28`): o Arcjet registra no painel as requisições com
-  padrão de ataque e nenhuma resposta muda. Um falso positivo aqui recusaria uma escrita legítima, então o
-  fork observa uma semana de tráfego real antes de trocar a constante para `LIVE`
-  ([`PRE-PRODUCTION.md`](PRE-PRODUCTION.md), item 8). Em `LIVE`, a recusa sai como `429 AUTH_RATE_LIMITED`,
+  padrão de ataque e nenhuma resposta muda. Um falso positivo aqui recusaria uma escrita legítima, então
+  observe uma semana de tráfego real antes de trocar a constante para `LIVE`
+  ([`PRE-PRODUCTION.md`](PRE-PRODUCTION.md)). Em `LIVE`, a recusa sai como `429 AUTH_RATE_LIMITED`,
   pelo mesmo caminho de "recusado" que já existe. O shield só avalia o que passa por `checkRateLimit`
   (escritas e a lista estrita), não os `GET` comuns.
-- ⚠️ **Isto não protege o formulário de login.** O login por e-mail/senha das duas front-ends vai do browser direto para `identitytoolkit.googleapis.com` e **nunca toca a `apps/api`**; quem limita esse caminho é a proteção nativa do Firebase (`USERS_AUTH_RATE_LIMITED`). O limite aqui cobre a **superfície da API**.
-- ⚠️ **O cadastro depende deste limite.** O formulário de cadastro chama `/auth/sign-up`, e a rota cria a conta pelo Admin SDK, que não passa pelo limite do Firebase para criação de conta pelo cliente (100 contas por hora por IP, `firebase.google.com/docs/auth/limits`). Sem `ARCJET_KEY`, nada limita a criação de contas em massa por essa rota.
-- Bloqueio é registrado pelo helper de log compartilhado, numa linha só (`logEvent("security", "blocked", …)` em `apps/api/proxy.ts:128`, saindo como `[security] blocked reason=… path=… method=… requestId=…`), **sem IP, e-mail, body ou token** — IP é dado pessoal sob LGPD. A assinatura do helper não aceita objeto (`packages/shared/utils/helpers/log.ts:23`), então não há como passar o erro inteiro por descuido.
+- ⚠️ **Isto não protege o formulário de login.** O login por e-mail/senha do painel vai do browser direto para `identitytoolkit.googleapis.com` e **nunca toca a `apps/api`**; quem limita esse caminho é a proteção nativa do Firebase (`USERS_AUTH_RATE_LIMITED`). O limite aqui cobre a **superfície da API**.
+- Bloqueio é registrado pelo helper de log compartilhado, numa linha só (`logEvent("security", "blocked", …)` em `apps/api/proxy.ts:128`, saindo como `[security] blocked reason=… path=… method=… requestId=…`), **sem IP, e-mail, body ou token** — IP é dado pessoal. A assinatura do helper não aceita objeto (`packages/shared/utils/helpers/log.ts:23`), então não há como passar o erro inteiro por descuido.
 
 ### Tamanho do corpo
 
-O `parseRequestJson` (`apps/api/(shared)/lib/parse-request-json.ts`) lê o corpo de todas as rotas que recebem JSON (26 handlers, contados em 2026-10-23) e recusa acima de **100 KiB** com `413 VALIDATION_FAILED`, antes do `JSON.parse` e do Zod. Um `content-length` declarado acima do teto é recusado sem ler o corpo. Sem o header, ou com um valor menor que o real, o helper soma os bytes enquanto lê e para de ler ao passar do teto, soltando o stream sem cancelá-lo: no corpo que o Next monta sobre o `Readable` do Node, o cancelamento deixa um `unhandledRejection` (`AbortError`) no log a cada recusa. O maior corpo legítimo de hoje é o da criação de entidade: cerca de 74 KB no pior caso, com todo caractere escapado como `\uXXXX`.
+O `parseRequestJson` (`apps/api/(shared)/lib/parse-request-json.ts`) lê o corpo de todas as rotas que recebem JSON e recusa acima de **100 KiB** com `413 VALIDATION_FAILED`, antes do `JSON.parse` e do Zod. Um `content-length` declarado acima do teto é recusado sem ler o corpo. Sem o header, ou com um valor menor que o real, o helper soma os bytes enquanto lê e para de ler ao passar do teto, soltando o stream sem cancelá-lo: no corpo que o Next monta sobre o `Readable` do Node, o cancelamento deixa um `unhandledRejection` (`AbortError`) no log a cada recusa. O maior corpo legítimo de hoje é o da criação de entidade: cerca de 74 KB no pior caso, com todo caractere escapado como `\uXXXX`.
 
 A resposta 413 sai com `connection: close`. O helper não lê o resto do corpo, e sem esse header o Node mantém o socket aberto esperando por ele até o `requestTimeout` (300 s por padrão). Medido em `next start` no dia 2026-10-20, com 50 envios simultâneos de 5 MiB para `/auth/sign-in`: sem o header, 40 das 50 conexões com corpo em `chunked` continuavam ESTABLISHED 2 s e 60 s depois; com ele, nenhuma ficou aberta aos 60 s, em três rajadas. Com `content-length` declarado, com ou sem `Expect: 100-continue`, o `curl` encerra a conexão por conta própria ao receber o 413, e nenhuma ficou aberta antes nem depois da mudança.
 
 Fechar a conexão tem um custo para o cliente que ainda está enviando quando o 413 chega. O `fetch` do Node 22 mandando 5 MiB pelo localhost recebeu o 413 em 230 de 240 tentativas. Nas outras 10 (8 com `content-length`, 2 em `chunked`; 9 delas em lotes de 30 envios simultâneos), a escrita falhou com `ECONNRESET` ou `EPIPE` e o cliente não viu o 413 nem o `error.code`. Sem o header, as 120 tentativas de controle receberam o 413. Através de um proxy local que atrasa cada sentido em 25 ms ou 100 ms, as 40 tentativas receberam o 413, mas esse proxy não reproduz como uma rede real entrega o `RST`. Na Vercel nada disso foi medido. Corpo acima de 100 KiB não é uso legítimo, então um erro de socket nesse caso é aceitável. O 400 de JSON inválido mantém a conexão, porque nele o corpo foi lido inteiro.
 
-Duas rotas leem o corpo por fora do helper: `/webhooks/payments`, que precisa dos bytes crus para conferir a assinatura da Stripe, e `/files`, que tem teto próprio de 4 MiB (`file.schema.ts`). O `/files` usa o mesmo leitor com contagem (`apps/api/(shared)/lib/read-capped-body.ts`) com teto de 4 MiB mais 64 KiB de envelope multipart: sem `content-length`, para de ler ao passar do teto e responde `413 UPLOAD_FILE_TOO_LARGE` com `connection: close`, como o `parseRequestJson`.
+Uma rota lê o corpo por fora do helper: `/files`, que tem teto próprio de 4 MiB (`file.schema.ts`). O `/files` usa o mesmo leitor com contagem (`apps/api/(shared)/lib/read-capped-body.ts`) com teto de 4 MiB mais 64 KiB de envelope multipart: sem `content-length`, para de ler ao passar do teto e responde `413 UPLOAD_FILE_TOO_LARGE` com `connection: close`, como o `parseRequestJson`.
 
 O teto limita o que o handler acumula e parseia, e não o que a plataforma recebe. Na Vercel, corpo acima de 4,5 MB é recusado antes do handler, sem `error.code`. No `next start`, a presença do `proxy.ts` faz o Next guardar em memória até 10 MiB de qualquer corpo (`experimental.proxyClientMaxBodySize`, pela leitura do código do Next 16.0.0) e truncar o resto. Uma rota nova que leia o corpo sem o helper fica sem teto.
-
-## Pagamentos (Stripe)
-
-- O webhook (`apps/api/app/(routes)/webhooks/payments/route.ts`) **verifica a assinatura** (`stripe.webhooks.constructEvent` com `STRIPE_WEBHOOK_SECRET`) — mantenha isso; nunca processe o corpo sem verificar a assinatura.
-- O webhook só confia no evento assinado: o perfil vem do `customer` ou do `client_reference_id`/`metadata.profileId` que chegam **dentro** do evento verificado. Reentrega é deduplicada por `event.id` (coleção `paymentEvent`) e evento fora de ordem não sobrescreve estado mais novo. A resposta de sucesso é só `{ "ok": true }`, sem o evento: uma fatura traz e-mail e endereço do cliente. Detalhes em [`docs/PAYMENTS.md`](PAYMENTS.md).
-- Checkout e portal usam sempre o perfil do guard (`ctx.subjectProfile`), nunca um id do corpo, e são recusados durante personificação (403 `AUTH_REQUEST_IMPERSONATION_READ_ONLY`).
-- Nunca exponha `STRIPE_SECRET_KEY` no cliente; criação de checkout/portal é **server-side** (na API).
 
 ## Segredos e configuração
 
 - Não commite `.env`/`.env.local`. As vars reais estão em [`docs/SETUP.md`](SETUP.md).
-- ~~**Higiene pendente**: limpar `apps/api/.env.example`.~~ **Feito.** Conferido em 2026-09-17: o arquivo não contém nenhuma chave herdada do upstream (Clerk, `DATABASE_URL`, BetterStack, Svix, Knock, Liveblocks, BaseHub), só as variáveis realmente usadas.
 - `@repo/security` (Arcjet + nosecone) fornece rate limiting e secure headers — habilite `ARCJET_KEY` em produção e defina `CORS_ORIGIN` **antes** do primeiro deploy da API.
 
 ## Checklist ao revisar mudanças sensíveis
 
-- [ ] Rota nova tem guard (`requireCommonPanelApi`/`requireOrganizationApi`/`requireAdminApi`) e checa posse ou escopo da organização.
+- [ ] Rota nova tem guard (`requireCommonPanelApi`/`requireAdminApi`, ou o guard de papel do board) e checa posse ou escopo.
 - [ ] Nenhum header de auth do cliente é confiado sem validação server-side.
 - [ ] Erros expõem só `error.code` (sem stack trace/PII).
 - [ ] Acesso a dados via API; cliente não toca Firestore direto.

@@ -32,7 +32,7 @@ const { useUserCrud } = await import(
     "@/app/[locale]/(authenticated)/(admin)/admin/(pages)/users/(hooks)/useUserCrud"
 );
 
-const LOCALES = ["pt-br", "en", "es"] as const;
+const LOCALES = ["pt-br"] as const;
 const ONE_HOUR_IN_SECONDS = 3600;
 
 function selfLockoutError(): AxiosError {

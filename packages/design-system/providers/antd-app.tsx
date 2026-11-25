@@ -9,8 +9,6 @@ import {
     type MappingAlgorithm,
     type ThemeConfig,
 } from "antd";
-import enUS from "antd/locale/en_US";
-import esES from "antd/locale/es_ES";
 import ptBR from "antd/locale/pt_BR";
 import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
@@ -149,8 +147,6 @@ export const antdThemes: Record<ThemeMode, ThemeConfig> = {
 
 export const antdLocales = {
     "pt-br": ptBR,
-    en: enUS,
-    es: esES,
 } satisfies Record<Locale, ConfigProviderProps["locale"]>;
 
 export function AntdAppProvider({ children }: { children: ReactNode }) {

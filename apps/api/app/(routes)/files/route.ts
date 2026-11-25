@@ -2,29 +2,20 @@ import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import {
     buildObjectPath,
     isStorageConfigured,
-    organizationOwnerSegment,
     putObject,
     signReadUrl,
 } from "@/(shared)/lib/storage";
-import {
-    parseUploadedImage,
-    parseUploadScope,
-} from "@/(shared)/validation/file.schema";
-import { requireOrganizationApi } from "@/app/(guards)/organization";
+import { parseUploadedImage } from "@/(shared)/validation/file.schema";
+import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
 
 const STATUS_CREATED = 201;
 
-export const POST = requireOrganizationApi(async (req, ctx) => {
+export const POST = requireCommonPanelApi(async (req, ctx) => {
     if (!isStorageConfigured()) {
         return Response.json(
             { error: { code: "STORAGE_NOT_CONFIGURED" } },
             { status: HTTP_STATUS.SERVICE_UNAVAILABLE }
         );
-    }
-
-    const scope = parseUploadScope(req);
-    if (!scope.ok) {
-        return scope.response;
     }
 
     const parsed = await parseUploadedImage(req);
@@ -33,11 +24,7 @@ export const POST = requireOrganizationApi(async (req, ctx) => {
     }
 
     const { body, contentType, extension, size } = parsed.value;
-    const ownerSegment =
-        scope.value === "organization"
-            ? organizationOwnerSegment(ctx.organization.organizationId)
-            : ctx.subjectProfile.id;
-    const path = buildObjectPath(ownerSegment, extension);
+    const path = buildObjectPath(ctx.subjectProfile.id, extension);
 
     // Signing is inside the same refusal as the write: an object the caller cannot be
     // handed a link to is of no use to them, and an unhandled throw here would answer

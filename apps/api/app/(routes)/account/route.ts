@@ -12,7 +12,6 @@ import {
 } from "@/(shared)/lib/entity-photo";
 import { omitUndefined } from "@/(shared)/lib/omit-undefined";
 import { parseRequestJson } from "@/(shared)/lib/parse-request-json";
-import { toPlanAccess } from "@/(shared)/lib/plan-access";
 import { deleteObjectQuietly } from "@/(shared)/lib/storage";
 import { getMergedUserByFirestoreDocId } from "@/(shared)/lib/user-merge";
 import { userRepository } from "@/(shared)/repositories/user.repository";
@@ -27,10 +26,7 @@ const notFound = (): Response =>
 
 const toAccountResponse = async (
     merged: Record<string, unknown>
-): Promise<AccountDTO> => ({
-    ...(await withAvatarUrl(merged)),
-    planAccess: toPlanAccess(merged),
-});
+): Promise<AccountDTO> => withAvatarUrl(merged);
 
 type AvatarResolution =
     | { ok: true; value: string | null | undefined }

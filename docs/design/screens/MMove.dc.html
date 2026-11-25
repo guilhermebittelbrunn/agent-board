@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mover card no celular</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/vanillaui/tokens.css">
+<link rel="stylesheet" href="ds/vanillaui/components/bundle.css">
+<script src="ds/vanillaui/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; font-family: var(--font-body); font-size: 14px; line-height: 1.5; color: var(--color-ink);">
+  <dc-import name="MBoard" theme="{{theme}}" hint-size="390px,2160px"></dc-import>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(15, 19, 36, 0.5);"></div>
+
+  <section role="dialog" aria-modal="true" aria-labelledby="move-title" data-theme="{{theme}}" class="{{themeClass}}" style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 14px; padding: 8px 16px 24px; border-radius: 20px 20px 0 0; background: var(--color-surface); color: var(--color-ink);">
+    <span aria-hidden="true" style="align-self: center; width: 40px; height: 4px; border-radius: 999px; background: var(--color-line);"></span>
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <h2 id="move-title" style="margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600;">Mover card</h2>
+      <span style="color: var(--color-ink-2);">Contrato dos agentes (HTTP + servidor MCP)</span>
+    </div>
+
+    <div role="group" aria-label="Coluna de destino" style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: var(--radius); background: var(--color-raised); color: var(--color-muted);">
+        <span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 999px; box-sizing: border-box; border: 1.5px dashed var(--color-muted);"></span>
+        <span style="flex: 1;">Tarefas</span><span style="font-size: 12px;">está aqui</span>
+      </div>
+      <button type="button" aria-pressed="{{oa.pressed}}" onClick="{{pickA}}" style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px; border-radius: var(--radius); border: 1.5px solid {{oa.border}}; background: {{oa.bg}}; font: inherit; color: var(--color-ink); text-align: left; cursor: pointer;">
+        <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; border-radius: 999px; box-sizing: border-box; border: {{oa.ring}};"></span>
+        <span style="flex: 1; font-weight: 600;">Análise</span><span style="font-size: 12px; color: var(--color-muted);">/analyze · opus</span>
+      </button>
+      <button type="button" aria-pressed="{{ob.pressed}}" onClick="{{pickB}}" style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px; border-radius: var(--radius); border: 1.5px solid {{ob.border}}; background: {{ob.bg}}; font: inherit; color: var(--color-ink); text-align: left; cursor: pointer;">
+        <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; border-radius: 999px; box-sizing: border-box; border: {{ob.ring}};"></span>
+        <span style="flex: 1; font-weight: 600;">Executando</span><span style="font-size: 12px; color: var(--color-muted);">/develop · sonnet</span>
+      </button>
+      <button type="button" aria-pressed="{{oc.pressed}}" onClick="{{pickC}}" style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px; border-radius: var(--radius); border: 1.5px solid {{oc.border}}; background: {{oc.bg}}; font: inherit; color: var(--color-ink); text-align: left; cursor: pointer;">
+        <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; border-radius: 999px; box-sizing: border-box; border: {{oc.ring}};"></span>
+        <span style="flex: 1; font-weight: 600;">Revisando</span><span style="font-size: 12px; color: var(--color-muted);">/review · opus</span>
+      </button>
+      <button type="button" aria-pressed="{{od.pressed}}" onClick="{{pickD}}" style="display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px; border-radius: var(--radius); border: 1.5px solid {{od.border}}; background: {{od.bg}}; font: inherit; color: var(--color-ink); text-align: left; cursor: pointer;">
+        <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; border-radius: 999px; box-sizing: border-box; border: {{od.ring}};"></span>
+        <span style="flex: 1; font-weight: 600;">Testando</span><span style="font-size: 12px; color: var(--color-muted);">/test · só local</span>
+      </button>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--color-line);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px;"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+      <span style="font-size: 13px; color: var(--color-ink-2);"><strong style="color: var(--color-ink);">Roda no seu runner macbook-gui.</strong> Ele está ocupado; o card entra na fila e começa em seguida.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <x-import component-from-global-scope="VanillaUI.Button" size="lg" style="width: 100%;">Mover e disparar {{ctaStage}}</x-import>
+      <x-import component-from-global-scope="VanillaUI.Button" variant="ghost" style="width: 100%;">Cancelar</x-import>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { dest: 'a' };
+  }
+  option(key) {
+    const on = this.state.dest === key;
+    return {
+      pressed: on ? 'true' : 'false',
+      border: on ? 'var(--color-accent)' : 'var(--color-line)',
+      bg: on ? 'var(--color-accent-tint)' : 'var(--color-surface)',
+      ring: on ? '5px solid var(--color-accent)' : '1.5px solid var(--color-muted)'
+    };
+  }
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    const names = { a: 'Análise', b: 'Executando', c: 'Revisando', d: 'Testando' };
+    return {
+      theme: theme,
+      themeClass: theme === 'dark' ? 'dark' : '',
+      oa: this.option('a'), ob: this.option('b'), oc: this.option('c'), od: this.option('d'),
+      pickA: () => this.setState({ dest: 'a' }),
+      pickB: () => this.setState({ dest: 'b' }),
+      pickC: () => this.setState({ dest: 'c' }),
+      pickD: () => this.setState({ dest: 'd' }),
+      ctaStage: names[this.state.dest]
+    };
+  }
+}
+</script>
+</body>
+</html>

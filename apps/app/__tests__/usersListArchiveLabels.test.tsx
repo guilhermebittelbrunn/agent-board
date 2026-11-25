@@ -147,19 +147,18 @@ beforeEach(() => {
  * which hides the record and keeps the email taken — so it must not borrow that word.
  */
 describe("archive labels on the admin users list", () => {
-    it.each([
-        ["pt-br", "Arquivar", "Arquivar usuário"],
-        ["en", "Archive", "Archive user"],
-        ["es", "Archivar", "Archivar usuario"],
-    ])("names the row action in %s", (locale, action, confirmTitle) => {
-        givenLocale(locale);
-        givenUsers();
+    it.each([["pt-br", "Arquivar", "Arquivar usuário"]])(
+        "names the row action in %s",
+        (locale, action, confirmTitle) => {
+            givenLocale(locale);
+            givenUsers();
 
-        render(<UsersListClient />);
+            render(<UsersListClient />);
 
-        expect(deleteLabels()?.action).toBe(action);
-        expect(deleteLabels()?.confirmTitle).toBe(confirmTitle);
-    });
+            expect(deleteLabels()?.action).toBe(action);
+            expect(deleteLabels()?.confirmTitle).toBe(confirmTitle);
+        }
+    );
 
     it("never reuses the disabled-status wording for the row action", () => {
         givenUsers();
@@ -238,21 +237,20 @@ describe("the signed-in admin's own row", () => {
         return lastRender[rowIndex]?.[0] as { onDelete?: unknown } | undefined;
     }
 
-    it.each([
-        ["pt-br", "Você não pode desativar a sua própria conta."],
-        ["en", "You can't disable your own account."],
-        ["es", "No puedes desactivar tu propia cuenta."],
-    ])("disables the status switch and explains why in %s", (locale, hint) => {
-        givenLocale(locale);
-        authMock.mockReturnValue({ user: { uid: OWN_UID } });
-        givenOwnAndOtherRows();
+    it.each([["pt-br", "Você não pode desativar a sua própria conta."]])(
+        "disables the status switch and explains why in %s",
+        (locale, hint) => {
+            givenLocale(locale);
+            authMock.mockReturnValue({ user: { uid: OWN_UID } });
+            givenOwnAndOtherRows();
 
-        render(<UsersListClient />);
+            render(<UsersListClient />);
 
-        const ownSwitch = statusSwitchOfRow(0);
-        expect(ownSwitch).toHaveProperty("disabled", true);
-        expect(ownSwitch.getAttribute("title")).toBe(hint);
-    });
+            const ownSwitch = statusSwitchOfRow(0);
+            expect(ownSwitch).toHaveProperty("disabled", true);
+            expect(ownSwitch.getAttribute("title")).toBe(hint);
+        }
+    );
 
     it("offers no archive action on the own row", () => {
         authMock.mockReturnValue({ user: { uid: OWN_UID } });

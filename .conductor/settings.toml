@@ -28,7 +28,7 @@ find docs/features -type d \( -name screenshots -o -path '*/test/e2e' \) -exec s
 find . -name node_modules -type d -prune -exec rm -rf '{}' +
 '''
 
-# As portas são fixas nos scripts `dev` de cada app (app 3000 · web 3001 · api 3002 · email 3003) e os
+# As portas são fixas nos scripts `dev` de cada app (app 3000 · api 3002) e os
 # apps se referenciam por `NEXT_PUBLIC_*_URL`. Dois workspaces rodando ao mesmo tempo colidiriam de
 # porta, então só um roda por vez.
 run_mode = "nonconcurrent"
@@ -41,10 +41,6 @@ icon = "play"
 [scripts.run.app]
 command = "pnpm --filter app dev"
 icon = "monitor"
-
-[scripts.run.web]
-command = "pnpm --filter web dev"
-icon = "globe"
 
 [scripts.run.api]
 command = "pnpm --filter api dev"

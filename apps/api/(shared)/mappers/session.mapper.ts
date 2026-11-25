@@ -1,6 +1,6 @@
-import type { AccountSessionDeviceType } from "@repo/sdk/src/types";
 import type { AllOptional } from "@repo/shared/utils";
 import { normalizeFirestoreInstant, stringIfExists } from "@repo/shared/utils";
+import type { AccountSessionDeviceType } from "../lib/user-agent";
 import Mapper from "./Mapper";
 
 export type SessionRevokedReason = "signed-out" | "revoked" | "others";

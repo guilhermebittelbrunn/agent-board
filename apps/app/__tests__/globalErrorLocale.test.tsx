@@ -23,7 +23,7 @@ window.matchMedia = ((query: string) => ({
 
 const { default: GlobalError } = await import("@/app/global-error");
 
-const LOCALES = ["pt-br", "en", "es"] as const;
+const LOCALES = ["pt-br"] as const;
 
 function setLocaleCookie(locale: string) {
     // biome-ignore lint/suspicious/noDocumentCookie: the dictionary reads this exact cookie

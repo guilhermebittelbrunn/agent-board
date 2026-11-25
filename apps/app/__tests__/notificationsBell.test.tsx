@@ -41,7 +41,6 @@ const { default: NotificationsBell, formatUnreadBadge } = await import(
 );
 
 const BELL_NAME = /^Notifica/;
-const BILLING_HREF = /\/account\?tab=billing$/;
 const LAST_EXACT_COUNT = NOTIFICATION_UNREAD_COUNT_CAP - 1;
 
 const notificationsCopy =
@@ -51,7 +50,7 @@ function notification(id: string, overrides: Record<string, unknown> = {}) {
     return {
         id,
         userId: "p1",
-        type: "subscriptionPaymentPending",
+        type: "welcome",
         params: {},
         readAt: null,
         expiresAt: null,
@@ -151,9 +150,7 @@ describe("NotificationsBell", () => {
         openBell();
 
         expect(
-            screen.getByText(
-                notificationsCopy.types.subscriptionPaymentPending.title
-            )
+            screen.getByText(notificationsCopy.types.welcome.title)
         ).toBeTruthy();
         expect(screen.getByText(notificationsCopy.unread)).toBeTruthy();
         fireEvent.click(
@@ -185,35 +182,6 @@ describe("NotificationsBell", () => {
                 }) as HTMLButtonElement
             ).disabled
         ).toBe(true);
-    });
-
-    it("navega sem marcar como lida sob impersonação", () => {
-        panelMock.mockReturnValue({ isImpersonating: true });
-        givenList([notification("n1")]);
-
-        render(<NotificationsBell />);
-        openBell();
-        const link = screen.getByRole("link", {
-            name: notificationsCopy.types.subscriptionPaymentPending.title,
-        });
-        fireEvent.click(link);
-
-        expect(link.getAttribute("href")).toMatch(BILLING_HREF);
-        expect(markReadMutateMock).not.toHaveBeenCalled();
-    });
-
-    it("marca como lida ao seguir o destino fora da impersonação", () => {
-        givenList([notification("n1")]);
-
-        render(<NotificationsBell />);
-        openBell();
-        fireEvent.click(
-            screen.getByRole("link", {
-                name: notificationsCopy.types.subscriptionPaymentPending.title,
-            })
-        );
-
-        expect(markReadMutateMock).toHaveBeenCalledWith("n1");
     });
 
     it("cai no texto genérico para um tipo desconhecido", () => {

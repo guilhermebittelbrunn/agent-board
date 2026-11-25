@@ -12,25 +12,6 @@ export const queryKeys = {
     account: {
         all: ["account"] as const,
         me: () => [...queryKeys.account.all, "me"] as const,
-        sessions: () => [...queryKeys.account.all, "sessions"] as const,
-    },
-    auth: {
-        all: ["auth"] as const,
-        emailLinkAvailability: () =>
-            [...queryKeys.auth.all, "emailLinkAvailability"] as const,
-    },
-    auditEvents: {
-        all: ["auditEvents"] as const,
-        // The filters belong in the key because the API resolves each combination as a
-        // different query; without them the cache would mix periods and users.
-        list: (filters?: { userId?: string; from?: string; to?: string }) =>
-            [
-                ...queryKeys.auditEvents.all,
-                "list",
-                filters?.userId ?? "all",
-                filters?.from ?? "",
-                filters?.to ?? "",
-            ] as const,
     },
     entities: {
         all: ["entities"] as const,
@@ -45,18 +26,6 @@ export const queryKeys = {
         unreadCount: () =>
             [...queryKeys.notifications.all, "unreadCount"] as const,
     },
-    invitation: {
-        all: ["invitation"] as const,
-        preview: (token: string) =>
-            [...queryKeys.invitation.all, "preview", token] as const,
-    },
-    organization: {
-        all: ["organization"] as const,
-        detail: () => [...queryKeys.organization.all, "detail"] as const,
-        members: () => [...queryKeys.organization.all, "members"] as const,
-        invitations: () =>
-            [...queryKeys.organization.all, "invitations"] as const,
-    },
     users: {
         all: ["users"] as const,
         // `type` is part of the key because the API scopes the listing server-side —
@@ -67,11 +36,6 @@ export const queryKeys = {
         activitySummary: () =>
             [...queryKeys.users.all, "activitySummary"] as const,
         detail: (id: string) => [...queryKeys.users.all, "detail", id] as const,
-    },
-    payments: {
-        all: ["payments"] as const,
-        plans: () => [...queryKeys.payments.all, "plans"] as const,
-        summary: () => [...queryKeys.payments.all, "summary"] as const,
     },
     health: () => ["health"] as const,
 } as const;

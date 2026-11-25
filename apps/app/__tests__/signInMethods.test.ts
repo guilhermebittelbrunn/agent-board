@@ -1,12 +1,12 @@
 import type { AccountDTO } from "@repo/sdk/src/types";
 import { describe, expect, it } from "vitest";
 import {
-    GOOGLE_PROVIDER_ID,
     hasSignInMethod,
-    isPopupDismissed,
     lacksPasswordProvider,
     PASSWORD_PROVIDER_ID,
 } from "@/shared/lib/signInMethods";
+
+const GOOGLE_PROVIDER_ID = "google.com";
 
 function accountWith(...providerIds: string[]): AccountDTO {
     return {
@@ -52,26 +52,5 @@ describe("lacksPasswordProvider", () => {
         ],
     ])("%s → %s", (_label, account, expected) => {
         expect(lacksPasswordProvider(account)).toBe(expected);
-    });
-});
-
-describe("isPopupDismissed", () => {
-    it.each(["auth/popup-closed-by-user", "auth/cancelled-popup-request"])(
-        "treats %s as a change of mind",
-        (code) => {
-            expect(isPopupDismissed({ code })).toBe(true);
-        }
-    );
-
-    it.each([
-        { code: "auth/popup-blocked" },
-        { code: "auth/credential-already-in-use" },
-        { code: 42 },
-        new Error("network"),
-        null,
-        undefined,
-        "auth/popup-closed-by-user",
-    ])("does not swallow %j", (error) => {
-        expect(isPopupDismissed(error)).toBe(false);
     });
 });

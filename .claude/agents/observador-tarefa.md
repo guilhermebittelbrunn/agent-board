@@ -62,16 +62,14 @@ pendente). Se um deles não conseguir extrair o que precisa num único passar de
 
 Referências de calibração (é este o tom-alvo, adapte ao caso):
 
-> Quem assinava o plano pago não conseguia cancelar sozinho: a tela de assinatura mostrava o valor e a
-> data de renovação, mas não tinha nenhuma ação de cancelamento, então todo pedido virava atendimento
-> manual do suporte.
-> Agora a área de assinatura abre o portal de cobrança do provedor, onde o próprio usuário cancela,
-> troca de plano ou atualiza o cartão. Exemplo: quem cancela hoje continua com acesso até o fim do
-> período já pago e não é cobrado na renovação seguinte.
+> Quando um card terminava uma etapa no board, ninguém ficava sabendo: o status mudava na coluna, mas só
+> quem estava com a tela aberta percebia, e o card seguinte esperava até alguém olhar.
+> Agora cada etapa concluída gera uma notificação no sino do painel, com o nome do card e a etapa.
+> Exemplo: um card que termina o `/review` às 2h aparece como não lido para o dono de manhã.
 
-> Ao entrar pelo site e clicar para acessar o painel, o usuário caía na tela de login de novo mesmo já
-> estando logado. A sessão passou a ser compartilhada entre o site e o painel, então quem entra em um
-> já entra no outro.
+> Depois de trocar a senha, a pessoa continuava logada nos outros navegadores com a senha antiga. Agora a
+> troca encerra as outras sessões, então quem perdeu um notebook troca a senha e o acesso dele cai na
+> hora.
 
 ## Formato — 2 ou 3 parágrafos, ponto final
 
@@ -83,8 +81,8 @@ tabelas**:
 2. **Parágrafo 2 — o que muda agora.** O comportamento observável depois da entrega. Um exemplo concreto
    com valores reais vale mais que explicação abstrata.
 3. **Parágrafo 3 — só se houver ação ou risco real.** Comece com `⚠️ **<Destinatário>:**` e diga
-   exatamente **o que precisa ser feito, por quem e onde**. Neste boilerplate, os casos reais mais comuns
-   são: **variável de ambiente a configurar na Vercel**, **webhook a cadastrar no painel do provedor**,
+   exatamente **o que precisa ser feito, por quem e onde**. Neste repo, os casos reais mais comuns
+   são: **variável de ambiente a configurar no deploy**, **permissão a conceder no GitHub App**,
    **índice do banco a publicar** e **regra de segurança do banco a atualizar**. Se não houver nada
    pendente, **não escreva este parágrafo** — não invente ponto de atenção para preencher espaço.
 

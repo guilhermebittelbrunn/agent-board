@@ -14,16 +14,14 @@ const {
     params,
     pushMock,
     signInMock,
-    signInWithEmailLinkCodeMock,
     signInWithGoogleMock,
     successAlertMock,
 } = vi.hoisted(() => ({
     errorAlertMock: vi.fn(),
     logoutMock: vi.fn(),
-    params: { locale: "en" } as Record<string, string>,
+    params: { locale: "pt-br" } as Record<string, string>,
     pushMock: vi.fn(),
     signInMock: vi.fn(),
-    signInWithEmailLinkCodeMock: vi.fn(),
     signInWithGoogleMock: vi.fn(),
     successAlertMock: vi.fn(),
 }));
@@ -33,8 +31,6 @@ vi.mock("@repo/auth/client", () => ({
     logout: () => logoutMock(),
     signIn: (...args: unknown[]) => signInMock(...args),
     signInWithGoogle: (...args: unknown[]) => signInWithGoogleMock(...args),
-    signInWithEmailLinkCode: (...args: unknown[]) =>
-        signInWithEmailLinkCodeMock(...args),
     subscribeToIdTokenState: () => vi.fn(),
 }));
 
@@ -64,7 +60,7 @@ const { AuthProvider } = await import("@repo/auth/provider");
 const STATUS_OK = 200;
 const STATUS_FORBIDDEN = 403;
 const STATUS_INTERNAL_ERROR = 500;
-const LOCALES = ["pt-br", "en", "es"] as const;
+const LOCALES = ["pt-br"] as const;
 
 const fetchMock = vi.fn();
 
@@ -151,8 +147,6 @@ beforeEach(() => {
     signInMock.mockResolvedValue(firebaseCredential());
     signInWithGoogleMock.mockReset();
     signInWithGoogleMock.mockResolvedValue(firebaseCredential());
-    signInWithEmailLinkCodeMock.mockReset();
-    signInWithEmailLinkCodeMock.mockResolvedValue(firebaseCredential());
     vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -186,7 +180,7 @@ describe("AuthProvider quando o servidor recusa a sessão depois do login", () =
     );
 
     it("mostra o mesmo alerta quando a requisição da sessão nem chega ao servidor", async () => {
-        params.locale = "en";
+        params.locale = "pt-br";
         let auth: AuthContextValue | undefined;
         render(
             <LocaleProvider>
@@ -200,32 +194,10 @@ describe("AuthProvider quando o servidor recusa a sessão depois do login", () =
         await signInWithPassword(auth);
 
         expect(errorAlertMock).toHaveBeenCalledWith(
-            copyFor("en").session.notEstablished
+            copyFor("pt-br").session.notEstablished
         );
         expect(successAlertMock).not.toHaveBeenCalled();
         expect(pushMock).not.toHaveBeenCalled();
-    });
-
-    it("usa o idioma novo depois de uma troca de idioma sem remontar", async () => {
-        params.locale = "pt-br";
-        let auth: AuthContextValue | undefined;
-        const tree = authTree((value) => {
-            auth = value;
-        });
-        const { rerender } = render(<LocaleProvider>{tree}</LocaleProvider>);
-
-        params.locale = "es";
-        rerender(<LocaleProvider>{tree}</LocaleProvider>);
-
-        refuseSession();
-        await signInWithPassword(auth);
-
-        expect(errorAlertMock).toHaveBeenCalledWith(
-            copyFor("es").session.notEstablished
-        );
-        expect(errorAlertMock).not.toHaveBeenCalledWith(
-            copyFor("pt-br").session.notEstablished
-        );
     });
 
     it.each([
@@ -238,7 +210,7 @@ describe("AuthProvider quando o servidor recusa a sessão depois do login", () =
     ] as const)(
         "desloga o cliente e zera o token quando a gravação %s",
         async (_case, refuse) => {
-            params.locale = "en";
+            params.locale = "pt-br";
             let auth: AuthContextValue | undefined;
             render(
                 <LocaleProvider>
@@ -254,7 +226,7 @@ describe("AuthProvider quando o servidor recusa a sessão depois do login", () =
             expect(logoutMock).toHaveBeenCalledTimes(1);
             expect(auth?.accessToken).toBeNull();
             expect(errorAlertMock).toHaveBeenCalledWith(
-                copyFor("en").session.notEstablished
+                copyFor("pt-br").session.notEstablished
             );
             expect(successAlertMock).not.toHaveBeenCalled();
             expect(pushMock).not.toHaveBeenCalled();
@@ -264,7 +236,7 @@ describe("AuthProvider quando o servidor recusa a sessão depois do login", () =
 
 describe("AuthProvider quando o servidor grava a sessão depois do login", () => {
     it("navega sem deslogar", async () => {
-        params.locale = "en";
+        params.locale = "pt-br";
         let auth: AuthContextValue | undefined;
         render(
             <LocaleProvider>
@@ -272,7 +244,10 @@ describe("AuthProvider quando o servidor grava a sessão depois do login", () =>
                     (value) => {
                         auth = value;
                     },
-                    { resolveDefaultPostLoginPath: async () => "/en/entities" }
+                    {
+                        resolveDefaultPostLoginPath: async () =>
+                            "/pt-br/entities",
+                    }
                 )}
             </LocaleProvider>
         );
@@ -282,13 +257,15 @@ describe("AuthProvider quando o servidor grava a sessão depois do login", () =>
 
         expect(logoutMock).not.toHaveBeenCalled();
         expect(auth?.accessToken).toBe("id-token");
-        expect(successAlertMock).toHaveBeenCalledWith(copyFor("en").onSuccess);
-        expect(pushMock).toHaveBeenCalledWith("/en/entities");
+        expect(successAlertMock).toHaveBeenCalledWith(
+            copyFor("pt-br").onSuccess
+        );
+        expect(pushMock).toHaveBeenCalledWith("/pt-br/entities");
         expect(errorAlertMock).not.toHaveBeenCalled();
     });
 
     it("cai no destino padrão sem alerta de sessão quando o destino não resolve", async () => {
-        params.locale = "en";
+        params.locale = "pt-br";
         let auth: AuthContextValue | undefined;
         render(
             <LocaleProvider>
@@ -307,8 +284,10 @@ describe("AuthProvider quando o servidor grava a sessão depois do login", () =>
         acceptSession();
         await signInWithPassword(auth);
 
-        expect(pushMock).toHaveBeenCalledWith("/en");
-        expect(successAlertMock).toHaveBeenCalledWith(copyFor("en").onSuccess);
+        expect(pushMock).toHaveBeenCalledWith("/pt-br");
+        expect(successAlertMock).toHaveBeenCalledWith(
+            copyFor("pt-br").onSuccess
+        );
         expect(errorAlertMock).not.toHaveBeenCalled();
         expect(logoutMock).not.toHaveBeenCalled();
     });
@@ -316,7 +295,7 @@ describe("AuthProvider quando o servidor grava a sessão depois do login", () =>
 
 describe("AuthProvider com a sessão recusada nos outros métodos de login", () => {
     it("desloga sem navegar quando a sessão do login com Google é recusada", async () => {
-        params.locale = "en";
+        params.locale = "pt-br";
         let auth: AuthContextValue | undefined;
         render(
             <LocaleProvider>
@@ -334,36 +313,7 @@ describe("AuthProvider com a sessão recusada nos outros métodos de login", () 
         expect(logoutMock).toHaveBeenCalledTimes(1);
         expect(auth?.accessToken).toBeNull();
         expect(errorAlertMock).toHaveBeenCalledWith(
-            copyFor("en").session.notEstablished
-        );
-        expect(successAlertMock).not.toHaveBeenCalled();
-        expect(pushMock).not.toHaveBeenCalled();
-    });
-
-    it("desloga sem navegar e mantém a mutação do link por e-mail em sucesso quando a sessão é recusada", async () => {
-        params.locale = "en";
-        let auth: AuthContextValue | undefined;
-        render(
-            <LocaleProvider>
-                {authTree((value) => {
-                    auth = value;
-                })}
-            </LocaleProvider>
-        );
-
-        fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
-        await act(async () => {
-            await auth?.signInWithEmailLink.mutateAsync({
-                email: "qa@example.com",
-                oobCode: "code",
-            });
-        });
-
-        expect(auth?.signInWithEmailLink.isSuccess).toBe(true);
-        expect(logoutMock).toHaveBeenCalledTimes(1);
-        expect(auth?.accessToken).toBeNull();
-        expect(errorAlertMock).toHaveBeenCalledWith(
-            copyFor("en").session.notEstablished
+            copyFor("pt-br").session.notEstablished
         );
         expect(successAlertMock).not.toHaveBeenCalled();
         expect(pushMock).not.toHaveBeenCalled();

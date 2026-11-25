@@ -23,8 +23,8 @@ const ROBOTS_HEADER = "x-robots-tag";
 export const ROBOTS_NOINDEX = "noindex";
 
 /**
- * Browser features none of the apps use. A fork that needs one (camera capture, Stripe's
- * Payment Request button) lists the allowed origin here instead of dropping the header.
+ * Browser features none of the apps use. A feature that needs one (camera capture, a payment
+ * button) lists the allowed origin here instead of dropping the header.
  */
 export const PERMISSIONS_POLICY =
     "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()";

@@ -33,7 +33,7 @@ describe("firestore.indexes.json", () => {
             collectionGroup: "entity",
             queryScope: "COLLECTION",
             fields: [
-                { fieldPath: "organizationId", order: "ASCENDING" },
+                { fieldPath: "userId", order: "ASCENDING" },
                 { fieldPath: "deletedAt", order: "ASCENDING" },
                 { fieldPath: "createdAt", order: "DESCENDING" },
             ],
@@ -45,7 +45,7 @@ describe("firestore.indexes.json", () => {
             collectionGroup: "entity",
             queryScope: "COLLECTION",
             fields: [
-                { fieldPath: "organizationId", order: "ASCENDING" },
+                { fieldPath: "userId", order: "ASCENDING" },
                 { fieldPath: "deletedAt", order: "ASCENDING" },
                 { fieldPath: "enabled", order: "ASCENDING" },
             ],
@@ -54,25 +54,11 @@ describe("firestore.indexes.json", () => {
             collectionGroup: "entity",
             queryScope: "COLLECTION",
             fields: [
-                { fieldPath: "organizationId", order: "ASCENDING" },
+                { fieldPath: "userId", order: "ASCENDING" },
                 { fieldPath: "deletedAt", order: "ASCENDING" },
                 { fieldPath: "type", order: "ASCENDING" },
             ],
         });
-    });
-
-    /**
-     * Listing and counting are scoped by organization: an index keyed by the author has
-     * no query left to serve, and keeping it would only cost writes.
-     */
-    it("no longer keys any entity index by the author", () => {
-        const byAuthor = indexes.filter(
-            (index) =>
-                index.collectionGroup === "entity" &&
-                index.fields.some((field) => field.fieldPath === "userId")
-        );
-
-        expect(byAuthor).toEqual([]);
     });
 
     it("declares the index the user summary counts need", () => {
@@ -93,17 +79,6 @@ describe("firestore.indexes.json", () => {
             fields: [
                 { fieldPath: "deletedAt", order: "ASCENDING" },
                 { fieldPath: "lastAccessAt", order: "ASCENDING" },
-            ],
-        });
-    });
-
-    it("declares the index the audit trail's user filter needs", () => {
-        expect(indexes).toContainEqual({
-            collectionGroup: "auditEvent",
-            queryScope: "COLLECTION",
-            fields: [
-                { fieldPath: "involvedUserIds", arrayConfig: "CONTAINS" },
-                { fieldPath: "createdAt", order: "DESCENDING" },
             ],
         });
     });

@@ -101,7 +101,6 @@ import { Container } from "@/shared/components/ui/Container";
 import { Footer } from "@/shared/components/ui/Footer";
 import { FormContainer } from "@/shared/components/ui/FormContainer";
 import { Header } from "@/shared/components/ui/Header";
-import { LanguageSwitcher } from "@/shared/components/ui/LanguageSwitcher";
 import { LoadErrorState } from "@/shared/components/ui/LoadErrorState";
 import Navbar from "@/shared/components/ui/Navbar";
 import PageBreadcrumb from "@/shared/components/ui/PageBreadcrumb";
@@ -293,10 +292,6 @@ export default function CommonPlaygroundClient() {
                                         label: "PanelNavbarControls",
                                     },
                                     {
-                                        id: "language-switcher",
-                                        label: "LanguageSwitcher",
-                                    },
-                                    {
                                         id: "profile-dropdown",
                                         label: "ProfileDropdown",
                                     },
@@ -374,7 +369,6 @@ export default function CommonPlaygroundClient() {
                             {[
                                 "Navbar",
                                 "PanelNavbarControls",
-                                "LanguageSwitcher",
                                 "ProfileDropdown",
                                 "PageBreadcrumb",
                                 "FormContainer",
@@ -404,24 +398,6 @@ export default function CommonPlaygroundClient() {
                         title="PanelNavbarControls"
                     >
                         <PanelNavbarControls />
-                    </PlaygroundSection>
-
-                    <PlaygroundSection
-                        description="Variantes principais para troca de idioma."
-                        id="language-switcher"
-                        title="LanguageSwitcher"
-                    >
-                        <PlaygroundVariants>
-                            <PlaygroundVariant title="Default">
-                                <LanguageSwitcher />
-                            </PlaygroundVariant>
-                            <PlaygroundVariant title="Icon only">
-                                <LanguageSwitcher icon />
-                            </PlaygroundVariant>
-                            <PlaygroundVariant title="Without label">
-                                <LanguageSwitcher showLabel={false} />
-                            </PlaygroundVariant>
-                        </PlaygroundVariants>
                     </PlaygroundSection>
 
                     <PlaygroundSection

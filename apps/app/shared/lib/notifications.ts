@@ -13,19 +13,11 @@ type NotificationPresentation = {
     href?: (params: NotificationDTO["params"]) => string;
 };
 
-const BILLING_TAB_PATH = "/account?tab=billing";
-
 export const notificationPresentation: Record<
     NotificationType,
     NotificationPresentation
 > = {
     welcome: { level: "info" },
-    subscriptionPaymentPending: {
-        level: "warning",
-        href: () => BILLING_TAB_PATH,
-    },
-    subscriptionCanceled: { level: "error", href: () => BILLING_TAB_PATH },
-    subscriptionReactivated: { level: "info", href: () => BILLING_TAB_PATH },
 };
 
 function presentationOf(type: string): NotificationPresentation | null {

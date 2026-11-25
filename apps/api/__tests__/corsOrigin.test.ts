@@ -23,7 +23,7 @@ vi.mock("@repo/security", () => ({
 }));
 
 const APP_ORIGIN = "http://localhost:3000";
-const WEB_ORIGIN = "http://localhost:3001";
+const SECOND_ORIGIN = "http://localhost:3001";
 const FOREIGN_ORIGIN = "https://evil.example";
 const OK = 200;
 const NO_CONTENT = 204;
@@ -116,8 +116,8 @@ afterEach(() => {
 describe("allowed origin list", () => {
     it("reads a comma-separated list, tolerating spacing and stray commas", () => {
         expect(
-            parseAllowedOrigins(` ${APP_ORIGIN} , ${WEB_ORIGIN} , `)
-        ).toEqual([APP_ORIGIN, WEB_ORIGIN]);
+            parseAllowedOrigins(` ${APP_ORIGIN} , ${SECOND_ORIGIN} , `)
+        ).toEqual([APP_ORIGIN, SECOND_ORIGIN]);
     });
 
     it("has no origin at all when production leaves it unset", () => {
@@ -125,11 +125,8 @@ describe("allowed origin list", () => {
         expect(resolveAllowedOrigins("", true)).toEqual([]);
     });
 
-    it("falls back to the local front-ends outside production", () => {
-        expect(resolveAllowedOrigins(undefined, false)).toEqual([
-            APP_ORIGIN,
-            WEB_ORIGIN,
-        ]);
+    it("falls back to the local panel outside production", () => {
+        expect(resolveAllowedOrigins(undefined, false)).toEqual([APP_ORIGIN]);
     });
 
     it("treats a missing origin header as a server-to-server call", () => {
@@ -167,12 +164,12 @@ describe("api proxy origin decision", () => {
     });
 
     it("answers an allowlisted origin with that exact origin", async () => {
-        const proxy = await loadProxy(`${APP_ORIGIN},${WEB_ORIGIN}`);
+        const proxy = await loadProxy(`${APP_ORIGIN},${SECOND_ORIGIN}`);
 
-        const response = await proxy(makeRequest({ origin: WEB_ORIGIN }));
+        const response = await proxy(makeRequest({ origin: SECOND_ORIGIN }));
 
         expect(response.headers.get("access-control-allow-origin")).toBe(
-            WEB_ORIGIN
+            SECOND_ORIGIN
         );
         expect(response.headers.get("vary")).toBe("Origin");
     });
@@ -220,7 +217,7 @@ describe("api proxy origin decision", () => {
         vi.stubEnv("NODE_ENV", "development");
         const proxy = await loadProxy(undefined);
 
-        for (const origin of [APP_ORIGIN, WEB_ORIGIN]) {
+        for (const origin of [APP_ORIGIN]) {
             const response = await proxy(makeRequest({ origin }));
 
             expect(response.headers.get("access-control-allow-origin")).toBe(
@@ -371,16 +368,12 @@ describe("api proxy write carried only by the session cookie", () => {
         expect(response.status).toBe(OK);
     });
 
-    it("lets an anonymous write without Origin through, like the payments webhook", async () => {
+    it("lets an anonymous write without Origin through, like a server-to-server call", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
 
         const write = await proxy(makeRequest({ method: "POST" }));
-        const webhook = await proxy(
-            makeRequest({ method: "POST", path: "/webhooks/payments" })
-        );
 
         expect(write.status).toBe(OK);
-        expect(webhook.status).toBe(OK);
     });
 
     it("ignores cookies other than the session one", async () => {
@@ -421,10 +414,10 @@ describe("api proxy security headers", () => {
 });
 
 describe("api proxy rate limit", () => {
-    it("leaves authenticated and webhook traffic alone", async () => {
+    it("leaves authenticated traffic alone", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
 
-        for (const path of ["/auth/me", "/webhooks/payments", "/health"]) {
+        for (const path of ["/auth/me", "/health"]) {
             await proxy(makeRequest({ origin: APP_ORIGIN, path }));
         }
 
@@ -433,11 +426,7 @@ describe("api proxy rate limit", () => {
 
     it("counts the public authentication endpoints", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
-        const publicAuthPaths = [
-            "/auth/sign-in",
-            "/auth/sign-up",
-            "/auth/sign-in/google",
-        ];
+        const publicAuthPaths = ["/auth/sign-in", "/auth/sign-in/google"];
 
         for (const path of publicAuthPaths) {
             await proxy(
@@ -448,163 +437,9 @@ describe("api proxy rate limit", () => {
         expect(budgetsSpent()).toEqual(publicAuthPaths.map(() => "strict"));
     });
 
-    it("counts the email link request but not the availability read", async () => {
+    it("counts changing the password in the strict budget", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
-
-        await proxy(
-            makeRequest({
-                origin: APP_ORIGIN,
-                method: "GET",
-                path: "/auth/sign-in/email-link",
-            })
-        );
-        expect(checkRateLimitMock).not.toHaveBeenCalled();
-
-        await proxy(
-            makeRequest({
-                origin: APP_ORIGIN,
-                method: "POST",
-                path: "/auth/sign-in/email-link/request",
-            })
-        );
-        expect(checkRateLimitMock).toHaveBeenCalledTimes(1);
-    });
-
-    it("counts the account recovery endpoints", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-        const recoveryPaths = [
-            "/auth/password/reset-request",
-            "/auth/password/reset",
-            "/auth/email-verification/send",
-            "/auth/email-verification/confirm",
-            "/auth/email-change/confirm",
-        ];
-
-        for (const path of recoveryPaths) {
-            await proxy(
-                makeRequest({ origin: APP_ORIGIN, method: "POST", path })
-            );
-        }
-
-        expect(checkRateLimitMock).toHaveBeenCalledTimes(recoveryPaths.length);
-    });
-
-    it("counts the data rights endpoints", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-
-        await proxy(
-            makeRequest({
-                origin: APP_ORIGIN,
-                method: "GET",
-                path: "/account/export",
-            })
-        );
-        await proxy(
-            makeRequest({
-                origin: APP_ORIGIN,
-                method: "POST",
-                path: "/account/deletion",
-            })
-        );
-
-        expect(checkRateLimitMock).toHaveBeenCalledTimes(2);
-    });
-
-    it("counts the email change request", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-
-        await proxy(
-            makeRequest({
-                origin: APP_ORIGIN,
-                method: "POST",
-                path: "/account/email",
-            })
-        );
-
-        expect(checkRateLimitMock).toHaveBeenCalledTimes(1);
-    });
-
-    it("counts the public contact endpoint", async () => {
-        const proxy = await loadProxy(WEB_ORIGIN);
-
-        await proxy(
-            makeRequest({
-                origin: WEB_ORIGIN,
-                method: "POST",
-                path: "/contact",
-            })
-        );
-
-        expect(checkRateLimitMock).toHaveBeenCalledTimes(1);
-    });
-
-    it("counts the organization invitation endpoints", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-        const invitationPaths = [
-            "/organization/invitations",
-            "/invitations/preview",
-            "/invitations/accept",
-        ];
-
-        for (const path of invitationPaths) {
-            await proxy(
-                makeRequest({ origin: APP_ORIGIN, method: "POST", path })
-            );
-        }
-
-        expect(checkRateLimitMock).toHaveBeenCalledTimes(
-            invitationPaths.length
-        );
-    });
-
-    it("counts the rest of the organization area in the standard budget", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-        const organizationPaths = [
-            "/organization",
-            "/organization/members",
-            "/organization/leave",
-            "/organization/invitations/abc",
-        ];
-
-        for (const path of organizationPaths) {
-            await proxy(
-                makeRequest({ origin: APP_ORIGIN, method: "POST", path })
-            );
-        }
-
-        expect(budgetsSpent()).toEqual(organizationPaths.map(() => "standard"));
-    });
-
-    it("leaves the invitation list read off both budgets", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-
-        await proxy(
-            makeRequest({
-                origin: APP_ORIGIN,
-                method: "GET",
-                path: "/organization/invitations",
-            })
-        );
-
-        expect(checkRateLimitMock).not.toHaveBeenCalled();
-    });
-
-    it("matches the contact endpoint exactly, not by prefix", async () => {
-        const proxy = await loadProxy(WEB_ORIGIN);
-        const neighbours = ["/contact/", "/contact/x", "/contacts"];
-
-        for (const path of neighbours) {
-            await proxy(
-                makeRequest({ origin: WEB_ORIGIN, method: "POST", path })
-            );
-        }
-
-        expect(budgetsSpent()).toEqual(neighbours.map(() => "standard"));
-    });
-
-    it("counts changing and setting the password in the strict budget", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-        const passwordPaths = ["/account/password", "/account/password/set"];
+        const passwordPaths = ["/account/password"];
 
         for (const path of passwordPaths) {
             await proxy(
@@ -615,26 +450,9 @@ describe("api proxy rate limit", () => {
         expect(budgetsSpent()).toEqual(passwordPaths.map(() => "strict"));
     });
 
-    it("counts the payment sessions in the strict budget", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-        const paymentPaths = ["/payments/checkout", "/payments/portal"];
-
-        for (const path of paymentPaths) {
-            await proxy(
-                makeRequest({ origin: APP_ORIGIN, method: "POST", path })
-            );
-        }
-
-        expect(budgetsSpent()).toEqual(paymentPaths.map(() => "strict"));
-    });
-
     it("counts the rest of the account area in the standard budget", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
-        const accountPaths = [
-            "/account",
-            "/account/",
-            "/account/sessions/revoke",
-        ];
+        const accountPaths = ["/account", "/account/", "/account/password/x"];
 
         for (const path of accountPaths) {
             await proxy(
@@ -643,24 +461,6 @@ describe("api proxy rate limit", () => {
         }
 
         expect(budgetsSpent()).toEqual(accountPaths.map(() => "standard"));
-    });
-
-    it("matches the recovery endpoints exactly, not by prefix", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-        const neighbours = [
-            "/auth/password",
-            "/auth/password/reset/",
-            "/auth/password/reset-request/extra",
-            "/auth/email-verification",
-        ];
-
-        for (const path of neighbours) {
-            await proxy(
-                makeRequest({ origin: APP_ORIGIN, method: "POST", path })
-            );
-        }
-
-        expect(budgetsSpent()).toEqual(neighbours.map(() => "standard"));
     });
 
     it("answers a spent budget with the code and the wait", async () => {
@@ -856,16 +656,6 @@ describe("api proxy rate limit", () => {
                 makeRequest({ origin: APP_ORIGIN, method, path: "/entities" })
             );
         }
-
-        expect(checkRateLimitMock).not.toHaveBeenCalled();
-    });
-
-    it("never counts the payment webhook, whatever the method", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-
-        await proxy(
-            makeRequest({ method: "POST", path: "/webhooks/payments" })
-        );
 
         expect(checkRateLimitMock).not.toHaveBeenCalled();
     });

@@ -1,20 +1,17 @@
 /**
- * Product identity a fork sets once, through public env vars inlined at build, so
- * the same values reach the app, the landing, the metadata and the emails. Every
- * field falls back to a neutral default: a fork that sets nothing still builds.
+ * Product identity set once, through public env vars inlined at build, so the same
+ * values reach the panel and the metadata. Every field falls back to a neutral default:
+ * a deploy that sets nothing still builds.
  */
 export type Brand = {
     readonly name: string;
     readonly isDefaultName: boolean;
     readonly logoUrl: string | null;
     readonly supportEmail: string | null;
-    readonly siteUrl: string | null;
 };
 
-export const DEFAULT_BRAND_NAME = "next-boilerplate";
+export const DEFAULT_BRAND_NAME = "agent-board";
 
-const TRAILING_SLASH_RE = /\/+$/;
-const PROTOCOL_RE = /^https?:\/\//;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // The URL parser keeps `;`, `,` and quotes in a host, and the logo origin is written
 // verbatim into the CSP header, where a `;` would open a directive of its own.
@@ -50,14 +47,6 @@ const toEmail = (value: string | undefined): string | null => {
     return trimmed && EMAIL_RE.test(trimmed) ? trimmed : null;
 };
 
-const toOrigin = (value: string | undefined): string | null => {
-    const trimmed = value?.trim().replace(TRAILING_SLASH_RE, "");
-    if (!trimmed) {
-        return null;
-    }
-    return PROTOCOL_RE.test(trimmed) ? trimmed : `https://${trimmed}`;
-};
-
 export function getBrand(): Brand {
     const configuredName = process.env.NEXT_PUBLIC_APP_NAME?.trim();
     return {
@@ -65,7 +54,6 @@ export function getBrand(): Brand {
         isDefaultName: !configuredName,
         logoUrl: toHttpsUrl(process.env.NEXT_PUBLIC_APP_LOGO_URL),
         supportEmail: toEmail(process.env.NEXT_PUBLIC_APP_SUPPORT_EMAIL),
-        siteUrl: toOrigin(process.env.NEXT_PUBLIC_WEB_URL),
     };
 }
 

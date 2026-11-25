@@ -35,7 +35,7 @@ levante você mesmo as afirmações de comportamento do handoff.
 ### Custo: não repita passada que não rende
 
 Você tem orçamento para dirigir o app **uma vez**, bem. Não refaça o percurso inteiro por etapa:
-concentre numa passada os fluxos do diff, os 3 idiomas, light/dark/mobile e os cenários dos critérios.
+concentre numa passada os fluxos do diff, light/dark/mobile e os cenários dos critérios.
 Se o diff **não tem superfície de runtime** (só API, só config, só teste), diga isso e **não suba nada** —
 `impersonation-read-only` gastou 30 screenshots somados em três etapas para um diff sem UI.
 
@@ -73,7 +73,7 @@ do `analyze/plan.md`, para alinhar os critérios de aceite.
 ### 1. Mapear o escopo
 
 `git diff --name-only` para os arquivos alterados; identifique os **workspaces** afetados
-(`app` | `api` | `web` | `email` | `packages/*`) e quais rotas/telas/hooks foram tocados. Leia o
+(`app` | `api` | `e2e` | `packages/*`) e quais rotas/telas/hooks foram tocados. Leia o
 `develop/handoff.md` e o `review/review.md`, se houver.
 
 ### 2. Rodar os testes
@@ -85,7 +85,7 @@ testes relacionados: rodar a suíte inteira dos workspaces afetados é mais ráp
 ```bash
 pnpm --filter app test                          # apps/app  (NODE_ENV=test vitest run)
 pnpm --filter api test                          # apps/api
-pnpm --filter @repo/internationalization test    # paridade pt-br/en/es + apiErrors
+pnpm --filter @repo/internationalization test    # locale e dicionário pt-br
 pnpm test                                       # turbo: todos os workspaces com script test
 ```
 
@@ -97,8 +97,8 @@ pnpm test                                       # turbo: todos os workspaces com
 - **Não remeça gate que não mudou.** Se `pnpm check` já foi medido pelo `/review` e você só acrescentou
   arquivo de teste, rode o que o seu escopo mexeu e cite o resto. Três etapas medindo `192/37` para obter
   `192/37` nas três é custo sem informação.
-- **Sempre rode a paridade de i18n** se o diff tocou `packages/internationalization` ou adicionou
-  `error.code` — é a falha mais comum.
+- **Sempre confira a cobertura do `apiErrors`** (`pnpm --filter api test apiErrorCodes`) se o diff
+  adicionou `error.code` — é a falha mais comum.
 - Arquivo específico, quando precisar iterar:
   `pnpm --filter app exec vitest run __tests__/<arquivo>.test.tsx` (ou `-t "<nome do teste>"`).
 - Rode também `pnpm --filter <app> typecheck` nos apps afetados.
@@ -186,11 +186,10 @@ explicativo por critério). Cubra o que a seção 9 do guia lista, em especial:
 
 - autorização: comum × admin × **admin personificando** × não autenticado;
 - **ownership**: acessar/editar/excluir recurso de outro usuário → 404;
-- modo de produto (`subscription` × `simple`), quando relevante;
 - valores-limite, campo opcional ausente × `null` × preenchido, data inválida;
 - filtros/busca combinados, resultado vazio, manipulação de URL/query param;
 - duplo clique / submit repetido / cancelar durante requisição;
-- `error.code` exato esperado e a mensagem traduzida nos 3 idiomas;
+- `error.code` exato esperado e a mensagem traduzida;
 - tema (light/dark) e responsivo (mobile/desktop).
 
 Inclua um **roteiro de teste manual** passo a passo (inputs → resultado esperado) quando pedido.
@@ -201,7 +200,7 @@ O objetivo é **acessar o app rodando e percorrer o fluxo como um usuário**. Bu
 bundle resolve, **não** que o fluxo funciona. A ferramenta padrão deste repo é a skill **`agent-browser`**
 (não instale Playwright por conta própria).
 
-1. Suba o app: `pnpm --filter app dev` (3000) / `pnpm --filter web dev` (3001) — e a API,
+1. Suba o app: `pnpm --filter app dev` (3000) — e a API,
    `pnpm --filter api dev` (3002), sem a qual nenhum fluxo de dados funciona. **Antes de subir qualquer
    coisa, siga a seção "Subir e derrubar o ambiente do e2e"** — você é responsável por devolver as portas.
 2. `agent-browser skills get core` (e `agent-browser skills get dogfood` para QA exploratório/bug hunt).
@@ -235,8 +234,8 @@ bundle resolve, **não** que o fluxo funciona. A ferramenta padrão deste repo �
 
 ### 6. Cross-check
 
-Liste onde o comportamento deve ser conferido quando a mudança os afetar: `apps/app` × `apps/web`,
-comum × admin × impersonação, `subscription` × `simple`, mobile × desktop, light × dark, e os 3 idiomas.
+Liste onde o comportamento deve ser conferido quando a mudança os afetar: comum × admin ×
+impersonação, mobile × desktop, light × dark.
 
 ### 7. Relatório — `test/report.md`
 
@@ -244,7 +243,7 @@ Gere `docs/features/<slug>/test/report.md` consolidando **tudo o que foi testado
 testar**:
 
 - **Cobertura**: testes unitários/hook/rota executados e criados, com **pass/fail** e os **comandos
-  exatos** (incluindo o `pnpm test` do root e a paridade de i18n).
+  exatos** (incluindo o `pnpm test` do root e a cobertura do `apiErrors`).
 - **Critérios de aceite com status por item**: copie o checklist do passo 4 e, **para cada critério**,
   marque **PASS / FALHOU / não coberto** e **por qual meio** (unit, hook, rota, e2e ou manual). O usuário
   quer ver, item a item, se cada etapa foi realizada.
@@ -270,7 +269,7 @@ testar**:
 O procedimento canônico está na §7 de [`docs/review-checklist.md`](../../docs/review-checklist.md); se os
 dois divergirem, o checklist manda. Abaixo, a versão operacional com os comandos deste repo.
 
-Você usa as mesmas portas que o usuário: **3000** `app` · **3001** `web` · **3002** `api` · **3003** `email`
+Você usa as mesmas portas que o usuário: **3000** `app` · **3002** `api`
 · **9099** Firebase Auth emulator · **8080** Firestore emulator · **4001** UI do emulador. Se você deixar
 processo pendurado, o próximo `pnpm dev` dele falha com porta ocupada — e o processo é seu, não dele.
 

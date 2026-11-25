@@ -5,7 +5,7 @@ import { useFileUpload } from "@/shared/hooks/useFileUpload";
 
 const { uploadMock, activeLocale } = vi.hoisted(() => ({
     uploadMock: vi.fn(),
-    activeLocale: { value: "pt-br" as "pt-br" | "en" | "es" },
+    activeLocale: { value: "pt-br" as const },
 }));
 
 vi.mock("@/shared/lib/client", () => ({
@@ -19,7 +19,6 @@ vi.mock("@repo/internationalization/client", () => ({
 }));
 
 const STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
-const STATUS_PAYLOAD_TOO_LARGE = 413;
 const STATUS_SERVICE_UNAVAILABLE = 503;
 
 const uploadedFile = {
@@ -72,25 +71,6 @@ describe("useFileUpload", () => {
 
         expect(received).toEqual(uploadedFile);
         expect(uploadMock).toHaveBeenCalledWith(file, { onProgress });
-        expect(uploadMock.mock.calls[0]?.[1]?.scope).toBeUndefined();
-    });
-
-    /** A record's photo stays with the organization when its uploader leaves. */
-    it("forwards the scope it was given to the sdk", async () => {
-        uploadMock.mockResolvedValue(uploadedFile);
-        const file = jpegFile();
-        const { result } = renderHook(() =>
-            useFileUpload({ scope: "organization" })
-        );
-
-        await act(async () => {
-            await result.current.uploadFile(file);
-        });
-
-        expect(uploadMock).toHaveBeenCalledWith(
-            file,
-            expect.objectContaining({ scope: "organization" })
-        );
     });
 
     it("reports the upload as in flight only until it settles", async () => {
@@ -152,28 +132,6 @@ describe("useFileUpload", () => {
             expect((thrown as Error).message).toBe(
                 "Formato não aceito. Envie JPG, PNG ou WebP."
             );
-        });
-    });
-
-    it("translates the refusal in the locale the panel is being read in", async () => {
-        uploadMock.mockRejectedValue(
-            apiRefusal("UPLOAD_FILE_TOO_LARGE", STATUS_PAYLOAD_TOO_LARGE)
-        );
-
-        activeLocale.value = "en";
-        const english = renderHook(() => useFileUpload());
-        await act(async () => {
-            await expect(
-                english.result.current.uploadFile(jpegFile())
-            ).rejects.toThrow("The file exceeds the 4 MB limit.");
-        });
-
-        activeLocale.value = "es";
-        const spanish = renderHook(() => useFileUpload());
-        await act(async () => {
-            await expect(
-                spanish.result.current.uploadFile(jpegFile())
-            ).rejects.toThrow("El archivo supera el límite de 4 MB.");
         });
     });
 

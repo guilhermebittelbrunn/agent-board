@@ -5,14 +5,8 @@
     "audit-exception.@grpc/grpc-js": "packages/auth > firebase > @firebase/firestore pins @grpc/grpc-js ~1.9.0, and the latest @firebase/firestore still does. GHSA-m9gg-hp2v-232j and GHSA-f596-whhp-79r4 affect a gRPC server; here grpc-js is only a client, and only the Node build of the client Firestore SDK loads it, which the repo uses solely in emulator tests (the browser build talks over WebChannel). Revisit when @firebase/firestore widens the range, or by 2027-05-19.",
     "pnpm.auditConfig.ignoreGhsas": "Each entry is an audit exception documented under its own audit-exception.* key above; remove it together with that key."
   },
-  "name": "next-forge",
-  "version": "5.2.3",
-  "bin": {
-    "next-forge": "dist/index.js"
-  },
-  "files": [
-    "dist/index.js"
-  ],
+  "name": "agent-board",
+  "version": "0.0.0",
   "scripts": {
     "build": "turbo build",
     "build:packages": "turbo build --filter=packages/*",
@@ -25,10 +19,6 @@
     "test": "turbo test test:emulator",
     "coverage": "NODE_ENV=test vitest run --coverage",
     "e2e": "pnpm --filter e2e e2e",
-    "lighthouse": "pnpm --filter e2e lighthouse",
-    "kickoff": "node scripts/kickoff/server.mjs",
-    "kickoff:render": "node scripts/kickoff/server.mjs --render",
-    "kickoff:test": "node --test scripts/kickoff/__tests__/*.test.mjs",
     "analyze": "turbo analyze",
     "bump-deps": "npx npm-check-updates --deep -u -x recharts && pnpm install",
     "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/design-system",
@@ -49,13 +39,9 @@
     "vitest": "^4.0.3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.12.0"
   },
   "packageManager": "pnpm@10.19.0",
-  "dependencies": {
-    "@clack/prompts": "^0.11.0",
-    "commander": "^14.0.2"
-  },
   "pnpm": {
     "overrides": {
       "parse5": "^7.2.1",

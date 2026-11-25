@@ -1,4 +1,3 @@
-import { ONBOARDING_STEPS, type OnboardingStepId } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { z } from "zod";
 import {
@@ -11,12 +10,9 @@ import {
 const DISPLAY_NAME_MAX = 120;
 const PHONE_MAX = 32;
 const AVATAR_REFERENCE_MAX = 2048;
-const EMAIL_MAX = 320;
-const REAUTH_ID_TOKEN_MAX = 4096;
-const PROVIDER_ID_RE = /^[a-z0-9.]{1,64}$/;
 
 export const themeSchema = z.enum(["light", "dark", "system"]);
-export const localeSchema = z.enum(["pt-br", "en", "es"]);
+export const localeSchema = z.enum(["pt-br"]);
 
 const preferencesSchema = z
     .object({
@@ -51,60 +47,8 @@ export const changePasswordSchema = z
     })
     .strict();
 
-/** Same `.strict()` guard: whose password is set comes from the token, never from the body. */
-export const setPasswordSchema = z
-    .object({
-        reauthIdToken: z.string().min(1).max(REAUTH_ID_TOKEN_MAX),
-        password: newPasswordSchema,
-    })
-    .strict();
-
-export const signInMethodIdSchema = z.string().regex(PROVIDER_ID_RE);
-
-export const signInMethodLinkedSchema = z
-    .object({ providerId: signInMethodIdSchema })
-    .strict();
-
-/** Same `.strict()` guard: whose address changes comes from the token, never from the body. */
-export const changeEmailSchema = z
-    .object({
-        newEmail: z.string().trim().max(EMAIL_MAX).email(),
-        currentPassword: existingPasswordSchema,
-        locale: localeSchema.optional(),
-    })
-    .strict();
-
-/**
- * Same `.strict()` guard as the payloads above, and the same reason: the account being
- * erased comes from the token, so a body carrying `id` or `uid` is an attempt to erase
- * someone else and has to fail loudly.
- */
-export const deleteAccountSchema = z
-    .object({
-        currentPassword: existingPasswordSchema,
-    })
-    .strict();
-
-const onboardingStepIds = ONBOARDING_STEPS.map(({ id }) => id) as [
-    OnboardingStepId,
-    ...OnboardingStepId[],
-];
-
-/** Same `.strict()` guard: the profile that advances is the one the token resolves to. */
-export const advanceOnboardingSchema = z
-    .object({
-        step: z.enum(onboardingStepIds),
-        outcome: z.enum(["completed", "skipped"]),
-    })
-    .strict();
-
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
-export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
-export type SignInMethodLinkedInput = z.infer<typeof signInMethodLinkedSchema>;
-export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
-export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
-export type AdvanceOnboardingInput = z.infer<typeof advanceOnboardingSchema>;
 
 const validationFailed = (): Response =>
     Response.json(
@@ -155,77 +99,6 @@ export function parseChangePassword(
                 ? passwordTooShortResponse()
                 : validationFailed(),
         };
-    }
-    return { ok: true, value: parsed.data };
-}
-
-export function parseSetPassword(
-    body: unknown
-): { ok: true; value: SetPasswordInput } | { ok: false; response: Response } {
-    const parsed = setPasswordSchema.safeParse(body);
-    if (!parsed.success) {
-        return {
-            ok: false,
-            response: isPasswordTooShort(parsed.error)
-                ? passwordTooShortResponse()
-                : validationFailed(),
-        };
-    }
-    return { ok: true, value: parsed.data };
-}
-
-export function parseSignInMethodLinked(
-    body: unknown
-):
-    | { ok: true; value: SignInMethodLinkedInput }
-    | { ok: false; response: Response } {
-    const parsed = signInMethodLinkedSchema.safeParse(body);
-    if (!parsed.success) {
-        return { ok: false, response: validationFailed() };
-    }
-    return { ok: true, value: parsed.data };
-}
-
-/** `null` for anything that cannot be a Firebase provider id. */
-export function parseSignInMethodId(raw: string | undefined): string | null {
-    const parsed = signInMethodIdSchema.safeParse(raw);
-    return parsed.success ? parsed.data : null;
-}
-
-export function parseChangeEmail(
-    body: unknown
-): { ok: true; value: ChangeEmailInput } | { ok: false; response: Response } {
-    const parsed = changeEmailSchema.safeParse(body);
-    if (!parsed.success) {
-        return { ok: false, response: validationFailed() };
-    }
-    return { ok: true, value: parsed.data };
-}
-
-export function parseDeleteAccount(
-    body: unknown
-): { ok: true; value: DeleteAccountInput } | { ok: false; response: Response } {
-    const parsed = deleteAccountSchema.safeParse(body);
-    if (!parsed.success) {
-        return {
-            ok: false,
-            response: Response.json(
-                { error: { code: "ACCOUNT_DELETION_CONFIRMATION_INVALID" } },
-                { status: HTTP_STATUS.BAD_REQUEST }
-            ),
-        };
-    }
-    return { ok: true, value: parsed.data };
-}
-
-export function parseAdvanceOnboarding(
-    body: unknown
-):
-    | { ok: true; value: AdvanceOnboardingInput }
-    | { ok: false; response: Response } {
-    const parsed = advanceOnboardingSchema.safeParse(body);
-    if (!parsed.success) {
-        return { ok: false, response: validationFailed() };
     }
     return { ok: true, value: parsed.data };
 }

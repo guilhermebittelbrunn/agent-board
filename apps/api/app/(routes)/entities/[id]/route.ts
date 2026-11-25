@@ -1,7 +1,7 @@
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import {
-    isAttachablePhoto,
-    isReplaceablePhoto,
+    isOwnStorageObject,
+    isUsablePhotoReference,
     normalizePhotoReference,
     withPhotoUrl,
 } from "@/(shared)/lib/entity-photo";
@@ -14,7 +14,7 @@ import {
 import { deleteObjectQuietly } from "@/(shared)/lib/storage";
 import { entityRepository } from "@/(shared)/repositories/entity.repository";
 import { parseUpdateEntity } from "@/(shared)/validation/entity.schema";
-import { requireOrganizationApi } from "@/app/(guards)/organization";
+import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
 
 const notFound = () =>
     Response.json(
@@ -22,12 +22,12 @@ const notFound = () =>
         { status: HTTP_STATUS.NOT_FOUND }
     );
 
-export const GET = requireOrganizationApi<RouteIdParamsContext>(
+export const GET = requireCommonPanelApi<RouteIdParamsContext>(
     async (_req, ctx) => {
         const id = await resolveIdFromContext(ctx);
-        const row = await entityRepository.findInOrganization(
+        const row = await entityRepository.findOwnedBy(
             id,
-            ctx.organization.organizationId
+            ctx.subjectProfile.id
         );
 
         if (!row) {
@@ -38,12 +38,12 @@ export const GET = requireOrganizationApi<RouteIdParamsContext>(
     }
 );
 
-export const PUT = requireOrganizationApi<RouteIdParamsContext>(
+export const PUT = requireCommonPanelApi<RouteIdParamsContext>(
     async (req, ctx) => {
         const id = await resolveIdFromContext(ctx);
-        const existing = await entityRepository.findInOrganization(
+        const existing = await entityRepository.findOwnedBy(
             id,
-            ctx.organization.organizationId
+            ctx.subjectProfile.id
         );
 
         if (!existing) {
@@ -66,14 +66,12 @@ export const PUT = requireOrganizationApi<RouteIdParamsContext>(
             patch.photo = normalizePhotoReference(patch.photo);
 
             // The edit form sends the current photo back on every save, so the value
-            // already on the record is accepted as it is: a member editing someone
-            // else's record must not be refused over a photo they never touched. Any
-            // other value has to be an object of the organization, or an image on an
-            // allowed host.
+            // already on the record is accepted as it is. Any other value has to be the
+            // person's own object, or an image on an allowed host.
             if (
                 patch.photo &&
                 patch.photo !== existing.photo &&
-                !isAttachablePhoto(patch.photo, ctx.organization.organizationId)
+                !isUsablePhotoReference(patch.photo, ctx.subjectProfile.id)
             ) {
                 return Response.json(
                     { error: { code: "ENTITY_PHOTO_INVALID" } },
@@ -92,11 +90,7 @@ export const PUT = requireOrganizationApi<RouteIdParamsContext>(
             patch.photo !== undefined &&
             previousPhoto &&
             previousPhoto !== patch.photo &&
-            isReplaceablePhoto(previousPhoto, {
-                organizationId: ctx.organization.organizationId,
-                actorId: ctx.subjectProfile.id,
-                authorId: existing.userId,
-            })
+            isOwnStorageObject(previousPhoto, ctx.subjectProfile.id)
         ) {
             // Deleted only after the write lands: while it fails, the old object is
             // still the valid one.
@@ -107,12 +101,12 @@ export const PUT = requireOrganizationApi<RouteIdParamsContext>(
     }
 );
 
-export const DELETE = requireOrganizationApi<RouteIdParamsContext>(
+export const DELETE = requireCommonPanelApi<RouteIdParamsContext>(
     async (_req, ctx) => {
         const id = await resolveIdFromContext(ctx);
-        const existing = await entityRepository.findInOrganization(
+        const existing = await entityRepository.findOwnedBy(
             id,
-            ctx.organization.organizationId
+            ctx.subjectProfile.id
         );
 
         if (!existing) {

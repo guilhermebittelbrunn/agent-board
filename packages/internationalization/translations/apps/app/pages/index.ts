@@ -1,57 +1,15 @@
 import { adminTranslations } from "./admin";
 import { commonTranslations } from "./common";
-import { emailLinkSignInTranslations } from "./emailLinkSignIn";
-import { emailVerificationTranslations } from "./emailVerification";
-import { forgotPasswordTranslations } from "./forgotPassword";
 import { impersonationTranslations } from "./impersonation";
-import { invitationTranslations } from "./invitation";
 import { navbarTranslations } from "./navbar";
-import { onboardingTranslations } from "./onboarding";
-import { resetPasswordTranslations } from "./resetPassword";
 import { signInTranslations } from "./signIn";
-import { signUpTranslations } from "./signUp";
 
 export const pagesTranslations = {
     "pt-br": {
         signIn: signInTranslations["pt-br"],
-        signUp: signUpTranslations["pt-br"],
-        forgotPassword: forgotPasswordTranslations["pt-br"],
-        resetPassword: resetPasswordTranslations["pt-br"],
-        emailVerification: emailVerificationTranslations["pt-br"],
-        emailLinkSignIn: emailLinkSignInTranslations["pt-br"],
         common: commonTranslations["pt-br"],
         admin: adminTranslations["pt-br"],
         navbar: navbarTranslations["pt-br"],
         impersonation: impersonationTranslations["pt-br"],
-        onboarding: onboardingTranslations["pt-br"],
-        invitation: invitationTranslations["pt-br"],
-    },
-    en: {
-        signIn: signInTranslations.en,
-        signUp: signUpTranslations.en,
-        forgotPassword: forgotPasswordTranslations.en,
-        resetPassword: resetPasswordTranslations.en,
-        emailVerification: emailVerificationTranslations.en,
-        emailLinkSignIn: emailLinkSignInTranslations.en,
-        common: commonTranslations.en,
-        admin: adminTranslations.en,
-        navbar: navbarTranslations.en,
-        impersonation: impersonationTranslations.en,
-        onboarding: onboardingTranslations.en,
-        invitation: invitationTranslations.en,
-    },
-    es: {
-        signIn: signInTranslations.es,
-        signUp: signUpTranslations.es,
-        forgotPassword: forgotPasswordTranslations.es,
-        resetPassword: resetPasswordTranslations.es,
-        emailVerification: emailVerificationTranslations.es,
-        emailLinkSignIn: emailLinkSignInTranslations.es,
-        common: commonTranslations.es,
-        admin: adminTranslations.es,
-        navbar: navbarTranslations.es,
-        impersonation: impersonationTranslations.es,
-        onboarding: onboardingTranslations.es,
-        invitation: invitationTranslations.es,
     },
 };

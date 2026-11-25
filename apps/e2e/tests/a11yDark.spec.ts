@@ -3,7 +3,6 @@ import { expectAccessible } from "../support/a11y";
 import { LOCALE, ptBr } from "../support/dictionary";
 import { AUTH_STATE } from "../support/paths";
 import { SEEDED_ENTITY_NAME } from "../support/seedAccounts";
-import { WEB_URL } from "../support/urls";
 
 type DarkRoute = {
     route: string;
@@ -12,7 +11,6 @@ type DarkRoute = {
 };
 
 const appCopy = ptBr.apps.app.pages;
-const webCopy = ptBr.apps.web.pages;
 
 const checkInDark = (routes: DarkRoute[]) => {
     for (const { route, url, ready } of routes) {
@@ -31,24 +29,9 @@ test.use({ colorScheme: "dark" });
 test.describe("signed out", () => {
     checkInDark([
         {
-            route: `web:/${LOCALE}`,
-            url: `${WEB_URL}/${LOCALE}`,
-            ready: (page) => page.getByRole("heading", { level: 1 }),
-        },
-        {
-            route: `web:/${LOCALE}/sign-up`,
-            url: `${WEB_URL}/${LOCALE}/sign-up`,
-            ready: (page) => page.getByLabel(webCopy.signUp.form.email),
-        },
-        {
             route: `/${LOCALE}/sign-in`,
             url: `/${LOCALE}/sign-in`,
             ready: (page) => page.getByLabel(appCopy.signIn.form.email),
-        },
-        {
-            route: `/${LOCALE}/sign-up`,
-            url: `/${LOCALE}/sign-up`,
-            ready: (page) => page.getByLabel(appCopy.signUp.form.email),
         },
     ]);
 });
@@ -76,7 +59,7 @@ test.describe("as a common user", () => {
             url: `/${LOCALE}/entities/create`,
             ready: (page) => page.getByLabel(appCopy.common.entities.form.name),
         },
-        ...["profile", "security", "privacy"].map((tab) => ({
+        ...["profile", "security"].map((tab) => ({
             route: `/${LOCALE}/account?tab=${tab}`,
             url: `/${LOCALE}/account?tab=${tab}`,
             ready: (page: Page) =>

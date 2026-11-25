@@ -7,14 +7,11 @@ import {
     GoogleAuthProvider,
     getAdditionalUserInfo,
     getAuth,
-    linkWithPopup,
     onAuthStateChanged,
     onIdTokenChanged,
-    reauthenticateWithPopup,
     reload,
     signInWithCustomToken,
     signInWithEmailAndPassword,
-    signInWithEmailLink,
     signInWithPopup,
     signOut,
     type User,
@@ -25,7 +22,7 @@ import {
     DEMO_PROJECT_ID,
     DEMO_WEB_API_KEY,
 } from "./emulator";
-import type { EmailLinkSignInDTO, SignInDTO } from "./types";
+import type { SignInDTO } from "./types";
 
 let firebaseApp: FirebaseApp | undefined;
 let firebaseAuth: Auth | undefined;
@@ -150,22 +147,6 @@ export const signIn = ({ email, password }: SignInDTO) => {
 };
 
 /**
- * The SDK only accepts a full action URL carrying the sign-in mode and an API key, and
- * reads nothing from it but the code — while the email carries the code alone.
- */
-export const signInWithEmailLinkCode = ({
-    email,
-    oobCode,
-}: EmailLinkSignInDTO) => {
-    const auth = getAuthClient();
-    const actionUrl = new URL(window.location.pathname, window.location.origin);
-    actionUrl.searchParams.set("mode", "signIn");
-    actionUrl.searchParams.set("oobCode", oobCode);
-    actionUrl.searchParams.set("apiKey", auth.app.options.apiKey ?? "");
-    return signInWithEmailLink(auth, email, actionUrl.toString());
-};
-
-/**
  * Sign in with Google using popup
  */
 export const signInWithGoogle = () => {
@@ -176,34 +157,6 @@ export const signInWithGoogle = () => {
 
 export const isNewAccount = (credential: UserCredential): boolean =>
     getAdditionalUserInfo(credential)?.isNewUser === true;
-
-const requireCurrentUser = (): User => {
-    const user = getAuthClient().currentUser;
-    if (!user) {
-        throw new Error("No signed-in user");
-    }
-    return user;
-};
-
-/**
- * Links a Google account to the signed-in user. Firebase checks ownership in the popup and
- * refuses a Google account already linked elsewhere (`auth/credential-already-in-use`).
- */
-export const linkGoogle = () =>
-    linkWithPopup(requireCurrentUser(), new GoogleAuthProvider());
-
-/**
- * A fresh ID token whose sign-in provider is Google, for operations that need a recent
- * proof of who is at the keyboard. Only the Google account already linked passes
- * (`auth/user-mismatch` otherwise).
- */
-export const reauthenticateWithGoogle = async (): Promise<string> => {
-    const result = await reauthenticateWithPopup(
-        requireCurrentUser(),
-        new GoogleAuthProvider()
-    );
-    return result.user.getIdToken();
-};
 
 /**
  * Sign out the current user

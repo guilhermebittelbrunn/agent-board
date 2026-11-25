@@ -38,19 +38,8 @@ describe("describeNotification", () => {
         }
     });
 
-    it("muda o texto da mesma notificação quando muda o idioma", () => {
-        const notification = { type: "welcome", params: {} };
-
-        const titles = locales.map(
-            (locale) =>
-                describeNotification(copyFor(locale), notification).title
-        );
-
-        expect(new Set(titles).size).toBe(locales.length);
-    });
-
     it("cai no texto genérico para um tipo que este build não conhece", () => {
-        const copy = copyFor("en");
+        const copy = copyFor("pt-br");
 
         expect(
             describeNotification(copy, {
@@ -61,7 +50,7 @@ describe("describeNotification", () => {
     });
 
     it("não confunde uma chave herdada de Object com um tipo", () => {
-        const copy = copyFor("en");
+        const copy = copyFor("pt-br");
 
         expect(
             describeNotification(copy, { type: "constructor", params: {} })
@@ -70,9 +59,9 @@ describe("describeNotification", () => {
 
     it("interpola {param} com os parâmetros e deixa intacto o que falta", () => {
         const copy = {
-            ...copyFor("en"),
+            ...copyFor("pt-br"),
             types: {
-                ...copyFor("en").types,
+                ...copyFor("pt-br").types,
                 welcome: {
                     title: "Hi {name}",
                     body: "{count} seats, {missing}",
@@ -90,18 +79,6 @@ describe("describeNotification", () => {
 });
 
 describe("notificationHref", () => {
-    it("leva os avisos de assinatura para a aba de cobrança no idioma atual", () => {
-        for (const type of [
-            "subscriptionPaymentPending",
-            "subscriptionCanceled",
-            "subscriptionReactivated",
-        ]) {
-            expect(notificationHref("es", { type, params: {} })).toBe(
-                "/es/account?tab=billing"
-            );
-        }
-    });
-
     it("não dá destino às boas-vindas nem a um tipo desconhecido", () => {
         expect(
             notificationHref("pt-br", { type: "welcome", params: {} })
@@ -114,8 +91,7 @@ describe("notificationHref", () => {
 
 describe("notificationLevel", () => {
     it("deriva o nível do tipo e trata o desconhecido como informativo", () => {
-        expect(notificationLevel("subscriptionPaymentPending")).toBe("warning");
-        expect(notificationLevel("subscriptionCanceled")).toBe("error");
+        expect(notificationLevel("welcome")).toBe("info");
         expect(notificationLevel("legacyTypeRemoved")).toBe("info");
     });
 

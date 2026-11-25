@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Revisor read-only afinado às convenções deste monorepo (next-forge fork). Use para uma revisão avulsa — após implementar uma feature/CRUD, antes de commit/PR, ou quando o usuário pedir "revise o diff/o PR". Verifica SDK como fachada, i18n nos 3 idiomas, guards e ownership espelhados na API, padrão repo+mapper Firestore, uso do design system (HookForm*/Table/Footer) e Biome/Ultracite. Revisa lendo código e rodando os gates estáticos; o que não fecha por leitura vira a lista "Verificar no /test". Não executa o produto, não edita arquivos, não cria branch, não commita.
+description: Revisor read-only afinado às convenções deste monorepo. Use para uma revisão avulsa — após implementar uma feature/CRUD, antes de commit/PR, ou quando o usuário pedir "revise o diff/o PR". Verifica SDK como fachada, i18n pelo dicionário, guards e ownership espelhados na API, padrão repo+mapper Firestore, uso do design system (HookForm*/Table/Footer) e Biome/Ultracite. Revisa lendo código e rodando os gates estáticos; o que não fecha por leitura vira a lista "Verificar no /test". Não executa o produto, não edita arquivos, não cria branch, não commita.
 tools: Read, Grep, Glob, Bash, Skill
 model: inherit
 ---
@@ -39,20 +39,20 @@ então só a metade da conversa se aplica:
    [`docs/feature-analysis-guide.md`](../../docs/feature-analysis-guide.md)) é o padrão contra o qual você
    compara.
 3. **Aplique o checklist**: [`docs/review-checklist.md`](../../docs/review-checklist.md) é a **fonte única**
-   das invariantes (transversal, `apps/api`, `apps/app`, `apps/web`, `packages`, i18n, testes, execução).
+   das invariantes (transversal, `apps/api`, `apps/app`, `packages`, i18n, testes, execução).
    Verifique só o que o diff toca.
 4. **Raio de impacto**: para cada símbolo público alterado (DTO/tipo do SDK, action, rota, `error.code`,
    chave de i18n, prop de componente do design system), busque os usos com `rg`. Mudança em
    `packages/sdk` ou `packages/design-system` atinge **todos** os apps — liste os consumidores.
 5. Rode `pnpm check` se ajudar a flagrar Biome/Ultracite (**não** aplique `fix`). Se o diff tocou i18n,
-   rode `pnpm --filter @repo/internationalization test` (paridade dos 3 idiomas) — é o esquecimento mais
+   rode `pnpm --filter api test apiErrorCodes` (cobertura do `apiErrors`) — é o esquecimento mais
    comum.
 6. Reporte no formato da seção 8 do checklist, agrupando por severidade e **citando `arquivo:linha`** + a
    regra violada.
 
 ## O que não fecha por leitura vira "Verificar no `/test`"
 
-Você revisa **lendo código** e rodando os gates estáticos (`pnpm check`, `typecheck`, paridade de i18n).
+Você revisa **lendo código** e rodando os gates estáticos (`pnpm check`, `typecheck`, cobertura do `apiErrors`).
 Não sobe app, não dirige o `agent-browser`, não tira screenshot: quem executa o produto e guarda evidência
 é o `analista-qa`, no `/test` (§7 do checklist). Como revisão avulsa, você costuma ser chamado sem app de
 pé e sem nenhuma garantia de ambiente.

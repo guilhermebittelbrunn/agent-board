@@ -126,13 +126,6 @@ function givenLocale(locale: string) {
     setCookie("x-locale", locale, ONE_HOUR_IN_SECONDS);
 }
 
-function formattedFor(bcp47: string, instant: string) {
-    return new Intl.DateTimeFormat(bcp47, {
-        dateStyle: "medium",
-        timeStyle: "short",
-    }).format(new Date(instant));
-}
-
 beforeEach(() => {
     cleanup();
     listUsersMock.mockReset();
@@ -259,66 +252,6 @@ describe("last access column", () => {
         expect(cells).toHaveLength(THREE_ROWS);
         expect(cells[2]?.textContent).toBe("Nunca acessou");
         expect(cells[0]?.textContent).not.toBe(cells[1]?.textContent);
-    });
-});
-
-describe("last access column in each language", () => {
-    it("uses the English header, absence text and date format", () => {
-        givenLocale("en");
-        givenUsers([user({ lastAccessAt: STAMPED_AT }), user({ id: "p2" })]);
-
-        render(<UsersListClient />);
-
-        expect(screen.getByTestId("head").textContent).toContain("Last access");
-
-        const cells = screen.getAllByTestId("cell-lastAccessAt");
-        expect(cells[0]?.textContent).toBe(formattedFor("en", STAMPED_AT));
-        expect(cells[0]?.textContent).not.toBe(
-            formattedFor("pt-BR", STAMPED_AT)
-        );
-        expect(cells[1]?.textContent).toBe("Never accessed");
-    });
-
-    it("uses the Spanish header, absence text and date format", () => {
-        givenLocale("es");
-        givenUsers([user({ lastAccessAt: STAMPED_AT }), user({ id: "p2" })]);
-
-        render(<UsersListClient />);
-
-        expect(screen.getByTestId("head").textContent).toContain(
-            "Último acceso"
-        );
-
-        const cells = screen.getAllByTestId("cell-lastAccessAt");
-        expect(cells[0]?.textContent).toBe(formattedFor("es", STAMPED_AT));
-        expect(cells[0]?.textContent).not.toBe(formattedFor("en", STAMPED_AT));
-        expect(cells[1]?.textContent).toBe("Nunca accedió");
-    });
-
-    it("keeps the approximate warning translated in each language", () => {
-        const withProviderInstant = user({
-            metadata: {
-                creationTime: "Sat, 02 Aug 2026 12:00:00 GMT",
-                lastSignInTime: "Tue, 15 Sep 2026 09:12:00 GMT",
-                lastRefreshTime: PROVIDER_REFRESH,
-            },
-        });
-
-        givenLocale("en");
-        givenUsers([withProviderInstant]);
-        render(<UsersListClient />);
-        expect(
-            lastAccessCell().querySelector("span")?.getAttribute("title")
-        ).toBe("Approximate value, from the authentication provider");
-
-        cleanup();
-
-        givenLocale("es");
-        givenUsers([withProviderInstant]);
-        render(<UsersListClient />);
-        expect(
-            lastAccessCell().querySelector("span")?.getAttribute("title")
-        ).toBe("Valor aproximado, del proveedor de autenticación");
     });
 });
 

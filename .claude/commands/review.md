@@ -10,6 +10,19 @@ Foco (opcional): **$ARGUMENTS**
 
 Você é o orquestrador (loop principal) do papel **Revisor de Código**, com **gate de commit**.
 
+<!-- board-mode:start -->
+## Modo board (`--board <card-id>`)
+
+Se `$ARGUMENTS` contiver `--board <card-id>`, esta execução foi disparada pelo agent-board e **não há
+ninguém no teclado**. Siga [`.claude/rules/board-mode.md`](../rules/board-mode.md): onde ela conflitar com
+os passos abaixo, ela vence. Nesta etapa, em resumo:
+
+- Revise o diff da branch contra a base (`git diff origin/<baseBranch>...HEAD`) e o working tree.
+- O gate de commit e a pergunta de push são automáticos: aplique o plano de commits sem pedir aprovação,
+  só com commits novos (nunca reescreva histórico, nunca `--force`) e faça push ao final.
+- Achado bloqueante que exige reimplementar → `complete_stage(needs_rework)` com os achados no `summary`.
+<!-- board-mode:end -->
+
 ## Regras de escrita (`humanizer` + `caveman`)
 
 Regra em [`.claude/rules/writing-skills.md`](../rules/writing-skills.md); as skills estão no
@@ -75,8 +88,8 @@ profunda) — não cole esse conteúdo no prompt. Peça para:
   branch da feature);
 - aplicar correções dos problemas claros;
 - **apontar** lacunas de teste do escopo (sem rodar/criar testes — isso é do `/test`);
-- rodar **só os gates estáticos**: `pnpm --filter <app> typecheck`, `pnpm check` e, se tocou i18n, a
-  paridade (`pnpm --filter @repo/internationalization test`). **Sem `--force`** — o cache do turbo vale
+- rodar **só os gates estáticos**: `pnpm --filter <app> typecheck`, `pnpm check` e, se tocou i18n ou
+  adicionou `error.code`, a cobertura do `apiErrors` (`pnpm --filter api test apiErrorCodes`). **Sem `--force`** — o cache do turbo vale
   aqui, o gate com cache sai em ~300 ms contra ~50 s e o número é o mesmo;
 - **não executar o produto**: subir app, dirigir `agent-browser` e tirar screenshot é do `analista-qa`, no
   `/test` (§7 de [`docs/review-checklist.md`](../../docs/review-checklist.md));
@@ -112,7 +125,7 @@ resultado da validação; se o retorno dele **não mencionar**, valide você:
 
 ```bash
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-printf '%s' "$BRANCH" | grep -qE '^((app|web|api|email|sdk|design-system|internationalization|auth|payments|shared|analytics|security|seo|next-config|typescript-config|packages|claude|specs)/)?(feat|fix|style|chore|ci|refactor|perf|test|docs)/[a-z0-9]+(-[a-z0-9]+)*$' \
+printf '%s' "$BRANCH" | grep -qE '^((app|api|e2e|sdk|design-system|internationalization|auth|kanban-contract|shared|analytics|security|seo|next-config|typescript-config|packages|claude|specs)/)?(feat|fix|style|chore|ci|refactor|perf|test|docs)/[a-z0-9]+(-[a-z0-9]+)*$' \
   && echo "branch OK: $BRANCH" || echo "BRANCH INVALIDA: $BRANCH"
 ```
 
@@ -129,11 +142,11 @@ Regras de commit (ver [`.claude/rules/git-commits.md`](../rules/git-commits.md))
 
 - **Em inglês** (mensagens e nomes). Formato `type(project): short description`. **Não há linter de commit
   neste repo** — o formato é responsabilidade sua.
-- `project` = pasta em `apps/` (`app`, `web`, `api`, `email`) ou nome do pacote sem `@repo/`
+- `project` = pasta em `apps/` (`app`, `api`, `e2e`) ou nome do pacote sem `@repo/`
   (`sdk`, `design-system`, `internationalization`, …); vários pacotes → `packages`; tooling de IA →
   `claude`.
 - **Um commit por aplicação/pacote**, na ordem de dependência **`packages/sdk` → `apps/api` →
-  `apps/app`/`apps/web` → `packages/internationalization`**. Não misture apps num commit.
+  `apps/app` → `packages/internationalization`**. Não misture apps num commit.
 - **Pulverize por funcionalidade** dentro de cada app: commits pequenos e coesos, um por unidade de
   mudança (evite commit gigante com +10 arquivos misturando assuntos).
 - **`docs/features/<slug>/` é versionado** e entra como **último commit**, separado do código:

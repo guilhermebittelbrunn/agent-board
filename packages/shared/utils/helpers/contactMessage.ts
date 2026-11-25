@@ -1,2 +1,0 @@
-export const CONTACT_NAME_MAX_LENGTH = 120;
-export const CONTACT_MESSAGE_MAX_LENGTH = 5000;

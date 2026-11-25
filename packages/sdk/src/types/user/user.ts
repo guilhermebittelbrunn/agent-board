@@ -1,6 +1,4 @@
 /** biome-ignore-all lint/style/noEnum: enums for role */
-import type { SubscriptionState } from "../payments/payments";
-import type { EntitlementsState } from "../payments/plan-access";
 
 export enum UserType {
     ADMIN = "admin",
@@ -9,37 +7,7 @@ export enum UserType {
 
 export type UserPreferences = {
     theme: "light" | "dark" | "system";
-    locale: "pt-br" | "en" | "es";
-};
-
-/**
- * The order of the flow. A stored step that a fork later removes is read as the first one,
- * so a profile pointing at a step that no longer exists restarts the flow instead of
- * trapping the user.
- */
-export const ONBOARDING_STEPS = [
-    { id: "profile", skippable: false },
-    { id: "preferences", skippable: true },
-] as const;
-
-export type OnboardingStepId = (typeof ONBOARDING_STEPS)[number]["id"];
-
-/** `step` is the next step to show, not the last one finished. */
-export type OnboardingState = {
-    step: OnboardingStepId;
-    completedAt: Date | null;
-};
-
-export type OnboardingStateDTO = {
-    step: OnboardingStepId;
-    completedAt: string | null;
-};
-
-export type OnboardingStepOutcome = "completed" | "skipped";
-
-export type AdvanceOnboardingRequest = {
-    step: OnboardingStepId;
-    outcome: OnboardingStepOutcome;
+    locale: "pt-br";
 };
 
 export type UserDTO = {
@@ -58,14 +26,6 @@ export type UserDTO = {
      * each write once. Absent on profiles that predate the field.
      */
     lastAccessAt?: Date | null;
-    /** Absent on profiles that predate the flow, which count as done. */
-    onboarding?: OnboardingState | null;
-    /** Linked on the first checkout, so every later payment event can find this profile. */
-    stripeCustomerId?: string | null;
-    /** Written only by the payments webhook. Absent means the profile never subscribed. */
-    subscription?: SubscriptionState | null;
-    /** Written only by the payments webhook. Absent means no feature was ever granted. */
-    entitlements?: EntitlementsState | null;
 };
 
 export type AdminCreateUserRequest = {

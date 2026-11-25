@@ -1,8 +1,8 @@
 # Trabalhando com IA neste repo
 
 Este repositório vem integrado com o **Claude Code**. Este guia é o **hub**: o que está configurado e
-quando usar cada coisa. O objetivo é que cada fork já nasça com uma base sólida para desenvolvimento
-assistido por IA.
+quando usar cada coisa. O mesmo pipeline constrói o agent-board (dogfooding) e é o que o board dispara nos
+repositórios importados.
 
 > **Vai executar uma tarefa?** O fluxo de trabalho (`/spec → /analyze → /develop → /review → /test`,
 > fechando com `/spec --sync`) está em [`TASK-PIPELINE.md`](TASK-PIPELINE.md). Este documento cobre o
@@ -17,17 +17,17 @@ assistido por IA.
 | Regras por escopo | `apps/*/CLAUDE.md`, `packages/CLAUDE.md` | `CLAUDE.md` aninhados, **auto-carregados** ao trabalhar em cada pasta. |
 | Regras globais de conduta | `.claude/rules/*.md` | Sempre em contexto: commits/branches e comentários no código. |
 | Pipeline de tarefas | [`TASK-PIPELINE.md`](TASK-PIPELINE.md) | Comandos, subagents, `STATE.md`, gates, épicos. |
-| Backlog de funcionalidades | [`specs/`](../specs/README.md) | O que **ainda falta** no core, com evidência de mercado e status auditado contra o código. Entrada do ciclo — a spec entregue **sai daqui** e é arquivada em `docs/features/<slug>/spec.md`. |
+| Backlog de funcionalidades | [`specs/`](../specs/README.md) | O que **ainda falta** no board, com status auditado contra o código. Entrada do ciclo — a spec entregue **sai daqui** e é arquivada em `docs/features/<slug>/spec.md`. |
 | Roteiro de análise | [`feature-analysis-guide.md`](feature-analysis-guide.md) | Checklist de tech lead + formato dos critérios de aceite (§9.1). |
 | Checklist de revisão | [`review-checklist.md`](review-checklist.md) | **Fonte única** das invariantes que uma revisão cobra. |
-| Glossário | [`GLOSSARY.md`](GLOSSARY.md) | Vocabulário do boilerplate (guard, subject, DTO/mapper, slice, modo de produto…). |
-| Slash commands | `.claude/commands/*` | `/spec`, `/analyze`, `/develop`, `/review`, `/test`, `/observe`, `/mediate` + `/cycle` (o ciclo inteiro de uma vez) + `/deliver` (etapa de entrega de um fork). |
+| Glossário | [`GLOSSARY.md`](GLOSSARY.md) | Vocabulário do repo (guard, subject, DTO/mapper, slice, card, etapa, runner…). |
+| Slash commands | `.claude/commands/*` | `/spec`, `/analyze`, `/develop`, `/review`, `/test`, `/observe`, `/mediate` + `/cycle` (o ciclo inteiro de uma vez). Todos aceitam `--board <card-id>` ([`TASK-PIPELINE.md`](TASK-PIPELINE.md#modo-board)). |
 | Subagents | `.claude/agents/*` | Os motores do pipeline + o `code-reviewer` read-only. |
 | Skills do projeto | `.claude/skills/*` | Procedimentos invocáveis com `/`. |
 | Harness | `.claude/settings.json` + `.claude/hooks/` | Permissões, auto-format ao editar, bloqueio de commit em branch protegida. |
 
 Documentação de produto/infra: [`ARCHITECTURE.md`](ARCHITECTURE.md) · [`SETUP.md`](SETUP.md) (env) ·
-[`SECURITY.md`](SECURITY.md) · [`PAYMENTS.md`](PAYMENTS.md) · [`AUTH-SSO.md`](AUTH-SSO.md).
+[`SECURITY.md`](SECURITY.md) · [`board/`](board/README.md) (o board por dentro).
 
 ## Subagents (`.claude/agents/`)
 
@@ -51,10 +51,6 @@ Digite `/` no Claude Code para invocar. Cada skill encapsula o passo a passo já
 
 ### Criadas para este repo (descoberta)
 
-- **`/market-research`** — pesquisa de mercado **com fontes** para decidir se uma feature merece entrar no
-  core: hierarquia de fontes (lei/regulador > doc de provedor > página do produto > blog **nunca**),
-  **prevalência** medida sobre um painel declarado ("7 de 11"), ceticismo sobre hype e **custo herdado por
-  todo fork**. Grava nota citável em `specs/reference/research/<topico>.md` com `collected`/`revalidate_after`.
 - **`/spec-audit`** — reconcilia `specs/` com a realidade do **código** (não com o `status` gravado):
   confere o corte de MVP de cada spec, cruza com `docs/features/*/STATE.md`, aplica transições, detecta
   **deriva** e regressão, e regrava o `BACKLOG.md` (a fila) e o `reference/AUDIT.md` (a evidência). É o motor do `/spec --sync` — o passo que fecha o loop.
@@ -65,11 +61,8 @@ Digite `/` no Claude Code para invocar. Cada skill encapsula o passo a passo já
   recurso de referência `entity`. Use para "criar o recurso X de ponta a ponta".
 - **`/new-api-route`** — cria uma **rota HTTP** em `apps/api` (validação Zod, guard, repositório+mapper
   Firestore, `error.code` traduzível). Use para endpoints isolados.
-- **`/i18n-sync`** — adiciona/valida **chaves de tradução** nos 3 idiomas (pt-br/en/es) + `apiErrors`, com
-  teste de paridade determinístico (`pnpm --filter @repo/internationalization test`). Use sempre que criar
+- **`/i18n-sync`** — adiciona/valida **chaves de tradução** (pt-br) + `apiErrors`. Use sempre que criar
   texto de UI ou um código de erro novo.
-- **`/payments-flow`** — implementa/estende o **fluxo de assinatura Stripe** (planos, checkout, portal de
-  cobrança, webhook). Ver [`PAYMENTS.md`](PAYMENTS.md).
 - **`/write-tests`** — escreve **testes Vitest** (schema, mapper, rota da API, hook, componente) no setup do
   repo, com mocks de SDK/Firebase.
 
@@ -87,31 +80,19 @@ auto-acioná-las (a pasta `.agents/skills/` original não é varrida pelo Claude
 - **`vercel-react-best-practices`** — 70 regras de performance React/Next da Vercel (waterfalls, bundle,
   RSC, re-render). Auto-aciona ao escrever, revisar ou refatorar componentes/data fetching.
 - **`frontend-design`** — direção de design visual (paleta, tipografia, layout) para UI distintiva,
-  não-templated. Mais útil na `apps/web` e em telas novas.
+  não-templated. Útil em telas novas do board.
 - **`web-design-guidelines`** — revisão de código de UI contra Web Interface Guidelines (acessibilidade,
   UX). Use em "revise minha UI / cheque acessibilidade".
-- **`copywriting`** — escrita/melhoria de copy de marketing (hero, headline, CTA, pricing) — `apps/web`.
 - **`brainstorming`** — transforma uma ideia em design/spec via diálogo, **antes** de codar. Tem um
   `HARD-GATE`: não implementa nada até apresentar o design e você aprovar. Use ao iniciar features/
   componentes novos.
 - **`ui-ux-pro-max`** — base de design UI/UX consultável (estilos, paletas, pares de fonte, guidelines de
   UX, tipos de gráfico) com recomendações por stack. Complementa `frontend-design` (direção) com referência
   estruturada.
-- **`seo-audit`** — auditoria de SEO técnico/on-page (meta tags, Core Web Vitals, indexação, queda de
-  tráfego). Voltada à `apps/web`.
-- **`ai-seo`** — otimização para **AI search** (AEO/GEO/LLMO): ser citado por AI Overviews, ChatGPT,
-  Perplexity, Claude, Gemini. Complementa `seo-audit` e `copywriting`.
 - **`caveman`** — modo de resposta comprimido, para a **conversa**. Todo agent e todo comando do fluxo usa
   o estilo dela no retorno ao orquestrador e na mensagem ao usuário. Nunca em arquivo — a fronteira está em
   [`writing-skills.md`](../.claude/rules/writing-skills.md). Par dela é a `humanizer` (global), obrigatória
   antes de salvar qualquer prosa do fluxo.
-- **`brag-slim`** — transforma o projeto num vídeo de lançamento de uns 20 segundos, com roteiro, telas
-  reais, trilha composta pelo próprio modelo e `ffmpeg`. Copiada de
-  [latent-spaces/brag](https://github.com/latent-spaces/brag) (MIT, commit `0637943`, 2026-11-15) com o
-  `LICENSE` ao lado. É a variante que o `/brag` original usa nos modelos Opus 5.5, Sonnet 5.5 e Fable 5.2; o
-  `/brag` completo (Hyperframes e 16 MB de música) fica fora do repositório e pode ser instalado por pessoa
-  com `/plugin marketplace add latent-spaces/brag`. Usada na parte 4 da etapa de entrega (`/deliver`), a
-  partir das telas de `pnpm --filter e2e showcase`.
 
 > Para baixar mais skills da comunidade: rode `npx skills add <repo> --skill <nome>` e **mova a pasta
 > resultante de `.agents/skills/<nome>` para `.claude/skills/<nome>`** (é lá que o Claude Code descobre
@@ -119,14 +100,14 @@ auto-acioná-las (a pasta `.agents/skills/` original não é varrida pelo Claude
 
 ## Quem executa o produto (uma etapa, não quatro)
 
-**Política** (regra de ouro 11): fluxo que toca front-end (`apps/app`, `apps/web`,
+**Política** (regra de ouro 11): fluxo que toca front-end (`apps/app`,
 `packages/design-system`) não está pronto sem ser percorrido com `agent-browser` — e isso acontece **uma
 vez**, no `/test`, pelo `analista-qa`.
 
 | etapa | executa | evidência que persiste |
 |-------|---------|------------------------|
 | `/develop` | smoke local, só para se desbloquear | nenhuma |
-| `/review` | `pnpm check` · `typecheck` · paridade de i18n | nenhuma |
+| `/review` | `pnpm check` · `typecheck` · cobertura do `apiErrors` | nenhuma |
 | `/test` | suíte Vitest **e** passada de browser com `agent-browser` | o **texto** do `test/report.md` |
 | CI | lint · typecheck · test · E2E (Playwright) · cobertura | log e artefatos do job |
 
@@ -158,7 +139,7 @@ Operacional da passada de browser, no `/test`:
    `pnpm --filter web dev` (3001) — e `pnpm --filter api dev` (3002) quando o fluxo carrega dados.
 2. Carregue o workflow da skill: `agent-browser skills get core` (e `... get dogfood` para QA
    exploratório/bug hunt).
-3. **Uma passada, bem feita**: os fluxos do diff, os 3 idiomas, light/dark/mobile e os cenários dos
+3. **Uma passada, bem feita**: os fluxos do diff, light/dark/mobile e os cenários dos
    critérios de aceite na mesma execução. Diff sem superfície de runtime (só API, só config, só teste)
    **não sobe nada**.
 4. ⚠️ **Rode os comandos do `agent-browser` estritamente em sequência.** Chamadas concorrentes travam o
@@ -175,7 +156,7 @@ Operacional da passada de browser, no `/test`:
 
 - **`/code-review`** — revisão de diff de propósito geral (bugs + simplificação). Usada dentro do
   `/review`.
-- **`/security-review`** — revisão de segurança das mudanças pendentes (importante para auth/pagamentos).
+- **`/security-review`** — revisão de segurança das mudanças pendentes (importante para auth, permissões e execução de agentes).
 - **`/verify`** e **`/run`** — sobem o app e confirmam que uma mudança funciona de verdade.
 
 ## Harness (`.claude/settings.json`)
@@ -196,7 +177,7 @@ Operacional da passada de browser, no `/test`:
   JDK 21.
 - **Rede de segurança fora da máquina**: o hook de branch e a disciplina de rodar os comandos existem só no
   clone com o ferramental de IA. Quem garante lint/tipos/testes em toda PR é o
-  [`ci.yml`](../.github/workflows/ci.yml) — inclusive num fork sem nada disso instalado.
+  [`ci.yml`](../.github/workflows/ci.yml) — inclusive num clone sem nada disso instalado.
 - `.claude/settings.local.json` é pessoal e **não** vai para o git.
 
 > ⚠️ Os dois hooks e todos os comandos `pnpm` dependem de `node_modules` **no workspace atual**. Em
@@ -230,12 +211,12 @@ Informal, para mudanças pequenas:
 2. As regras do escopo (`apps/*/CLAUDE.md`, `packages/CLAUDE.md`) carregam automaticamente; aponte o
    recurso de referência `entity`.
 3. Ao concluir: `pnpm turbo run lint typecheck test test:emulator` — é o mesmo comando que o CI roda em toda PR
-   ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)), cobre lint, tipos, testes e a paridade de
-   i18n de uma vez, e é cacheado. (⚠️ `turbo build` depende de `test`, e o `build` **não** está no CI.)
-4. **Se tocou front-end**: percorra o fluxo com `agent-browser` (light/dark/mobile, 3 idiomas). No
+   ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)), cobre lint, tipos e testes de uma vez, e é
+   cacheado. (⚠️ `turbo build` depende de `test`, e o `build` **não** está no CI.)
+4. **Se tocou front-end**: percorra o fluxo com `agent-browser` (light/dark/mobile). No
    pipeline formal isso é do `/test`; numa mudança informal, quem fizer a mudança faz a passada.
-5. Passe o agente `code-reviewer` (ou `/code-review`) no diff. Para mudanças sensíveis (auth, pagamentos,
-   dados), rode `/security-review`.
+5. Passe o agente `code-reviewer` (ou `/code-review`) no diff. Para mudanças sensíveis (auth, permissões,
+   dados, execução de agentes), rode `/security-review`.
 
 ## `/cycle` — o ciclo inteiro numa tacada
 
@@ -376,5 +357,4 @@ depois um job só, e só então paralelize.
 - Invariante nova que a revisão deve cobrar → entra em [`review-checklist.md`](review-checklist.md)
   (**um** lugar; os dois revisores leem de lá).
 - Padrão novo reutilizável → considere transformá-lo em skill (`.claude/skills/<nome>/SKILL.md`).
-- Ao herdar este boilerplate num fork: revise os nomes de exemplo (`entity`), os valores neutros do
-  dicionário e substitua os exemplos do [`GLOSSARY.md`](GLOSSARY.md) pelo vocabulário do seu produto.
+- Vocabulário novo do board entra no [`GLOSSARY.md`](GLOSSARY.md), seção Board.

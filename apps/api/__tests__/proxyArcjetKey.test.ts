@@ -23,47 +23,26 @@ const APP_ORIGIN = "http://localhost:3000";
 const REQUEST_ID_HEADER = "x-request-id";
 const RETRY_AFTER_SECONDS = 43;
 const TOO_MANY_REQUESTS = 429;
-const NO_CONTENT = 204;
 
-function signUpRequest(): NextRequest {
+function signInRequest(): NextRequest {
     const headers = new Headers({ origin: APP_ORIGIN });
 
     return {
         method: "POST",
         headers,
-        url: "http://localhost:3002/auth/sign-up",
-        nextUrl: { pathname: "/auth/sign-up" },
+        url: "http://localhost:3002/auth/sign-in",
+        nextUrl: { pathname: "/auth/sign-in" },
     } as unknown as NextRequest;
 }
 
-/** The landing's server asks for the catalog without an `Origin`, on behalf of every visitor. */
-function catalogRequest(): NextRequest {
+/** A server-side read without an `Origin`, the shape of a health probe. */
+function healthRequest(): NextRequest {
     return {
         method: "GET",
         headers: new Headers(),
-        url: "http://localhost:3002/payments/catalog",
-        nextUrl: { pathname: "/payments/catalog" },
+        url: "http://localhost:3002/health",
+        nextUrl: { pathname: "/health" },
     } as unknown as NextRequest;
-}
-
-function appRequest(method: string, pathname: string): NextRequest {
-    return {
-        method,
-        headers: new Headers({ origin: APP_ORIGIN }),
-        url: `http://localhost:3002${pathname}`,
-        nextUrl: { pathname },
-    } as unknown as NextRequest;
-}
-
-function spendBudget(): void {
-    protectMock.mockResolvedValue({
-        isDenied: () => true,
-        reason: {
-            isRateLimit: () => true,
-            isBot: () => false,
-            reset: RETRY_AFTER_SECONDS,
-        },
-    });
 }
 
 async function loadProxyWithKey(arcjetKey: string) {
@@ -92,7 +71,7 @@ describe("proxy with the real rate limiter", () => {
     it("lets a rate-limited route through when ARCJET_KEY is not an Arcjet key", async () => {
         const proxy = await loadProxyWithKey("invalida");
 
-        const response = await proxy(signUpRequest());
+        const response = await proxy(signInRequest());
 
         expect(response.status).not.toBe(TOO_MANY_REQUESTS);
         expect(response.headers.get("x-middleware-next")).toBe("1");
@@ -111,7 +90,7 @@ describe("proxy with the real rate limiter", () => {
         });
         const proxy = await loadProxyWithKey("ajkey_test");
 
-        const response = await proxy(signUpRequest());
+        const response = await proxy(signInRequest());
 
         expect(response.status).toBe(TOO_MANY_REQUESTS);
         expect(await response.json()).toEqual({
@@ -125,7 +104,7 @@ describe("proxy with the real rate limiter", () => {
         );
     });
 
-    it("lets the public catalog through without asking the limiter, even with the budget spent", async () => {
+    it("lets an unlisted read through without asking the limiter, even with the budget spent", async () => {
         protectMock.mockResolvedValue({
             isDenied: () => true,
             reason: {
@@ -136,65 +115,10 @@ describe("proxy with the real rate limiter", () => {
         });
         const proxy = await loadProxyWithKey("ajkey_test");
 
-        const response = await proxy(catalogRequest());
+        const response = await proxy(healthRequest());
 
         expect(response.status).not.toBe(TOO_MANY_REQUESTS);
         expect(response.headers.get("x-middleware-next")).toBe("1");
         expect(protectMock).not.toHaveBeenCalled();
-    });
-});
-
-describe("proxy rate limit on organization invitations", () => {
-    it("lets the owner's invitation table through without asking the limiter, even with the budget spent", async () => {
-        spendBudget();
-        const proxy = await loadProxyWithKey("ajkey_test");
-
-        const response = await proxy(
-            appRequest("GET", "/organization/invitations")
-        );
-
-        expect(response.status).not.toBe(TOO_MANY_REQUESTS);
-        expect(response.headers.get("x-middleware-next")).toBe("1");
-        expect(protectMock).not.toHaveBeenCalled();
-    });
-
-    it("still answers the invitation preflight with 204", async () => {
-        spendBudget();
-        const proxy = await loadProxyWithKey("ajkey_test");
-
-        const response = await proxy(
-            appRequest("OPTIONS", "/organization/invitations")
-        );
-
-        expect(response.status).toBe(NO_CONTENT);
-        expect(protectMock).not.toHaveBeenCalled();
-    });
-
-    it("refuses an invitation with AUTH_RATE_LIMITED once the budget is spent", async () => {
-        spendBudget();
-        const proxy = await loadProxyWithKey("ajkey_test");
-
-        const response = await proxy(
-            appRequest("POST", "/organization/invitations")
-        );
-
-        expect(response.status).toBe(TOO_MANY_REQUESTS);
-        expect(await response.json()).toEqual({
-            error: { code: "AUTH_RATE_LIMITED" },
-        });
-        expect(response.headers.get("Retry-After")).toBe(
-            String(RETRY_AFTER_SECONDS)
-        );
-        expect(protectMock).toHaveBeenCalledTimes(1);
-    });
-
-    it("keeps counting any method on listed paths without a method exception", async () => {
-        spendBudget();
-        const proxy = await loadProxyWithKey("ajkey_test");
-
-        const response = await proxy(appRequest("GET", "/account/export"));
-
-        expect(response.status).toBe(TOO_MANY_REQUESTS);
-        expect(protectMock).toHaveBeenCalledTimes(1);
     });
 });

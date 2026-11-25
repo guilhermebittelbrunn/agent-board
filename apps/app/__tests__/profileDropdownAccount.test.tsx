@@ -101,7 +101,7 @@ describe("ProfileDropdown — origem do nome e do avatar", () => {
         ).toBeTruthy();
     });
 
-    it.each(["pt-br", "en", "es"] as const)(
+    it.each(["pt-br"] as const)(
         "nomeia o gatilho no idioma do cookie x-locale (%s)",
         (locale) => {
             setCookie("x-locale", locale, ONE_HOUR_IN_SECONDS);

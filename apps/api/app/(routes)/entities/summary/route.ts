@@ -1,12 +1,12 @@
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { isMissingIndexError } from "@/(shared)/lib/pagination";
 import { entityRepository } from "@/(shared)/repositories/entity.repository";
-import { requireOrganizationApi } from "@/app/(guards)/organization";
+import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
 
-export const GET = requireOrganizationApi(async (_req, ctx) => {
+export const GET = requireCommonPanelApi(async (_req, ctx) => {
     try {
-        const summary = await entityRepository.summaryByOrganization(
-            ctx.organization.organizationId
+        const summary = await entityRepository.summaryByUser(
+            ctx.subjectProfile.id
         );
 
         return Response.json({ data: summary });

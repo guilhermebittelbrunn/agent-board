@@ -2,18 +2,8 @@ import type { Client } from "../../client/index";
 import type { Response } from "../../client/type";
 import type {
     AccountConfirmation,
-    AccountDataExportDTO,
     AccountDTO,
-    AccountEmailChangeRequested,
-    AccountOtherSessionsRevoked,
-    AccountSessionDTO,
-    AdvanceOnboardingRequest,
-    ChangeEmailRequest,
     ChangePasswordRequest,
-    DeleteAccountRequest,
-    OnboardingStateDTO,
-    SetPasswordRequest,
-    SignInMethodLinkedRequest,
     UpdateAccountRequest,
 } from "../../types";
 
@@ -51,140 +41,6 @@ export default class AccountActions {
             url: "/account/password",
             method: "POST",
             data: body,
-        });
-
-        return data.data;
-    }
-
-    async setPassword(body: SetPasswordRequest): Promise<AccountConfirmation> {
-        const { data } = await this.client.request<
-            Response<AccountConfirmation>
-        >({
-            url: "/account/password/set",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    /** The link itself happens in the browser; this only records it once Firebase lists it. */
-    async confirmSignInMethodLinked(
-        body: SignInMethodLinkedRequest
-    ): Promise<AccountConfirmation> {
-        const { data } = await this.client.request<
-            Response<AccountConfirmation>
-        >({
-            url: "/account/sign-in-methods/linked",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    async unlinkSignInMethod(providerId: string): Promise<void> {
-        await this.client.request({
-            url: `/account/sign-in-methods/${encodeURIComponent(providerId)}`,
-            method: "DELETE",
-        });
-    }
-
-    async requestEmailChange(
-        body: ChangeEmailRequest
-    ): Promise<AccountEmailChangeRequested> {
-        const { data } = await this.client.request<
-            Response<AccountEmailChangeRequested>
-        >({
-            url: "/account/email",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    async exportData(): Promise<AccountDataExportDTO> {
-        const { data } = await this.client.request<
-            Response<AccountDataExportDTO>
-        >({
-            url: "/account/export",
-            method: "GET",
-        });
-
-        return data.data;
-    }
-
-    /**
-     * Irreversible: the profile, the records and the Firebase Auth account are gone when
-     * this resolves. Named apart from `delete` because every other action's `delete`
-     * takes an id and issues an HTTP DELETE.
-     */
-    async deleteAccount(
-        body: DeleteAccountRequest
-    ): Promise<AccountConfirmation> {
-        const { data } = await this.client.request<
-            Response<AccountConfirmation>
-        >({
-            url: "/account/deletion",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    /** `null` means there is nothing left to do: the profile predates the flow. */
-    async advanceOnboarding(
-        body: AdvanceOnboardingRequest
-    ): Promise<OnboardingStateDTO | null> {
-        const { data } = await this.client.request<
-            Response<OnboardingStateDTO | null>
-        >({
-            url: "/account/onboarding",
-            method: "POST",
-            data: body,
-        });
-
-        return data.data;
-    }
-
-    async revokeSessions(): Promise<AccountConfirmation> {
-        const { data } = await this.client.request<
-            Response<AccountConfirmation>
-        >({
-            url: "/account/sessions/revoke",
-            method: "POST",
-        });
-
-        return data.data;
-    }
-
-    async listSessions(): Promise<AccountSessionDTO[]> {
-        const { data } = await this.client.request<
-            Response<AccountSessionDTO[]>
-        >({
-            url: "/account/sessions",
-            method: "GET",
-        });
-
-        return data.data;
-    }
-
-    async revokeSession(id: string): Promise<void> {
-        await this.client.request({
-            url: `/account/sessions/${encodeURIComponent(id)}`,
-            method: "DELETE",
-        });
-    }
-
-    /** Keeps the session making the call. */
-    async revokeOtherSessions(): Promise<AccountOtherSessionsRevoked> {
-        const { data } = await this.client.request<
-            Response<AccountOtherSessionsRevoked>
-        >({
-            url: "/account/sessions/revoke-others",
-            method: "POST",
         });
 
         return data.data;

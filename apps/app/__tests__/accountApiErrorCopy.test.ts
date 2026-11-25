@@ -4,44 +4,22 @@ import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { AxiosError, AxiosHeaders } from "axios";
 import { describe, expect, it } from "vitest";
 
-const LOCALES = ["pt-br", "en", "es"] as const;
+const LOCALES = ["pt-br"] as const;
 
 const GENERIC_COPY: Record<(typeof LOCALES)[number], string> = {
     "pt-br": "Um erro inesperado aconteceu",
-    en: "An unexpected error occurred",
-    es: "Ocurrió un error inesperado",
 };
 
-/** Every code the account area can answer with, the billing tab under `/payments` included. */
+/** Every code the account area can answer with. */
 const ACCOUNT_ERROR_CODES = [
     "ACCOUNT_NOTHING_TO_UPDATE",
     "ACCOUNT_AVATAR_INVALID",
     "ACCOUNT_CURRENT_PASSWORD_INVALID",
     "ACCOUNT_PASSWORD_UNSUPPORTED",
-    "ACCOUNT_PASSWORD_ALREADY_SET",
-    "ACCOUNT_REAUTH_INVALID",
-    "ACCOUNT_SIGN_IN_METHOD_NOT_FOUND",
-    "ACCOUNT_SIGN_IN_METHOD_LAST",
     "ACCOUNT_UPDATE_FAILED",
-    "ACCOUNT_SESSIONS_REVOKE_FAILED",
     "AUTH_SESSIONS_NOT_REVOKED",
-    "ACCOUNT_SESSION_NOT_FOUND",
-    "ACCOUNT_SESSION_IS_CURRENT",
-    "ACCOUNT_SESSION_UNIDENTIFIED",
     "AUTH_SESSION_REVOKED",
-    "ACCOUNT_EXPORT_IMPERSONATION_FORBIDDEN",
-    "ACCOUNT_EXPORT_FAILED",
-    "ACCOUNT_DELETION_CONFIRMATION_INVALID",
-    "ACCOUNT_DELETION_REAUTH_UNSUPPORTED",
-    "ACCOUNT_DELETION_FAILED",
-    "ACCOUNT_EMAIL_UNCHANGED",
-    "ACCOUNT_EMAIL_CHANGE_REAUTH_UNSUPPORTED",
-    "AUTH_EMAIL_CHANGE_FAILED",
     "USERS_AUTH_EMAIL_ALREADY_IN_USE",
-    "EMAIL_NOT_CONFIGURED",
-    "EMAIL_SEND_FAILED",
-    "AUTH_OOB_CODE_INVALID",
-    "AUTH_OOB_CODE_EXPIRED",
     "USERS_AUTH_RATE_LIMITED",
     "USERS_AUTH_WEAK_PASSWORD",
     "AUTH_PASSWORD_TOO_SHORT",
@@ -52,12 +30,6 @@ const ACCOUNT_ERROR_CODES = [
     "AUTH_REQUEST_IMPERSONATION_READ_ONLY",
     "STORAGE_NOT_CONFIGURED",
     "UPLOAD_FAILED",
-    "ACCOUNT_DELETION_BILLING_FAILED",
-    "PAYMENTS_NOT_CONFIGURED",
-    "PAYMENTS_PLAN_NOT_FOUND",
-    "PAYMENTS_SUBSCRIPTION_ALREADY_ACTIVE",
-    "PAYMENTS_CUSTOMER_NOT_FOUND",
-    "PAYMENTS_PROVIDER_UNAVAILABLE",
 ] as const;
 
 function apiError(status: number, code: string): AxiosError {

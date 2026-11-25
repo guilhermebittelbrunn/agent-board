@@ -45,7 +45,7 @@ describe("logEvent line format", () => {
     });
 
     it("never spreads across more than one argument", () => {
-        logEvent("payments", "webhook-failed", { requestId: "abc" });
+        logEvent("storage", "upload-failed", { requestId: "abc" });
 
         for (const call of consoleSpies.warn.mock.calls) {
             expect(call).toHaveLength(1);
@@ -67,7 +67,7 @@ describe("logEvent line format", () => {
             method: "POST",
         });
         logEvent("auth", "session-revoke-failed", { requestId: null });
-        logEvent("email", "skipped");
+        logEvent("request", "skipped");
 
         for (const line of emittedLines()) {
             expect(line).toMatch(LOG_LINE);
@@ -129,8 +129,8 @@ describe("logEvent privacy", () => {
         logEvent("auth", "reset-request-delivery-failed", {
             requestId: "3f2a1b8c",
         });
-        logEvent("auth-action-link", "refused", {
-            kind: "reset-password",
+        logEvent("auth", "refused", {
+            kind: "sign-in",
             code: "auth/internal-error",
         });
         logEvent("auth", "session-revoke-failed", { requestId: "3f2a1b8c" });

@@ -33,7 +33,7 @@ function transportError(): AxiosError {
     return new AxiosError("Network Error", "ERR_NETWORK", { headers });
 }
 
-function copyFor(error: unknown, locale: "pt-br" | "en" | "es"): string {
+function copyFor(error: unknown, locale: "pt-br"): string {
     return handleClientError(new FormattedError(error, locale));
 }
 
@@ -46,12 +46,6 @@ describe("API error code to user copy", () => {
     it("resolves the copy of a known code in every locale", () => {
         expect(copyFor(forbidden(), "pt-br")).toBe(
             "Somente leitura: você está atuando como outro usuário."
-        );
-        expect(copyFor(forbidden(), "en")).toBe(
-            "Read-only: you are acting as another user."
-        );
-        expect(copyFor(forbidden(), "es")).toBe(
-            "Solo lectura: estás actuando como otro usuario."
         );
     });
 
@@ -70,9 +64,6 @@ describe("API error code to user copy", () => {
         expect(copyFor(firebaseError, "pt-br")).toBe(
             "Credenciais inválidas. Verifique e-mail e senha."
         );
-        expect(copyFor(firebaseError, "en")).toBe(
-            "Invalid credentials. Verify email and password."
-        );
     });
 
     it("tells a disabled account it was disabled, with a full sentence in every locale", () => {
@@ -83,12 +74,6 @@ describe("API error code to user copy", () => {
 
         expect(copyFor(firebaseError, "pt-br")).toBe(
             "Esta conta foi desativada."
-        );
-        expect(copyFor(firebaseError, "en")).toBe(
-            "This account has been disabled."
-        );
-        expect(copyFor(firebaseError, "es")).toBe(
-            "Esta cuenta ha sido desactivada."
         );
     });
 
@@ -119,32 +104,6 @@ describe("API error code to user copy", () => {
     });
 });
 
-describe("refused by the plan check", () => {
-    const planRefusal = (code: string) =>
-        apiError(HTTP_STATUS.FORBIDDEN, { error: { code } });
-
-    it("tells a missing feature apart from a missing subscription in every locale", () => {
-        expect(copyFor(planRefusal("PLAN_FEATURE_REQUIRED"), "pt-br")).toBe(
-            "O seu plano não inclui este recurso."
-        );
-        expect(copyFor(planRefusal("PLAN_FEATURE_REQUIRED"), "en")).toBe(
-            "Your plan does not include this feature."
-        );
-        expect(copyFor(planRefusal("PLAN_FEATURE_REQUIRED"), "es")).toBe(
-            "Tu plan no incluye esta función."
-        );
-        expect(
-            copyFor(planRefusal("PLAN_SUBSCRIPTION_REQUIRED"), "pt-br")
-        ).toBe("Esta ação exige uma assinatura ativa.");
-        expect(copyFor(planRefusal("PLAN_SUBSCRIPTION_REQUIRED"), "en")).toBe(
-            "This action requires an active subscription."
-        );
-        expect(copyFor(planRefusal("PLAN_SUBSCRIPTION_REQUIRED"), "es")).toBe(
-            "Esta acción requiere una suscripción activa."
-        );
-    });
-});
-
 const RETRY_AFTER_SECONDS = 43;
 
 /**
@@ -163,12 +122,6 @@ describe("rate limited by the API edge", () => {
         expect(copyFor(rateLimited(), "pt-br")).toBe(
             "Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo."
         );
-        expect(copyFor(rateLimited(), "en")).toBe(
-            "Too many attempts in a short time. Wait a moment and try again."
-        );
-        expect(copyFor(rateLimited(), "es")).toBe(
-            "Demasiados intentos en poco tiempo. Espere un momento e inténtelo de nuevo."
-        );
     });
 
     it("stays distinct from the limit Firebase enforces", () => {
@@ -176,8 +129,8 @@ describe("rate limited by the API edge", () => {
             error: { code: "USERS_AUTH_RATE_LIMITED" },
         });
 
-        expect(copyFor(rateLimited(), "en")).not.toBe(
-            copyFor(firebaseLimited, "en")
+        expect(copyFor(rateLimited(), "pt-br")).not.toBe(
+            copyFor(firebaseLimited, "pt-br")
         );
     });
 
@@ -223,8 +176,8 @@ describe("SDK error propagation", () => {
 
         expect(caught).toBe(thrown);
         expect(caught).not.toBeInstanceOf(FormattedError);
-        expect(copyFor(caught, "en")).toBe(
-            "Read-only: you are acting as another user."
+        expect(copyFor(caught, "pt-br")).toBe(
+            "Somente leitura: você está atuando como outro usuário."
         );
     });
 });

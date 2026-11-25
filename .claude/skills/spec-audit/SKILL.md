@@ -57,7 +57,6 @@ Para **cada item do corte de MVP**, procure a evidência de implementação nas 
 | Contrato | `packages/sdk/src/actions/**`, `packages/sdk/src/types/**` |
 | API | `apps/api/app/(routes)/**`, `(shared)/repositories`, `(shared)/validation`, `(guards)` |
 | App | `apps/app/app/[locale]/**`, `shared/hooks`, `shared/components` |
-| Landing | `apps/web/app/[locale]/**` |
 | Packages | `packages/<nome>/**` (exports reais no `package.json` **e** arquivo no disco) |
 | i18n | `packages/internationalization/translations/**` |
 | Infra | `firestore.rules`, `firestore.indexes.json`, `turbo.json`, `.github/workflows`, `env.ts`/`keys.ts` |
@@ -130,7 +129,7 @@ Uma spec `done` **sai de `specs/`** e passa a viver junto da feature que a imple
 
    O alvo novo é `](../../docs/features/<slug>/spec.md)` a partir de `specs/features/` e de `specs/reference/`, e
    `](../docs/features/<slug>/spec.md)` a partir do `specs/BACKLOG.md`. Reescreva também os links de **saída** da
-   spec movida: `../reference/research/*.md` vira `../../../specs/reference/research/*.md`, spec viva vira
+   spec movida: `../reference/*.md` vira `../../../specs/reference/*.md`, spec viva vira
    `../../../specs/features/<id>.md`, e `../../docs/...` vira `../../...`. Três specs ficaram com link
    morto por uma rodada inteira porque este passo não existia.
 

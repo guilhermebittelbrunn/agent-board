@@ -1,4 +1,3 @@
-import type { UploadScope } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { stripImageMetadata } from "@/(shared)/lib/image-metadata";
 import { readCappedBody } from "@/(shared)/lib/read-capped-body";
@@ -187,23 +186,4 @@ export async function parseUploadedImage(
             size: stripped.length,
         },
     };
-}
-
-const UPLOAD_SCOPES: readonly UploadScope[] = ["personal", "organization"];
-
-const isUploadScope = (value: string): value is UploadScope =>
-    (UPLOAD_SCOPES as readonly string[]).includes(value);
-
-/** Absent means personal, which is where the avatar has always been stored. */
-export function parseUploadScope(
-    req: Request
-): { ok: true; value: UploadScope } | UploadRefusal {
-    const raw = new URL(req.url).searchParams.get("scope");
-    if (raw === null) {
-        return { ok: true, value: "personal" };
-    }
-
-    return isUploadScope(raw)
-        ? { ok: true, value: raw }
-        : refuse("VALIDATION_FAILED", HTTP_STATUS.BAD_REQUEST);
 }

@@ -17,7 +17,6 @@ import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/env";
 import { sessionAuthority } from "@/lib/server/sessionAuthority";
-import { APP_PATH_HEADER } from "@/shared/lib/onboarding";
 
 const IDENTITY_TOOLKIT_ORIGIN = "https://identitytoolkit.googleapis.com";
 /** Refreshes the ID token roughly hourly; blocking it kills the session long after sign-in. */
@@ -87,25 +86,7 @@ const securityOptions = buildBrowserAppOptions({
  * new authenticated route is protected the moment it exists — no allowlist to remember.
  * An authenticated visitor on one of these is bounced to their home.
  */
-export const PUBLIC_PATHS = [
-    "/sign-in",
-    "/sign-up",
-    "/forgot-password",
-    "/reset-password",
-    "/verify-email",
-    "/invite",
-] as const;
-
-/**
- * These carry a single-use code in the query string, so the bounce below must skip them:
- * sending an authenticated visitor home would discard the code, and with it the only way
- * to finish the reset, the verification or the invitation.
- */
-const OOB_ACTION_PATHS = [
-    "/reset-password",
-    "/verify-email",
-    "/invite",
-] as const;
+export const PUBLIC_PATHS = ["/sign-in"] as const;
 
 function matchesPathPrefix(path: string, prefixes: readonly string[]): boolean {
     return prefixes.some(
@@ -115,10 +96,6 @@ function matchesPathPrefix(path: string, prefixes: readonly string[]): boolean {
 
 function isPublicPath(path: string): boolean {
     return matchesPathPrefix(path, PUBLIC_PATHS);
-}
-
-function isOobActionPath(path: string): boolean {
-    return matchesPathPrefix(path, OOB_ACTION_PATHS);
 }
 
 export const config = {
@@ -240,7 +217,7 @@ async function route(request: NextRequest) {
     if (
         !(
             currentLocale &&
-            locales.includes(currentLocale as "pt-br" | "en" | "es")
+            (locales as readonly string[]).includes(currentLocale)
         )
     ) {
         const newUrl = new URL(
@@ -268,7 +245,7 @@ async function route(request: NextRequest) {
         return NextResponse.redirect(url);
     }
 
-    if (isPublic && token && sessionUser && !isOobActionPath(appPath)) {
+    if (isPublic && token && sessionUser) {
         if (await isEndedElsewhere(token, request)) {
             await clearSessionCookie();
         } else {
@@ -293,11 +270,9 @@ async function route(request: NextRequest) {
         return arcjetResponse;
     }
 
-    // Layouts cannot read the URL, so the path, its query and its locale travel as request
-    // headers. Set, never appended: a value the browser sent must not reach the server
-    // components.
+    // Layouts cannot read the URL, so the locale travels as a request header. Set, never
+    // appended: a value the browser sent must not reach the server components.
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set(APP_PATH_HEADER, `${pathname}${search}`);
     requestHeaders.set(LOCALE_REQUEST_HEADER, currentLocale);
     return NextResponse.next({ request: { headers: requestHeaders } });
 }

@@ -3,7 +3,6 @@
 import { ModeToggle } from "@repo/design-system/components/ui/mode-toggle";
 import { SidebarTrigger } from "@repo/design-system/components/ui/sidebar";
 import type { ReactNode } from "react";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import PanelNavbarControls from "./PanelNavbarControls";
 import ProfileDropdown from "./ProfileDropdown";
 
@@ -27,7 +26,6 @@ export default function Navbar({ notifications }: NavbarProps) {
             </div>
             <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
                 {notifications}
-                <LanguageSwitcher icon triggerProps={iconButtonProps} />
                 <ModeToggle triggerProps={iconButtonProps} />
                 <ProfileDropdown />
             </div>

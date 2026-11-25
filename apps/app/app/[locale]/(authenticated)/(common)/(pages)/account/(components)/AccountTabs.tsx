@@ -16,9 +16,7 @@ import type { AccountDTO } from "@repo/sdk/src/types";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useId } from "react";
 import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
-import { AccountBillingPanel } from "./AccountBillingPanel";
 import { AccountPreferencesForm } from "./AccountPreferencesForm";
-import { AccountPrivacyPanel } from "./AccountPrivacyPanel";
 import { AccountProfileForm } from "./AccountProfileForm";
 import { AccountSecurityForm } from "./AccountSecurityForm";
 import {
@@ -81,8 +79,6 @@ export function AccountTabs({ account }: AccountTabsProps) {
         profile: <AccountProfileForm account={account} />,
         security: <AccountSecurityForm account={account} />,
         preferences: <AccountPreferencesForm account={account} />,
-        billing: <AccountBillingPanel account={account} />,
-        privacy: <AccountPrivacyPanel account={account} />,
     };
 
     return (

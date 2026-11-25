@@ -13,7 +13,7 @@ import {
     type StackUrls,
 } from "./urls";
 
-export type StackApp = "api" | "app" | "web";
+export type StackApp = "api" | "app";
 
 export const DEMO_PROJECT_ID = "demo-next-boilerplate";
 
@@ -29,12 +29,6 @@ const EMULATOR_BLOCK = {
     FIREBASE_AUTH_EMULATOR_HOST: AUTH_EMULATOR_HOST,
     NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST: AUTH_EMULATOR_HOST,
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: DEMO_PROJECT_ID,
-};
-
-// Members and invitations are opt-in per fork; the suite turns them on in the two apps
-// that read the switch so the team flow can be driven end to end.
-const MEMBERS_BLOCK = {
-    NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED: "true",
 };
 
 const OFFLINE_BLOCK = {
@@ -57,11 +51,7 @@ const FORCED_EMPTY = [
     "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
     "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID",
     "ARCJET_KEY",
-    "ONBOARDING_ENABLED",
 ];
-
-const featureSwitches = (app: StackApp): Record<string, string> =>
-    app === "web" ? {} : MEMBERS_BLOCK;
 
 const crossAppUrls = (
     app: StackApp,
@@ -69,22 +59,15 @@ const crossAppUrls = (
 ): Record<string, string> => {
     if (app === "api") {
         return {
-            CORS_ORIGIN: `${urls.app},${urls.web}`,
+            CORS_ORIGIN: urls.app,
             NEXT_PUBLIC_APP_URL: urls.app,
-            NEXT_PUBLIC_WEB_URL: urls.web,
         };
     }
-    if (app === "app") {
-        return {
-            NEXT_PUBLIC_API_URL: urls.api,
-            NEXT_PUBLIC_APP_URL: urls.app,
-            NEXT_PUBLIC_WEB_URL: urls.web,
-            VERCEL_PROJECT_PRODUCTION_URL: urls.app,
-        };
-    }
-    // NEXT_PUBLIC_APP_URL stays empty here: filled, the landing CTA would leave for the
-    // app instead of opening the landing's own sign-up page.
-    return { NEXT_PUBLIC_API_URL: urls.api };
+    return {
+        NEXT_PUBLIC_API_URL: urls.api,
+        NEXT_PUBLIC_APP_URL: urls.app,
+        VERCEL_PROJECT_PRODUCTION_URL: urls.app,
+    };
 };
 
 const readEnvFile = (filePath: string): Record<string, string> => {
@@ -136,13 +119,7 @@ export const buildStackEnv = (
     for (const key of FORCED_EMPTY) {
         env[key] = "";
     }
-    Object.assign(
-        env,
-        EMULATOR_BLOCK,
-        OFFLINE_BLOCK,
-        featureSwitches(app),
-        crossAppUrls(app, urls)
-    );
+    Object.assign(env, EMULATOR_BLOCK, OFFLINE_BLOCK, crossAppUrls(app, urls));
 
     assertEmulatorTarget(app, env);
     return env;

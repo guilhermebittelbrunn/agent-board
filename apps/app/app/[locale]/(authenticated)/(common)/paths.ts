@@ -33,11 +33,6 @@ export const COMMON_ROUTES = (
                 url: buildPath(`/entities/edit/${id}`),
             }),
         },
-        organization: {
-            label: dictionary?.apps.app.pages.common.routes.platform
-                .organization,
-            url: buildPath("/organization"),
-        },
         account: {
             root: {
                 label: dictionary?.apps.app.pages.common.account.title,
@@ -55,14 +50,6 @@ export const COMMON_ROUTES = (
                 label: dictionary?.apps.app.pages.common.account.tabs
                     .preferences,
                 url: buildPath("/account?tab=preferences"),
-            },
-            billing: {
-                label: dictionary?.apps.app.pages.common.account.tabs.billing,
-                url: buildPath("/account?tab=billing"),
-            },
-            privacy: {
-                label: dictionary?.apps.app.pages.common.account.tabs.privacy,
-                url: buildPath("/account?tab=privacy"),
             },
         },
     };

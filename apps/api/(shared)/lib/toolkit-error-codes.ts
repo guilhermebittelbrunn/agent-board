@@ -22,35 +22,6 @@ export function mapIdentityToolkitMessageToCode(message: string): string {
 }
 
 /**
- * Maps an action-code failure to a stable code. The caller supplies the fallback
- * because the same toolkit message set serves password reset, email verification
- * and email change.
- */
-export function mapOobActionMessageToCode(
-    message: string,
-    fallback: string
-): string {
-    const m = message.toUpperCase();
-    if (m.includes("EXPIRED_OOB_CODE")) {
-        return "AUTH_OOB_CODE_EXPIRED";
-    }
-    if (m.includes("INVALID_OOB_CODE")) {
-        return "AUTH_OOB_CODE_INVALID";
-    }
-    if (m.includes("WEAK_PASSWORD")) {
-        return "USERS_AUTH_WEAK_PASSWORD";
-    }
-    if (m.includes("TOO_MANY_ATTEMPTS") || m.includes("TOO_MANY_REQUESTS")) {
-        return "USERS_AUTH_RATE_LIMITED";
-    }
-    // Only an email change hits this: the new address was taken after the link went out.
-    if (m.includes("EMAIL_EXISTS")) {
-        return "USERS_AUTH_EMAIL_ALREADY_IN_USE";
-    }
-    return fallback;
-}
-
-/**
  * Maps a re-authentication failure to a stable code. Every credential rejection collapses
  * into the caller's fallback because the toolkit deliberately does not distinguish a wrong
  * password from an unknown account.

@@ -68,8 +68,8 @@ const ENTITIES_BY_OWNER = {
             enabled: false,
         },
     ],
-    // A second owner exists so that the organization scope (a 404 on another
-    // organization's record) can be exercised without creating an account by hand.
+    // A second owner exists so that the owner scope (a 404 on someone else's record) can
+    // be exercised without creating an account by hand.
     "user2@example.com": [
         {
             name: "Other Owner Shop",
@@ -90,18 +90,15 @@ const ENTITIES_BY_OWNER = {
     ],
 };
 
-const SEEDED_WELCOME_NOTIFICATIONS = 21;
+const SEEDED_WELCOME_NOTIFICATIONS = 24;
 
 /**
- * Newest first. 25 for one owner so the bell pages through three loads of 10; one of
- * each core type plus a type no build knows, which must render the generic copy. The
- * second common account gets none, for the empty state.
+ * Newest first. 25 for one owner so the bell pages through three loads of 10, including
+ * a type no build knows, which must render the generic copy. The second common account
+ * gets none, for the empty state.
  */
 const NOTIFICATIONS_BY_OWNER = {
     "user@example.com": [
-        { type: "subscriptionPaymentPending", read: false },
-        { type: "subscriptionCanceled", read: false },
-        { type: "subscriptionReactivated", read: true },
         { type: "legacyTypeRemoved", read: false },
         ...Array.from({ length: SEEDED_WELCOME_NOTIFICATIONS }, (_, index) => ({
             type: "welcome",
@@ -135,7 +132,7 @@ async function createAccount(auth, db, { email, type }) {
     const user = await auth.createUser({
         email,
         password: SEED_PASSWORD,
-        // Otherwise every seeded login lands on the "verify your email" screen.
+        // Seeded accounts behave like confirmed ones.
         emailVerified: true,
     });
 
@@ -158,10 +155,7 @@ async function createEntities(db, profileId, entities) {
     for (const entity of entities) {
         await db.collection(ENTITIES_COLLECTION).add({
             ...entity,
-            // The author is the profile document id, not the Auth uid. There is no
-            // `organizationId` on purpose: the first request of the owner stamps it with
-            // their organization, the same path a fork in production takes for records
-            // that predate organizations.
+            // The owner is the profile document id, not the Auth uid.
             userId: profileId,
             photo: null,
             createdAt: now,
