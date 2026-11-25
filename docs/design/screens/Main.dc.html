@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Quadro do board</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/vanillaui/tokens.css">
+<link rel="stylesheet" href="ds/vanillaui/components/bundle.css">
+<script src="ds/vanillaui/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="{{themeClass}}" style="min-height: 100vh; background: var(--color-bg); color: var(--color-ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;">
+
+<header style="background: var(--color-surface); border-bottom: 1px solid var(--color-line);">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-height: 64px; padding: 8px 24px; box-sizing: border-box;">
+    <a href="Boards.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--color-ink);">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--color-accent-fill)"></rect><rect x="7" y="7" width="3.5" height="14" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="12.25" y="7" width="3.5" height="9" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="17.5" y="7" width="3.5" height="11.5" rx="1.75" fill="var(--color-on-accent)"></rect></svg>
+      <span style="font-family: var(--font-display); font-weight: 600; font-size: 16px;">agent-board</span>
+    </a>
+    <span aria-hidden="true" style="color: var(--color-muted);">/</span>
+    <button type="button" style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--color-line); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-ink); font: inherit; font-weight: 600; cursor: pointer;">
+      agent-board
+      <span style="font-weight: 400; color: var(--color-muted);">guilhermebittelbrunn/agent-board</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+    </button>
+    <nav aria-label="Seções do board" style="display: flex; flex-wrap: wrap; gap: 4px;">
+      <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); background: var(--color-accent-tint); color: var(--color-accent); font-weight: 600; text-decoration: none;">Quadro</a>
+      <a href="CycleRun.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Ciclos</a>
+      <a href="Discover.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Descobertas</a>
+      <a href="Members.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Membros</a>
+      <a href="Credentials.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Minhas credenciais</a>
+      <a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Configuração</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+      <a href="Credentials.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: var(--radius-pill); background: var(--color-raised); color: var(--color-ink-2); font-size: 13px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--color-ok);"></span>
+        Runner local online
+      </a>
+      <button type="button" onClick="{{toggleTheme}}" aria-label="{{themeLabel}}" style="display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink-2); cursor: pointer;">
+        <sc-if value="{{isDark}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></sc-if>
+        <sc-if value="{{isLight}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+      </button>
+      <x-import component-from-global-scope="VanillaUI.Avatar"><x-import component-from-global-scope="VanillaUI.AvatarFallback">GB</x-import></x-import>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; padding: 24px 24px 16px;">
+    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+      <h1 style="margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.3;">agent-board</h1>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 13px; color: var(--color-muted);">
+        <span>guilhermebittelbrunn/agent-board</span>
+        <span>base <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--color-ink-2);">main</span></span>
+        <span>3 rodando · 1 na fila</span>
+      </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+      <a href="CycleRun.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line); font-size: 13px; color: var(--color-ink-2); text-decoration: none;">
+        <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--color-info);"></span>
+        Ciclo rodando: 2 de 3 specs
+      </a>
+      <a href="Discover.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line); color: var(--color-ink); font-weight: 600; text-decoration: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        Descobrir specs
+      </a>
+      <a href="CycleStart.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line); color: var(--color-ink); font-weight: 600; text-decoration: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+        Rodar ciclo
+      </a>
+      <a href="NewSpec.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: var(--radius-pill); background: var(--color-accent-fill); color: var(--color-on-accent); font-weight: 600; text-decoration: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+        Nova spec
+      </a>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 0 24px 16px;">
+    <div style="display: flex; flex-direction: column; width: 280px; max-width: 100%;">
+      <label for="board-search" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Buscar card</label>
+      <x-import component-from-global-scope="VanillaUI.Input" id="board-search" placeholder="Buscar card pelo título ou branch"></x-import>
+    </div>
+    <x-import component-from-global-scope="VanillaUI.ToggleGroup" type="single" default-value="all">
+      <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="all">Todos</x-import>
+      <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="waiting">Aguardando você · 2</x-import>
+      <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="running">Rodando · 3</x-import>
+      <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="cycle">No ciclo · 3</x-import>
+      <x-import component-from-global-scope="VanillaUI.ToggleGroupItem" value="failed">Com falha · 1</x-import>
+    </x-import>
+    <a href="SpecDraft.dc.html" style="margin-left: auto; display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 16px; border-radius: var(--radius-pill); background: var(--color-accent-tint); color: var(--color-ink); font-size: 13px; text-decoration: none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      <span><strong>2 cards</strong> esperam sua resposta</span>
+      <span style="color: var(--color-accent); font-weight: 600;">Responder</span>
+    </a>
+  </section>
+
+  <div role="region" aria-label="Colunas do board" tabindex="0" style="overflow-x: auto; padding: 0 24px 40px;">
+    <div style="display: flex; gap: 12px; align-items: flex-start; min-width: min-content;">
+
+      <section aria-labelledby="lane-drafts" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-drafts" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Rascunhos</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">3</span>
+            <a href="NewSpec.dc.html" aria-label="Nova spec" style="margin-left: auto; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--color-ink-2);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></a>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);">Specs sendo escritas com você</span>
+        </header>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px; border-color: var(--color-warn);">
+          <a href="SpecDraft.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Avisos no Slack quando um card espera você</a>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Aguardando você</x-import>
+            <span style="font-size: 12px; color: var(--color-ink-2);">3 perguntas</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);">Escrita a partir de texto e 1 anexo</span>
+          <a href="SpecDraft.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 36px; border-radius: var(--radius-pill); background: var(--color-accent-fill); color: var(--color-on-accent); font-size: 13px; font-weight: 600; text-decoration: none;">Responder</a>
+        </x-import>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px;">
+          <a href="SpecDraft.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Atalhos de teclado no quadro</a>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Badge" variant="info"><span aria-hidden="true" style="display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 999px; background: currentColor;"></span>Escrevendo</x-import>
+          </div>
+          <span style="font-size: 12px; color: var(--color-ink-2); line-height: 1.4; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--color-raised);">Lendo o quadro atual e os atalhos que o navegador já usa</span>
+          <span style="font-size: 12px; color: var(--color-muted);">Veio da descoberta de hoje</span>
+        </x-import>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px;">
+          <a href="SpecDraft.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Busca por texto nos cards</a>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Spec pronta</x-import>
+            <span style="font-size: 12px; color: var(--color-ink-2);">sem perguntas abertas</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Button" size="sm" style="flex: 1;">Aprovar spec</x-import>
+            <x-import component-from-global-scope="VanillaUI.Button" size="sm" variant="ghost">Ler</x-import>
+          </div>
+        </x-import>
+      </section>
+
+      <section aria-labelledby="lane-backlog" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-backlog" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Tarefas</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">4</span>
+            <a href="CycleStart.dc.html" style="margin-left: auto; font-size: 12px; font-weight: 600; color: var(--color-accent);">Rodar ciclo</a>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);">Specs aprovadas, na ordem do board</span>
+        </header>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 8px;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted); padding-top: 2px;">1</span>
+            <a href="CardDetail.dc.html" style="flex: 1; min-width: 0; font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Orquestrador de etapas (estados, fila e transições)</a>
+          </div>
+          <div style="padding-left: 18px;"><a href="CycleRun.dc.html" style="text-decoration: none;"><x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Próxima do ciclo</x-import></a></div>
+        </x-import>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 6px;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted); padding-top: 2px;">2</span>
+            <a href="CardDetail.dc.html" style="flex: 1; min-width: 0; font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Contrato dos agentes (HTTP + servidor MCP)</a>
+          </div>
+        </x-import>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 6px;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted); padding-top: 2px;">3</span>
+            <a href="CardDetail.dc.html" style="flex: 1; min-width: 0; font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Runner local com o Claude Agent SDK</a>
+          </div>
+        </x-import>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 6px;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted); padding-top: 2px;">4</span>
+            <a href="CardDetail.dc.html" style="flex: 1; min-width: 0; font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Credenciais de execução por membro</a>
+          </div>
+        </x-import>
+      </section>
+
+      <section aria-labelledby="lane-analyze" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-analyze" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Análise</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">1</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">/analyze</span> · opus · alto</span>
+        </header>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px; border-color: var(--color-warn);">
+          <a href="CardDetail.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Cards a partir do backlog de specs e board com colunas</a>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Aguardando você</x-import>
+            <span style="font-size: 12px; color: var(--color-ink-2);">2 perguntas</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">feat/card-backlog</span> · há 20 min</span>
+          <a href="CardDetail.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 36px; border-radius: var(--radius-pill); background: var(--color-accent-fill); color: var(--color-on-accent); font-size: 13px; font-weight: 600; text-decoration: none;">Responder</a>
+        </x-import>
+      </section>
+
+      <section aria-labelledby="lane-develop" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-develop" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Executando</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">2</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">/develop</span> · sonnet · médio</span>
+        </header>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px;">
+          <a href="CardDetail.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Membros, convites e papéis do board</a>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Badge" variant="info"><span aria-hidden="true" style="display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 999px; background: currentColor;"></span>Rodando</x-import>
+            <a href="CycleRun.dc.html" style="text-decoration: none;"><x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Ciclo · 2 de 3</x-import></a>
+            <x-import component-from-global-scope="VanillaUI.Badge" variant="secondary">Volta 1 de 2</x-import>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--color-raised);">
+            <span style="font-size: 12px; color: var(--color-ink-2); line-height: 1.4;">API concluída, começando o app</span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--color-muted);">
+              <span aria-hidden="true" style="flex: 1; display: block; height: 4px; border-radius: 999px; background: var(--color-line);"><span style="display: block; width: 24%; height: 4px; border-radius: 999px; background: var(--color-info);"></span></span>
+              turno 48 de 200
+            </div>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">feat/board-members</span> · 14 min</span>
+        </x-import>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px;">
+          <a href="CardDetail.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Linha do tempo do card, perguntas e respostas</a>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Plano pronto</x-import>
+            <span style="font-size: 12px; color: var(--color-ink-2);">aguarda sua aprovação</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Button" size="sm" style="flex: 1;">Aprovar e seguir</x-import>
+            <x-import component-from-global-scope="VanillaUI.Button" size="sm" variant="ghost">Ver plano</x-import>
+          </div>
+        </x-import>
+      </section>
+
+      <section aria-labelledby="lane-review" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-review" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Revisando</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">1</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">/review</span> · opus · alto</span>
+        </header>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px; border-color: var(--color-err);">
+          <a href="CardDetail.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Criar board importando um repositório</a>
+          <div><x-import component-from-global-scope="VanillaUI.Badge" variant="destructive">Falhou</x-import></div>
+          <span style="font-size: 12px; color: var(--color-ink-2); line-height: 1.4;">O agente não respondeu em 45 min. Nenhum commit novo na branch.</span>
+          <div style="display: flex; gap: 6px;">
+            <x-import component-from-global-scope="VanillaUI.Button" size="sm" variant="secondary" style="flex: 1;">Rodar de novo</x-import>
+            <x-import component-from-global-scope="VanillaUI.Button" size="sm" variant="ghost">Ver log</x-import>
+          </div>
+        </x-import>
+      </section>
+
+      <section aria-labelledby="lane-test" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-test" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Testando</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">0</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">/test</span> · sonnet · médio</span>
+        </header>
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 120px; padding: 16px; box-sizing: border-box; border-radius: var(--radius); border: 1.5px dashed var(--color-line); text-align: center; font-size: 13px; color: var(--color-muted);">Nenhum card</div>
+      </section>
+
+      <section aria-labelledby="lane-pr" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-pr" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Aguardando PR</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">2</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">/mediate</span> a cada comentário</span>
+        </header>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px;">
+          <a href="CardPr.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Login com GitHub</a>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--color-raised); font-size: 12px; color: var(--color-ink-2);">
+            <span style="font-weight: 600; color: var(--color-ink);">PR #12 · rascunho</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--color-ok);"></span>CI passou</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--color-warn);"></span>1 pedido de mudança</span>
+          </div>
+          <div><x-import component-from-global-scope="VanillaUI.Badge" variant="info">Respondendo comentário</x-import></div>
+        </x-import>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 10px;">
+          <a href="CardPr.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Integração com o GitHub App do board</a>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--color-raised); font-size: 12px; color: var(--color-ink-2);">
+            <span style="font-weight: 600; color: var(--color-ink);">PR #14 · rascunho</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--color-info);"></span>CI rodando</span>
+          </div>
+          <div><a href="CycleRun.dc.html" style="text-decoration: none;"><x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Ciclo · 1 de 3 · pronta</x-import></a></div>
+        </x-import>
+      </section>
+
+      <section aria-labelledby="lane-done" style="flex: 1 0 220px; width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <header style="display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 10px; border-bottom: 1px solid var(--color-line);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 id="lane-done" style="margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 600;">Concluído</h2>
+            <span style="font-size: 12px; font-weight: 600; color: var(--color-muted);">1</span>
+          </div>
+          <span style="font-size: 12px; color: var(--color-muted);">PR mergeada</span>
+        </header>
+        <x-import component-from-global-scope="VanillaUI.Card" style="padding: 12px 14px; gap: 8px;">
+          <a href="CardPr.dc.html" style="font-weight: 600; color: var(--color-ink); text-decoration: none; line-height: 1.4;">Enxugar o fork do boilerplate</a>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-muted);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>PR #9 mergeada · há 3 dias</span>
+        </x-import>
+      </section>
+
+    </div>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.state && typeof this.state.dark === 'boolean' ? (this.state.dark ? 'dark' : 'light') : (this.props.theme ?? 'light');
+    return {
+      theme: theme,
+      themeClass: theme === 'dark' ? 'dark' : '',
+      isDark: theme === 'dark',
+      isLight: theme !== 'dark',
+      themeLabel: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro',
+      toggleTheme: () => this.setState({ dark: theme !== 'dark' })
+    };
+  }
+}
+</script>
+</body>
+</html>

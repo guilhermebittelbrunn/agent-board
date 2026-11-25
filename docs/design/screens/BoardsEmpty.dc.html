@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Primeiro board</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/vanillaui/tokens.css">
+<link rel="stylesheet" href="ds/vanillaui/components/bundle.css">
+<script src="ds/vanillaui/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="{{themeClass}}" style="min-height: 100vh; background: var(--color-bg); color: var(--color-ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;">
+
+<header style="background: var(--color-surface); border-bottom: 1px solid var(--color-line);">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-height: 64px; padding: 8px 24px; box-sizing: border-box;">
+    <a href="BoardsEmpty.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--color-ink);">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--color-accent-fill)"></rect><rect x="7" y="7" width="3.5" height="14" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="12.25" y="7" width="3.5" height="9" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="17.5" y="7" width="3.5" height="11.5" rx="1.75" fill="var(--color-on-accent)"></rect></svg>
+      <span style="font-family: var(--font-display); font-weight: 600; font-size: 16px;">agent-board</span>
+    </a>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 13px; color: var(--color-ink-2);">guilhermebittelbrunn</span>
+      <button type="button" onClick="{{toggleTheme}}" aria-label="{{themeLabel}}" style="display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink-2); cursor: pointer;">
+        <sc-if value="{{isDark}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></sc-if>
+        <sc-if value="{{isLight}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+      </button>
+      <x-import component-from-global-scope="VanillaUI.Avatar"><x-import component-from-global-scope="VanillaUI.AvatarFallback">GB</x-import></x-import>
+    </div>
+  </div>
+</header>
+
+<main style="max-width: 880px; margin: 0 auto; padding: 48px 24px 64px; display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <h1 style="margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.3;">Comece pelo seu primeiro board</h1>
+    <p style="margin: 0; color: var(--color-ink-2); max-width: 64ch;">Cada board aponta para um repositório do GitHub. São três passos: os dois primeiros acontecem no GitHub e no repositório, o último aqui.</p>
+  </div>
+
+  <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px;">
+    <li>
+      <x-import component-from-global-scope="VanillaUI.Card" style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 16px 20px;">
+        <span style="display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 999px; background: var(--color-accent-fill); color: var(--color-on-accent); font-family: var(--font-display); font-weight: 600;">1</span>
+        <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 6px;">
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;"><span style="font-family: var(--font-display); font-size: 16px; font-weight: 600;">Instale o GitHub App do board</span><x-import component-from-global-scope="VanillaUI.Badge" variant="secondary">Ainda não instalado</x-import></span>
+          <span style="color: var(--color-ink-2);">Ele deixa o board ler o board.yml e as specs, conferir a permissão de cada membro e abrir as PRs. Instale na sua conta ou na organização, escolhendo os repositórios.</span>
+        </div>
+        <a href="#" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: var(--radius-pill); background: var(--color-accent-fill); color: var(--color-on-accent); font-weight: 600; text-decoration: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"></path></svg>
+          Instalar no GitHub
+        </a>
+      </x-import>
+    </li>
+    <li>
+      <x-import component-from-global-scope="VanillaUI.Card" style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 16px 20px;">
+        <span style="display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 999px; border: 1.5px solid var(--color-line); color: var(--color-ink-2); font-family: var(--font-display); font-weight: 600; box-sizing: border-box;">2</span>
+        <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 10px;">
+          <span style="font-family: var(--font-display); font-size: 16px; font-weight: 600;">Aplique o kit no repositório</span>
+          <span style="color: var(--color-ink-2);">O kit cria o <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">.kanban/board.yml</span> e a regra do modo board. Rode numa branch de feature, revise e abra a PR.</span>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <code style="flex: 1; min-width: 240px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--color-raised); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--color-ink);">node kit/apply.mjs ../meu-repositorio</code>
+            <x-import component-from-global-scope="VanillaUI.Button" variant="secondary" size="sm">Copiar</x-import>
+          </div>
+        </div>
+      </x-import>
+    </li>
+    <li>
+      <x-import component-from-global-scope="VanillaUI.Card" style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 16px 20px;">
+        <span style="display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 999px; border: 1.5px solid var(--color-line); color: var(--color-ink-2); font-family: var(--font-display); font-weight: 600; box-sizing: border-box;">3</span>
+        <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-family: var(--font-display); font-size: 16px; font-weight: 600;">Crie o board</span>
+          <span style="color: var(--color-ink-2);">Escolha o repositório. O board lê o board.yml na branch base, mostra o que estiver errado e monta as colunas.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+          <x-import component-from-global-scope="VanillaUI.Button" disabled="{{yes}}">Novo board</x-import>
+          <span style="font-size: 12px; color: var(--color-muted);">Libera depois do passo 1</span>
+        </div>
+      </x-import>
+    </li>
+  </ol>
+
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 16px 20px; border-radius: var(--radius-lg); border: 1px dashed var(--color-line); color: var(--color-ink-2);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    <span style="flex: 1; min-width: 240px;">Foi convidado para um board? Ele aparece aqui assim que você entra com o login do GitHub que recebeu o convite.</span>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.state && typeof this.state.dark === 'boolean' ? (this.state.dark ? 'dark' : 'light') : (this.props.theme ?? 'light');
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '', isDark: theme === 'dark', isLight: theme !== 'dark', themeLabel: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro', toggleTheme: () => this.setState({ dark: theme !== 'dark' }), yes: true };
+  }
+}
+</script>
+</body>
+</html>

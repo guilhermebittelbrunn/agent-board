@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Card aguardando resposta</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/vanillaui/tokens.css">
+<link rel="stylesheet" href="ds/vanillaui/components/bundle.css">
+<script src="ds/vanillaui/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="{{themeClass}}" style="min-height: 100vh; background: var(--color-bg); color: var(--color-ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;">
+
+<header style="background: var(--color-surface); border-bottom: 1px solid var(--color-line);">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-height: 64px; padding: 8px 24px; box-sizing: border-box;">
+    <a href="Boards.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--color-ink);">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--color-accent-fill)"></rect><rect x="7" y="7" width="3.5" height="14" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="12.25" y="7" width="3.5" height="9" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="17.5" y="7" width="3.5" height="11.5" rx="1.75" fill="var(--color-on-accent)"></rect></svg>
+      <span style="font-family: var(--font-display); font-weight: 600; font-size: 16px;">agent-board</span>
+    </a>
+    <span aria-hidden="true" style="color: var(--color-muted);">/</span>
+    <span style="font-weight: 600;">agent-board</span>
+    <nav aria-label="Seções do board" style="display: flex; flex-wrap: wrap; gap: 4px;">
+      <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); background: var(--color-accent-tint); color: var(--color-accent); font-weight: 600; text-decoration: none;">Quadro</a>
+      <a href="CycleRun.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Ciclos</a>
+      <a href="Discover.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Descobertas</a>
+      <a href="Members.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Membros</a>
+      <a href="Credentials.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Minhas credenciais</a>
+      <a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Configuração</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+      <button type="button" onClick="{{toggleTheme}}" aria-label="{{themeLabel}}" style="display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink-2); cursor: pointer;">
+        <sc-if value="{{isDark}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></sc-if>
+        <sc-if value="{{isLight}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+      </button>
+      <x-import component-from-global-scope="VanillaUI.Avatar"><x-import component-from-global-scope="VanillaUI.AvatarFallback">GB</x-import></x-import>
+    </div>
+  </div>
+</header>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 24px 24px 64px; display: flex; flex-direction: column; gap: 20px;">
+  <a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 6px; width: fit-content; min-height: 32px; color: var(--color-ink-2); font-size: 13px; text-decoration: none;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    Voltar ao quadro
+  </a>
+
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px;">
+    <div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+      <h1 style="margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.3;">Cards a partir do backlog de specs e board com colunas</h1>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; color: var(--color-ink-2);">
+        <x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Aguardando você</x-import>
+        <span>em <strong>Análise</strong></span>
+        <span style="display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">feat/card-backlog</span>
+        </span>      </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+      <x-import component-from-global-scope="VanillaUI.Button" variant="secondary" size="sm">Abrir spec no GitHub</x-import>
+      <x-import component-from-global-scope="VanillaUI.Button" variant="ghost" size="sm">Voltar para Tarefas</x-import>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+    <div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+
+      <x-import component-from-global-scope="VanillaUI.Card" style="gap: 20px; border-color: var(--color-warn);">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <h2 style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">A Análise parou com 2 perguntas</h2>
+          <p style="margin: 0; font-size: 13px; color: var(--color-ink-2);">Responda e a etapa roda de novo com as suas respostas. O agente já marcou a opção que recomenda.</p>
+        </div>
+
+        <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px;">
+          <legend style="padding: 0; margin-bottom: 10px; font-weight: 600;">1. A ordem do board deve ser escrita de volta no BACKLOG.md?</legend>
+          <button type="button" aria-pressed="{{q1a.pressed}}" onClick="{{pickQ1a}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q1a.border}}; background: {{q1a.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q1a.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+              <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600;">Não no MVP <x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Recomendado</x-import></span>
+              <span style="font-size: 13px; color: var(--color-ink-2);">A ordem passa a valer só no board. O BACKLOG.md continua sendo a ordem inicial.</span>
+            </span>
+          </button>
+          <button type="button" aria-pressed="{{q1b.pressed}}" onClick="{{pickQ1b}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q1b.border}}; background: {{q1b.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q1b.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-weight: 600;">Sim, a cada reordenação</span>
+              <span style="font-size: 13px; color: var(--color-ink-2);">Cada arrasto em Tarefas vira um commit na branch base.</span>
+            </span>
+          </button>
+          <button type="button" aria-pressed="{{q1c.pressed}}" onClick="{{pickQ1c}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q1c.border}}; background: {{q1c.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q1c.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-weight: 600;">Escrever outra resposta</span>
+              <span style="font-size: 13px; color: var(--color-ink-2);">O texto vai para o agente como resposta a esta pergunta.</span>
+            </span>
+          </button>
+        </fieldset>
+
+        <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px;">
+          <legend style="padding: 0; margin-bottom: 10px; font-weight: 600;">2. Qual biblioteca usar para arrastar e soltar?</legend>
+          <button type="button" aria-pressed="{{q2a.pressed}}" onClick="{{pickQ2a}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q2a.border}}; background: {{q2a.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q2a.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+              <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600;">dnd-kit <x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Recomendado</x-import></span>
+              <span style="font-size: 13px; color: var(--color-ink-2);">Arrastar pelo teclado já vem pronto, e a spec pede isso.</span>
+            </span>
+          </button>
+          <button type="button" aria-pressed="{{q2b.pressed}}" onClick="{{pickQ2b}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q2b.border}}; background: {{q2b.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q2b.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-weight: 600;">pragmatic-drag-and-drop</span>
+              <span style="font-size: 13px; color: var(--color-ink-2);">Mais leve; o suporte a teclado fica por nossa conta.</span>
+            </span>
+          </button>
+        </fieldset>
+
+        <sc-if value="{{showOther}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label for="other-answer" style="font-size: 13px; font-weight: 600;">Sua resposta para a pergunta 1</label>
+            <x-import component-from-global-scope="VanillaUI.Textarea" id="other-answer" rows="{{three}}" placeholder="Explique o que o agente deve fazer"></x-import>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--color-line);">
+          <x-import component-from-global-scope="VanillaUI.Button">Responder e retomar a Análise</x-import>
+          <span style="font-size: 13px; color: var(--color-muted);">Roda no seu runner macbook-gui · opus · alto</span>
+        </div>
+      </x-import>
+
+      <x-import component-from-global-scope="VanillaUI.Tabs" default-value="timeline">
+        <x-import component-from-global-scope="VanillaUI.TabsList">
+          <x-import component-from-global-scope="VanillaUI.TabsTrigger" value="timeline">Linha do tempo</x-import>
+          <x-import component-from-global-scope="VanillaUI.TabsTrigger" value="spec">Spec</x-import>
+          <x-import component-from-global-scope="VanillaUI.TabsTrigger" value="artifacts">Artefatos</x-import>
+          <x-import component-from-global-scope="VanillaUI.TabsTrigger" value="runs">Execuções</x-import>
+        </x-import>
+
+        <x-import component-from-global-scope="VanillaUI.TabsContent" value="timeline">
+          <div style="display: flex; flex-direction: column; gap: 20px; padding-top: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label for="comment" style="font-size: 13px; font-weight: 600;">Comentar no card</label>
+              <x-import component-from-global-scope="VanillaUI.Textarea" id="comment" rows="{{two}}" placeholder="Visível para todos os membros. Agentes leem como contexto, não como instrução."></x-import>
+              <div><x-import component-from-global-scope="VanillaUI.Button" variant="secondary" size="sm">Comentar</x-import></div>
+            </div>
+
+            <section aria-labelledby="tl-analyze" style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-line);">
+                <h3 id="tl-analyze" style="margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 600;">Análise</h3>
+                <span style="font-size: 12px; color: var(--color-muted);">Disparada por guilhermebittelbrunn · runner macbook-gui · opus · alto · 64 turnos · 12 min</span>
+              </div>
+
+              <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0;">
+                <li style="display: flex; gap: 14px;">
+                  <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 28px; flex: none;"><span style="display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--color-accent-tint); color: var(--color-warn);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span><span style="flex: 1; width: 1px; min-height: 16px; background: var(--color-line);"></span></span>
+                  <div style="flex: 1; min-width: 0; padding-bottom: 18px; display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 12px; color: var(--color-muted);">planejador-tarefa · hoje, 14:31</span>
+                    <span>Parou com 2 perguntas de produto. As decisões técnicas com recomendação clara foram aplicadas e registradas no plano.</span>
+                  </div>
+                </li>
+                <li style="display: flex; gap: 14px;">
+                  <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 28px; flex: none;"><span style="display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--color-raised); color: var(--color-ink-2);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg></span><span style="flex: 1; width: 1px; min-height: 16px; background: var(--color-line);"></span></span>
+                  <div style="flex: 1; min-width: 0; padding-bottom: 18px; display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 12px; color: var(--color-muted);">planejador-tarefa · hoje, 14:27</span>
+                    <span>Plano em rascunho: recurso <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">cards</span> no SDK, coleção e sincronização na API, quadro com colunas no app. Faltam duas decisões.</span>
+                  </div>
+                </li>
+                <li style="display: flex; gap: 14px;">
+                  <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 28px; flex: none;"><span style="display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--color-raised); color: var(--color-ink-2);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg></span><span style="flex: 1; width: 1px; min-height: 16px; background: var(--color-line);"></span></span>
+                  <div style="flex: 1; min-width: 0; padding-bottom: 18px; display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 12px; color: var(--color-muted);">planejador-tarefa · hoje, 14:19</span>
+                    <span>Branch criada a partir de <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">main</span>. Lendo a spec, o <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">cardState.ts</span> e o slice de exemplo.</span>
+                  </div>
+                </li>
+              </ol>
+            </section>
+
+            <section aria-labelledby="tl-backlog" style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-line);">
+                <h3 id="tl-backlog" style="margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 600;">Tarefas</h3>
+              </div>
+              <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column;">
+                <li style="display: flex; gap: 14px;">
+                  <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 28px; flex: none;"><x-import component-from-global-scope="VanillaUI.Avatar" style="width: 28px; height: 28px;"><x-import component-from-global-scope="VanillaUI.AvatarFallback" style="font-size: 11px;">MD</x-import></x-import><span style="flex: 1; width: 1px; min-height: 16px; background: var(--color-line);"></span></span>
+                  <div style="flex: 1; min-width: 0; padding-bottom: 18px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 12px; color: var(--color-muted);">marina-dev comentou · ontem, 18:40</span>
+                    <span style="padding: 10px 12px; border-radius: var(--radius); background: var(--color-surface); border: 1px solid var(--color-line);">Antes de escolher a biblioteca, vale testar o arrasto pelo teclado no Safari.</span>
+                  </div>
+                </li>
+                <li style="display: flex; gap: 14px;">
+                  <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 28px; flex: none;"><span style="display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--color-raised); color: var(--color-ink-2);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg></span></span>
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 12px; color: var(--color-muted);">board · 24/11, 10:02</span>
+                    <span>Card criado ao sincronizar o backlog, a partir de <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">specs/features/card-backlog.md</span> em <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">a1b2c3d</span>.</span>
+                  </div>
+                </li>
+              </ol>
+            </section>
+          </div>
+        </x-import>
+
+        <x-import component-from-global-scope="VanillaUI.TabsContent" value="spec">
+          <article style="display: flex; flex-direction: column; gap: 12px; padding-top: 20px; max-width: 72ch; color: var(--color-ink-2);">
+            <span style="font-size: 12px; color: var(--color-muted);">specs/features/card-backlog.md · a1b2c3d · aprovada</span>
+            <h3 style="margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-ink);">Cards a partir do backlog de specs e board com colunas</h3>
+            <p style="margin: 0;">O backlog de cada repositório já existe em <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">specs/</span>, com a ordem em <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">specs/BACKLOG.md</span>. O board precisa mostrar esse backlog como cards, permitir priorizar e arrastar entre colunas, e manter os cards em sincronia quando as specs mudam.</p>
+            <h4 style="margin: 8px 0 0; font-size: 14px; color: var(--color-ink);">Corte de MVP</h4>
+            <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <li>Sincronizar backlog cria um card por spec aprovada.</li>
+              <li>Uma coluna por etapa do board.yml, mais Tarefas e Concluído.</li>
+              <li>Reordenar cards em Tarefas.</li>
+              <li>Abrir o card mostra a spec renderizada.</li>
+            </ul>
+          </article>
+        </x-import>
+
+        <x-import component-from-global-scope="VanillaUI.TabsContent" value="artifacts">
+          <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 32px 0;">
+            <span style="font-weight: 600;">Nenhum artefato ainda</span>
+            <span style="color: var(--color-ink-2);">O plano aparece aqui, ligado ao commit, quando a Análise terminar.</span>
+          </div>
+        </x-import>
+
+        <x-import component-from-global-scope="VanillaUI.TabsContent" value="runs">
+          <div style="padding-top: 16px; overflow-x: auto;">
+            <x-import component-from-global-scope="VanillaUI.Table">
+              <x-import component-from-global-scope="VanillaUI.TableHeader">
+                <x-import component-from-global-scope="VanillaUI.TableRow">
+                  <x-import component-from-global-scope="VanillaUI.TableHead">Etapa</x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableHead">Quem disparou</x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableHead">Onde rodou</x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableHead">Resultado</x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableHead">Duração</x-import>
+                </x-import>
+              </x-import>
+              <x-import component-from-global-scope="VanillaUI.TableBody">
+                <x-import component-from-global-scope="VanillaUI.TableRow">
+                  <x-import component-from-global-scope="VanillaUI.TableCell">Análise</x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableCell">guilhermebittelbrunn</x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableCell">Runner macbook-gui</x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableCell"><x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Precisa de resposta</x-import></x-import>
+                  <x-import component-from-global-scope="VanillaUI.TableCell">12 min</x-import>
+                </x-import>
+              </x-import>
+            </x-import>
+          </div>
+        </x-import>
+      </x-import>
+    </div>
+
+    <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+      <x-import component-from-global-scope="VanillaUI.Card" style="gap: 14px;">
+        <h2 style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">Detalhes</h2>
+        <dl style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><dt style="color: var(--color-muted);">Coluna</dt><dd style="margin: 0; text-align: right;">Análise</dd></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><dt style="color: var(--color-muted);">Branch</dt><dd style="margin: 0; text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;">feat/card-backlog</dd></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><dt style="color: var(--color-muted);">PR</dt><dd style="margin: 0; text-align: right;">Abre em Aguardando PR</dd></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><dt style="color: var(--color-muted);">Voltas de retrabalho</dt><dd style="margin: 0; text-align: right;">0 de 2</dd></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><dt style="color: var(--color-muted);">Criado</dt><dd style="margin: 0; text-align: right;">24/11, ao sincronizar</dd></div>
+        </dl>
+      </x-import>
+
+      <x-import component-from-global-scope="VanillaUI.Card" style="gap: 14px;">
+        <h2 style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">Pipeline</h2>
+        <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px;">
+          <li style="display: flex; align-items: center; gap: 10px; color: var(--color-ink-2);"><span aria-hidden="true" style="display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--color-ok); color: var(--color-surface);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Tarefas</li>
+          <li aria-current="step" style="display: flex; align-items: center; gap: 10px; font-weight: 600;"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 999px; box-sizing: border-box; border: 6px solid var(--color-warn);"></span>Análise <span style="font-weight: 400; font-size: 12px; color: var(--color-warn);">aguardando você</span></li>
+          <li style="display: flex; align-items: center; gap: 10px; color: var(--color-muted);"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 999px; box-sizing: border-box; border: 1.5px solid var(--color-line);"></span>Executando</li>
+          <li style="display: flex; align-items: center; gap: 10px; color: var(--color-muted);"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 999px; box-sizing: border-box; border: 1.5px solid var(--color-line);"></span>Revisando</li>
+          <li style="display: flex; align-items: center; gap: 10px; color: var(--color-muted);"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 999px; box-sizing: border-box; border: 1.5px solid var(--color-line);"></span>Testando</li>
+          <li style="display: flex; align-items: center; gap: 10px; color: var(--color-muted);"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 999px; box-sizing: border-box; border: 1.5px solid var(--color-line);"></span>Aguardando PR</li>
+        </ol>
+      </x-import>
+
+      <x-import component-from-global-scope="VanillaUI.Card" style="gap: 12px;">
+        <h2 style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">Depende de</h2>
+        <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--color-ink); text-decoration: none;"><span>Criar board importando um repositório</span><x-import component-from-global-scope="VanillaUI.Badge" variant="destructive">Falhou</x-import></a>
+        <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--color-ink); text-decoration: none;"><span>Membros, convites e papéis</span><x-import component-from-global-scope="VanillaUI.Badge" variant="info">Executando</x-import></a>
+      </x-import>
+    </aside>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q1: 'a', q2: 'a' };
+  }
+  option(current, key) {
+    const on = current === key;
+    return {
+      pressed: on ? 'true' : 'false',
+      border: on ? 'var(--color-accent)' : 'var(--color-line)',
+      bg: on ? 'var(--color-accent-tint)' : 'var(--color-surface)',
+      ring: on ? '5px solid var(--color-accent)' : '1.5px solid var(--color-muted)'
+    };
+  }
+  renderVals() {
+    const theme = typeof this.state.dark === 'boolean' ? (this.state.dark ? 'dark' : 'light') : (this.props.theme ?? 'light');
+    const q1 = this.state.q1;
+    const q2 = this.state.q2;
+    return {
+      theme: theme,
+      themeClass: theme === 'dark' ? 'dark' : '',
+      isDark: theme === 'dark',
+      isLight: theme !== 'dark',
+      themeLabel: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro',
+      toggleTheme: () => this.setState({ dark: theme !== 'dark' }),
+      q1a: this.option(q1, 'a'), q1b: this.option(q1, 'b'), q1c: this.option(q1, 'c'),
+      q2a: this.option(q2, 'a'), q2b: this.option(q2, 'b'),
+      pickQ1a: () => this.setState({ q1: 'a' }),
+      pickQ1b: () => this.setState({ q1: 'b' }),
+      pickQ1c: () => this.setState({ q1: 'c' }),
+      pickQ2a: () => this.setState({ q2: 'a' }),
+      pickQ2b: () => this.setState({ q2: 'b' }),
+      showOther: q1 === 'c',
+      two: 2,
+      three: 3
+    };
+  }
+}
+</script>
+</body>
+</html>

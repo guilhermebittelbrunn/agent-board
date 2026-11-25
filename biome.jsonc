@@ -53,7 +53,12 @@
       "!docs/lib",
       "!docs/hooks",
       "!apps/docs/**/*.json",
-      "!packages/cms/basehub-types.d.ts"
+      "!packages/cms/basehub-types.d.ts",
+      // Fonte das telas exportada do canvas de design: fica idêntica ao canvas
+      // para poder ser comparada e sincronizada, então não passa pelo formatter.
+      "!docs/design/screens",
+      "!docs/design/canvas.json",
+      "!docs/design/reference"
     ]
   },
   "overrides": [

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Entrar no agent-board</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/vanillaui/tokens.css">
+<link rel="stylesheet" href="ds/vanillaui/components/bundle.css">
+<script src="ds/vanillaui/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="{{themeClass}}" style="position: relative; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; padding: 48px 16px; background: var(--color-bg); color: var(--color-ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;">
+
+  <button type="button" onClick="{{toggleTheme}}" aria-label="{{themeLabel}}" style="position: absolute; top: 16px; right: 16px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink-2); cursor: pointer;">
+    <sc-if value="{{isDark}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></sc-if>
+    <sc-if value="{{isLight}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+  </button>
+
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <svg width="40" height="40" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--color-accent-fill)"></rect><rect x="7" y="7" width="3.5" height="14" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="12.25" y="7" width="3.5" height="9" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="17.5" y="7" width="3.5" height="11.5" rx="1.75" fill="var(--color-on-accent)"></rect></svg>
+    <span style="font-family: var(--font-display); font-size: 22px; font-weight: 600;">agent-board</span>
+  </div>
+
+  <x-import component-from-global-scope="VanillaUI.Card" style="width: 100%; max-width: 440px; box-sizing: border-box; padding: 32px; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h1 style="margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.3;">Entrar</h1>
+      <p style="margin: 0; color: var(--color-ink-2);">Acompanhe e dispare o pipeline de agentes dos seus repositórios: análise, desenvolvimento, revisão, teste e PR.</p>
+    </div>
+
+    <a href="Boards.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; border-radius: var(--radius-pill); background: var(--color-ink); color: var(--color-surface); font-weight: 600; font-size: 15px; text-decoration: none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"></path></svg>
+      Entrar com GitHub
+    </a>
+
+    <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--color-line); padding-top: 20px;">
+      <li style="display: flex; gap: 10px; align-items: flex-start; color: var(--color-ink-2); font-size: 13px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>
+        <span>Você só vê e dispara o que a sua permissão no repositório permite.</span>
+      </li>
+      <li style="display: flex; gap: 10px; align-items: flex-start; color: var(--color-ink-2); font-size: 13px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"></path><path d="m21 2-9.6 9.6"></path><circle cx="7.5" cy="15.5" r="5.5"></circle></svg>
+        <span>O board não guarda o seu token do GitHub. Ele lê os repositórios pelo GitHub App instalado.</span>
+      </li>
+    </ul>
+  </x-import>
+
+  <div aria-hidden="true" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; max-width: 640px; color: var(--color-muted); font-size: 12px;">
+    <span style="padding: 4px 10px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line);">Tarefas</span>
+    <span>→</span>
+    <span style="padding: 4px 10px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line);">Análise</span>
+    <span>→</span>
+    <span style="padding: 4px 10px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line);">Executando</span>
+    <span>→</span>
+    <span style="padding: 4px 10px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line);">Revisando</span>
+    <span>→</span>
+    <span style="padding: 4px 10px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line);">Testando</span>
+    <span>→</span>
+    <span style="padding: 4px 10px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line);">Aguardando PR</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.state && typeof this.state.dark === 'boolean' ? (this.state.dark ? 'dark' : 'light') : (this.props.theme ?? 'light');
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '', isDark: theme === 'dark', isLight: theme !== 'dark', themeLabel: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro', toggleTheme: () => this.setState({ dark: theme !== 'dark' }) };
+  }
+}
+</script>
+</body>
+</html>

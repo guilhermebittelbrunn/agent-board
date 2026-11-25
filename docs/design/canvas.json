@@ -1,0 +1,343 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-25T17:39:10Z" },
+  "title": "Agent Board — Telas",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Login.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Entrar",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Boards.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 960,
+      "title": "Meus boards",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "NewBoard.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 1240,
+      "title": "Novo board — importar repositório",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Main.dc.html": {
+      "x": 0,
+      "y": 1660,
+      "w": 1920,
+      "h": 1080,
+      "title": "Quadro",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "TriggerStage.dc.html": {
+      "x": 2000,
+      "y": 1660,
+      "w": 1920,
+      "h": 1080,
+      "title": "Disparar etapa (ao soltar o card)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "CardDetail.dc.html": {
+      "x": 4000,
+      "y": 1660,
+      "w": 1440,
+      "h": 1640,
+      "title": "Card — aguardando você",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "CardPr.dc.html": {
+      "x": 5520,
+      "y": 1660,
+      "w": 1440,
+      "h": 1760,
+      "title": "Card — aguardando PR",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Members.dc.html": {
+      "x": 0,
+      "y": 3840,
+      "w": 1440,
+      "h": 1040,
+      "title": "Membros",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Credentials.dc.html": {
+      "x": 1520,
+      "y": 3840,
+      "w": 1440,
+      "h": 1140,
+      "title": "Minhas credenciais",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Settings.dc.html": {
+      "x": 3040,
+      "y": 3840,
+      "w": 1440,
+      "h": 1260,
+      "title": "Configuração do board",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "BoardsEmpty.dc.html": {
+      "x": 0,
+      "y": 5520,
+      "w": 1440,
+      "h": 980,
+      "title": "Vazio — primeiro acesso",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "BoardEmpty.dc.html": {
+      "x": 1520,
+      "y": 5520,
+      "w": 1920,
+      "h": 1080,
+      "title": "Vazio — board recém-criado",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "CredentialsEmpty.dc.html": {
+      "x": 3520,
+      "y": 5520,
+      "w": 1440,
+      "h": 1000,
+      "title": "Vazio — operador sem credencial",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "MBoards.dc.html": {
+      "x": 0,
+      "y": 7020,
+      "w": 390,
+      "h": 900,
+      "title": "Celular — meus boards",
+      "is_interactive": true
+    },
+    "MBoard.dc.html": {
+      "x": 470,
+      "y": 7020,
+      "w": 390,
+      "h": 2160,
+      "title": "Celular — quadro",
+      "is_interactive": true
+    },
+    "MMove.dc.html": {
+      "x": 940,
+      "y": 7020,
+      "w": 390,
+      "h": 844,
+      "title": "Celular — mover card",
+      "is_interactive": true
+    },
+    "MCard.dc.html": {
+      "x": 1410,
+      "y": 7020,
+      "w": 390,
+      "h": 1560,
+      "title": "Celular — responder perguntas",
+      "is_interactive": true
+    },
+    "NewSpec.dc.html": {
+      "x": 0,
+      "y": 9600,
+      "w": 1920,
+      "h": 1080,
+      "title": "Nova spec — texto e anexos",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "SpecDraft.dc.html": {
+      "x": 2000,
+      "y": 9600,
+      "w": 1440,
+      "h": 1560,
+      "title": "Spec em escrita — perguntas do agente",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Discover.dc.html": {
+      "x": 3520,
+      "y": 9600,
+      "w": 1440,
+      "h": 1100,
+      "title": "Descobrir specs",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "DiscoverResults.dc.html": {
+      "x": 5040,
+      "y": 9600,
+      "w": 1440,
+      "h": 1560,
+      "title": "Propostas de uma descoberta",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "CycleStart.dc.html": {
+      "x": 0,
+      "y": 11580,
+      "w": 1440,
+      "h": 1240,
+      "title": "Novo ciclo — escolher specs",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "CycleRun.dc.html": {
+      "x": 1520,
+      "y": 11580,
+      "w": 1440,
+      "h": 1640,
+      "title": "Ciclo em andamento",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "DarkMain.dc.html": {
+      "x": 0,
+      "y": 13640,
+      "w": 1920,
+      "h": 1080,
+      "title": "Escuro — quadro",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "DarkSpecDraft.dc.html": {
+      "x": 2000,
+      "y": 13640,
+      "w": 1440,
+      "h": 1560,
+      "title": "Escuro — spec em escrita",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "DarkCycleRun.dc.html": {
+      "x": 3520,
+      "y": 13640,
+      "w": 1440,
+      "h": 1640,
+      "title": "Escuro — ciclo",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "DarkMBoard.dc.html": {
+      "x": 5040,
+      "y": 13640,
+      "w": 390,
+      "h": 2160,
+      "title": "Escuro — celular",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Login.dc.html",
+    "Boards.dc.html",
+    "NewBoard.dc.html",
+    "TriggerStage.dc.html",
+    "CardDetail.dc.html",
+    "CardPr.dc.html",
+    "Members.dc.html",
+    "Credentials.dc.html",
+    "Settings.dc.html",
+    "BoardsEmpty.dc.html",
+    "BoardEmpty.dc.html",
+    "CredentialsEmpty.dc.html",
+    "MBoards.dc.html",
+    "MBoard.dc.html",
+    "MMove.dc.html",
+    "MCard.dc.html",
+    "NewSpec.dc.html",
+    "SpecDraft.dc.html",
+    "Discover.dc.html",
+    "DiscoverResults.dc.html",
+    "CycleStart.dc.html",
+    "CycleRun.dc.html",
+    "DarkMain.dc.html",
+    "DarkSpecDraft.dc.html",
+    "DarkCycleRun.dc.html",
+    "DarkMBoard.dc.html"
+  ],
+  "notes": {
+    "rowEntry": {
+      "x": 0,
+      "y": -300,
+      "text": "1 · Entrada: login, boards e importação",
+      "kind": "title1",
+      "maxW": 4480
+    },
+    "rowBoard": {
+      "x": 0,
+      "y": 1360,
+      "text": "2 · Quadro, disparo e cards",
+      "kind": "title1",
+      "maxW": 6960
+    },
+    "rowAdmin": {
+      "x": 0,
+      "y": 3540,
+      "text": "3 · Administração do board",
+      "kind": "title1",
+      "maxW": 4480
+    },
+    "rowEmpty": {
+      "x": 0,
+      "y": 5220,
+      "text": "4 · Estados vazios",
+      "kind": "title1",
+      "maxW": 4960
+    },
+    "rowMobile": {
+      "x": 0,
+      "y": 6720,
+      "text": "5 · Celular: acompanhar e responder",
+      "kind": "title1",
+      "maxW": 1800
+    },
+    "rowSpecs": {
+      "x": 0,
+      "y": 9300,
+      "text": "6 · Specs: escrever com um agente e descobrir",
+      "kind": "title1",
+      "maxW": 6480
+    },
+    "rowCycle": {
+      "x": 0,
+      "y": 11280,
+      "text": "7 · Ciclo: várias specs de ponta a ponta",
+      "kind": "title1",
+      "maxW": 2960
+    },
+    "rowDark": {
+      "x": 0,
+      "y": 13340,
+      "text": "8 · Modo escuro",
+      "kind": "title1",
+      "maxW": 5430
+    }
+  },
+  "designSystems": [
+    {
+      "title": "Vanilla Design System",
+      "namespace": "vanillaui",
+      "artifact": "https://claude.ai/code/artifact/29388368-6380-4544-913f-111b8562817b",
+      "version": "1795628171-d8d5",
+      "copiedAt": "2026-11-25T17:39:10Z"
+    }
+  ]
+}

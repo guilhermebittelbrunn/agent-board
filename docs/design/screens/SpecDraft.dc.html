@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Spec em escrita</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/vanillaui/tokens.css">
+<link rel="stylesheet" href="ds/vanillaui/components/bundle.css">
+<script src="ds/vanillaui/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div data-theme="{{theme}}" class="{{themeClass}}" style="min-height: 100vh; background: var(--color-bg); color: var(--color-ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;">
+
+<header style="background: var(--color-surface); border-bottom: 1px solid var(--color-line);">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-height: 64px; padding: 8px 24px; box-sizing: border-box;">
+    <a href="Boards.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--color-ink);">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--color-accent-fill)"></rect><rect x="7" y="7" width="3.5" height="14" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="12.25" y="7" width="3.5" height="9" rx="1.75" fill="var(--color-on-accent)"></rect><rect x="17.5" y="7" width="3.5" height="11.5" rx="1.75" fill="var(--color-on-accent)"></rect></svg>
+      <span style="font-family: var(--font-display); font-weight: 600; font-size: 16px;">agent-board</span>
+    </a>
+    <span aria-hidden="true" style="color: var(--color-muted);">/</span>
+    <span style="font-weight: 600;">agent-board</span>
+    <nav aria-label="Seções do board" style="display: flex; flex-wrap: wrap; gap: 4px;">
+      <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); background: var(--color-accent-tint); color: var(--color-accent); font-weight: 600; text-decoration: none;">Quadro</a>
+      <a href="CycleRun.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Ciclos</a>
+      <a href="Discover.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Descobertas</a>
+      <a href="Members.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Membros</a>
+      <a href="Credentials.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Minhas credenciais</a>
+      <a href="Settings.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--color-ink-2); font-weight: 500; text-decoration: none;">Configuração</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+      <button type="button" onClick="{{toggleTheme}}" aria-label="{{themeLabel}}" style="display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink-2); cursor: pointer;">
+        <sc-if value="{{isDark}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></sc-if>
+        <sc-if value="{{isLight}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+      </button>
+      <x-import component-from-global-scope="VanillaUI.Avatar"><x-import component-from-global-scope="VanillaUI.AvatarFallback">GB</x-import></x-import>
+    </div>
+  </div>
+</header>
+
+<main style="max-width: 1280px; margin: 0 auto; padding: 24px 24px 64px; display: flex; flex-direction: column; gap: 20px;">
+  <a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 6px; width: fit-content; min-height: 32px; color: var(--color-ink-2); font-size: 13px; text-decoration: none;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    Voltar ao quadro
+  </a>
+
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px;">
+    <div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+      <h1 style="margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.3;">Avisos no Slack quando um card espera você</h1>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; color: var(--color-ink-2);">
+        <x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Aguardando você</x-import>
+        <span>em <strong>Rascunhos</strong> · 2ª rodada de perguntas</span>
+        <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">feat/slack-alerts</span>
+        <span>pedida por guilhermebittelbrunn há 25 min</span>
+      </div>
+    </div>
+    <x-import component-from-global-scope="VanillaUI.Button" variant="ghost" size="sm">Descartar rascunho</x-import>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+    <div style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+
+      <x-import component-from-global-scope="VanillaUI.Card" style="gap: 12px;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.025em; text-transform: uppercase; color: var(--color-muted);">Seu pedido</span>
+        <p style="margin: 0; color: var(--color-ink-2);">Quero ser avisado no Slack quando um card parar esperando resposta. Hoje só descubro quando abro o board. Um canal por board resolve, e o link tem que levar direto ao card.</p>
+        <span style="display: inline-flex; align-items: center; gap: 8px; width: fit-content; padding: 6px 12px; border-radius: var(--radius-pill); background: var(--color-raised); font-size: 13px; color: var(--color-ink-2);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"></path></svg>conversa-com-o-time.png</span>
+      </x-import>
+
+      <x-import component-from-global-scope="VanillaUI.Card" style="gap: 20px; border-color: var(--color-warn);">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <h2 style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">3 perguntas para fechar a spec</h2>
+          <p style="margin: 0; font-size: 13px; color: var(--color-ink-2);">O agente marcou a opção que recomenda. Responda e ele atualiza o rascunho ao lado.</p>
+        </div>
+
+        <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px;">
+          <legend style="padding: 0; margin-bottom: 8px; font-weight: 600;">1. Quais eventos avisam no Slack?</legend>
+          <button type="button" aria-pressed="{{q1a.pressed}}" onClick="{{pickQ1a}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q1a.border}}; background: {{q1a.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q1a.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600;">Só quando um card espera alguém <x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Recomendado</x-import></span><span style="font-size: 13px; color: var(--color-ink-2);">É o problema do pedido; o resto fica no board.</span></span>
+          </button>
+          <button type="button" aria-pressed="{{q1b.pressed}}" onClick="{{pickQ1b}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q1b.border}}; background: {{q1b.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q1b.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-weight: 600;">Esperando alguém, falhas e PR aberta</span><span style="font-size: 13px; color: var(--color-ink-2);">Mais completo, mais mensagens no canal.</span></span>
+          </button>
+          <button type="button" aria-pressed="{{q1c.pressed}}" onClick="{{pickQ1c}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q1c.border}}; background: {{q1c.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q1c.ring}};"></span>
+            <span style="flex: 1; font-weight: 600;">Escrever outra resposta</span>
+          </button>
+          <sc-if value="{{showOther}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label for="other-q1" style="font-size: 13px; font-weight: 600;">Sua resposta</label>
+              <x-import component-from-global-scope="VanillaUI.Textarea" id="other-q1" rows="{{three}}" placeholder="Quais eventos e por quê"></x-import>
+            </div>
+          </sc-if>
+        </fieldset>
+
+        <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px;">
+          <legend style="padding: 0; margin-bottom: 8px; font-weight: 600;">2. Para onde vai o aviso?</legend>
+          <button type="button" aria-pressed="{{q2a.pressed}}" onClick="{{pickQ2a}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q2a.border}}; background: {{q2a.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q2a.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600;">Um canal por board <x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Recomendado</x-import></span><span style="font-size: 13px; color: var(--color-ink-2);">Foi o que o pedido descreveu.</span></span>
+          </button>
+          <button type="button" aria-pressed="{{q2b.pressed}}" onClick="{{pickQ2b}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q2b.border}}; background: {{q2b.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q2b.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-weight: 600;">Mensagem direta para quem disparou</span><span style="font-size: 13px; color: var(--color-ink-2);">Exige ligar cada login do GitHub a uma conta do Slack.</span></span>
+          </button>
+        </fieldset>
+
+        <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px;">
+          <legend style="padding: 0; margin-bottom: 8px; font-weight: 600;">3. Dá para responder a pergunta pelo próprio Slack?</legend>
+          <button type="button" aria-pressed="{{q3a.pressed}}" onClick="{{pickQ3a}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q3a.border}}; background: {{q3a.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q3a.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600;">Não; o link abre o card <x-import component-from-global-scope="VanillaUI.Badge" variant="accent">Recomendado</x-import></span><span style="font-size: 13px; color: var(--color-ink-2);">Mantém a resposta e o papel efetivo conferidos no board.</span></span>
+          </button>
+          <button type="button" aria-pressed="{{q3b.pressed}}" onClick="{{pickQ3b}}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1.5px solid {{q3b.border}}; background: {{q3b.bg}}; text-align: left; font: inherit; color: var(--color-ink); cursor: pointer;">
+            <span aria-hidden="true" style="flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 999px; box-sizing: border-box; border: {{q3b.ring}};"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-weight: 600;">Sim, com botões na mensagem</span><span style="font-size: 13px; color: var(--color-ink-2);">Mais rápido, mas precisa de um app do Slack.</span></span>
+          </button>
+        </fieldset>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="extra" style="font-size: 13px; font-weight: 600;">Algo mais que a spec deve considerar? <span style="font-weight: 400; color: var(--color-muted);">(opcional)</span></label>
+          <x-import component-from-global-scope="VanillaUI.Textarea" id="extra" rows="{{two}}" placeholder="Restrições, exemplos, o que não fazer"></x-import>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--color-line);">
+          <x-import component-from-global-scope="VanillaUI.Button">Responder e continuar a spec</x-import>
+          <span style="font-size: 13px; color: var(--color-muted);">Roda no seu runner macbook-gui</span>
+        </div>
+      </x-import>
+
+      <section aria-labelledby="round1" style="display: flex; flex-direction: column; gap: 10px;">
+        <h2 id="round1" style="margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 600;">1ª rodada · respondida há 12 min</h2>
+        <dl style="margin: 0; display: flex; flex-direction: column; gap: 1px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--color-line); background: var(--color-line);">
+          <div style="padding: 12px 16px; background: var(--color-surface);"><dt style="font-size: 13px; color: var(--color-muted);">Isso substitui os avisos dentro do board?</dt><dd style="margin: 0;">Não, complementa.</dd></div>
+          <div style="padding: 12px 16px; background: var(--color-surface);"><dt style="font-size: 13px; color: var(--color-muted);">Quantos workspaces do Slack?</dt><dd style="margin: 0;">Um só, o do time.</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <aside aria-labelledby="draft-title" style="flex: 1 1 440px; min-width: 0;">
+      <x-import component-from-global-scope="VanillaUI.Card" style="gap: 16px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+          <h2 id="draft-title" style="margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600;">Rascunho da spec</h2>
+          <span style="margin-left: auto; font-size: 12px; color: var(--color-muted);">atualizado há 2 min</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 13px; color: var(--color-ink-2);">5 de 8 seções prontas</span>
+          <span aria-hidden="true" style="display: block; height: 6px; border-radius: 999px; background: var(--color-raised);"><span style="display: block; width: 62%; height: 6px; border-radius: 999px; background: var(--color-accent-fill);"></span></span>
+        </div>
+        <article style="display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: var(--radius); background: var(--color-raised); color: var(--color-ink-2);">
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--color-muted);">specs/features/slack-alerts.md</span>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h3 style="margin: 0; font-size: 14px; color: var(--color-ink);">Resumo</h3>
+            <p style="margin: 0;">Avisar no Slack quando um card para esperando alguém, com link direto para o card.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h3 style="margin: 0; font-size: 14px; color: var(--color-ink);">Problema</h3>
+            <p style="margin: 0;">Quem dispara uma etapa só descobre a pergunta pendente quando abre o board, e o card fica parado.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h3 style="margin: 0; font-size: 14px; color: var(--color-ink);">O que já existe no repo</h3>
+            <p style="margin: 0;">A linha do tempo grava a pergunta como evento do card; nada sai do board hoje.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <h3 style="margin: 0; font-size: 14px; color: var(--color-ink);">Proposta — corte de MVP</h3>
+            <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
+              <li>Conectar um canal do Slack por board, em Configuração.</li>
+              <li>Mensagem com o título do card, a etapa e o link.</li>
+              <li style="color: var(--color-muted);">Quais eventos avisam: depende da pergunta 1.</li>
+            </ul>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h3 style="margin: 0; font-size: 14px; color: var(--color-ink);">Fora do corte</h3>
+            <p style="margin: 0;">Vários workspaces do Slack.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <h3 style="margin: 0; font-size: 14px; color: var(--color-ink);">Ainda em aberto</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Riscos</x-import>
+              <x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Impacto por camada</x-import>
+              <x-import component-from-global-scope="VanillaUI.Badge" variant="warn">Sinais de pronto</x-import>
+            </div>
+          </div>
+        </article>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <x-import component-from-global-scope="VanillaUI.Button" disabled="{{yes}}" style="width: 100%;">Aprovar spec e mandar para Tarefas</x-import>
+          <span style="font-size: 12px; text-align: center; color: var(--color-muted);">Libera quando não houver perguntas abertas</span>
+        </div>
+      </x-import>
+    </aside>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q1: 'a', q2: 'a', q3: 'a' };
+  }
+  option(current, key) {
+    const on = current === key;
+    return {
+      pressed: on ? 'true' : 'false',
+      border: on ? 'var(--color-accent)' : 'var(--color-line)',
+      bg: on ? 'var(--color-accent-tint)' : 'var(--color-surface)',
+      ring: on ? '5px solid var(--color-accent)' : '1.5px solid var(--color-muted)'
+    };
+  }
+  renderVals() {
+    const theme = typeof this.state.dark === 'boolean' ? (this.state.dark ? 'dark' : 'light') : (this.props.theme ?? 'light');
+    const s = this.state;
+    return {
+      theme: theme,
+      themeClass: theme === 'dark' ? 'dark' : '',
+      isDark: theme === 'dark',
+      isLight: theme !== 'dark',
+      themeLabel: theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro',
+      toggleTheme: () => this.setState({ dark: theme !== 'dark' }),
+      q1a: this.option(s.q1, 'a'), q1b: this.option(s.q1, 'b'), q1c: this.option(s.q1, 'c'),
+      q2a: this.option(s.q2, 'a'), q2b: this.option(s.q2, 'b'),
+      q3a: this.option(s.q3, 'a'), q3b: this.option(s.q3, 'b'),
+      pickQ1a: () => this.setState({ q1: 'a' }),
+      pickQ1b: () => this.setState({ q1: 'b' }),
+      pickQ1c: () => this.setState({ q1: 'c' }),
+      pickQ2a: () => this.setState({ q2: 'a' }),
+      pickQ2b: () => this.setState({ q2: 'b' }),
+      pickQ3a: () => this.setState({ q3: 'a' }),
+      pickQ3b: () => this.setState({ q3: 'b' }),
+      showOther: s.q1 === 'c',
+      two: 2,
+      three: 3,
+      yes: true
+    };
+  }
+}
+</script>
+</body>
+</html>
