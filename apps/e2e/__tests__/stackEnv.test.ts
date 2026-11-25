@@ -10,7 +10,6 @@ import {
 
 const urls = {
     app: "http://localhost:4000",
-    web: "http://localhost:4001",
     api: "http://localhost:4002",
 };
 
@@ -37,18 +36,18 @@ afterEach(() => {
 describe("buildStackEnv", () => {
     it("keeps the .env.example values and blanks keys that only the local files define", () => {
         writeEnv("api", ".env.example", [
-            'RESEND_FROM=""',
+            'SENDER_ADDRESS=""',
             'VERCEL_PROJECT_PRODUCTION_URL="http://localhost:3002"',
         ]);
         writeEnv("api", ".env", [
-            'RESEND_FROM="real@example.com"',
+            'SENDER_ADDRESS="real@example.com"',
             'DATABASE_URL="postgres://real"',
         ]);
         writeEnv("api", ".env.local", ['LOCAL_ONLY_SECRET="secret"']);
 
         const env = buildStackEnv("api", { appsRoot, urls });
 
-        expect(env.RESEND_FROM).toBe("");
+        expect(env.SENDER_ADDRESS).toBe("");
         expect(env.VERCEL_PROJECT_PRODUCTION_URL).toBe("http://localhost:3002");
         expect(env.DATABASE_URL).toBe("");
         expect(env.LOCAL_ONLY_SECRET).toBe("");
@@ -77,61 +76,30 @@ describe("buildStackEnv", () => {
             FIREBASE_ADMIN_PROJECT_ID: "",
             FIREBASE_ADMIN_PRIVATE_KEY: "",
             ARCJET_KEY: "",
-            ONBOARDING_ENABLED: "",
             NEXT_TELEMETRY_DISABLED: "1",
         });
     });
 
-    it("points each app at the other two", () => {
+    it("points each app at the other", () => {
         writeEnv("api", ".env.example", [
             'CORS_ORIGIN="http://localhost:3000"',
         ]);
         writeEnv("app", ".env.example", ['NEXT_PUBLIC_API_URL="x"']);
-        writeEnv("web", ".env.example", [
-            'NEXT_PUBLIC_APP_URL=""',
-            'NEXT_PUBLIC_API_URL=""',
-        ]);
 
         expect(buildStackEnv("api", { appsRoot, urls })).toMatchObject({
-            CORS_ORIGIN: `${urls.app},${urls.web}`,
+            CORS_ORIGIN: urls.app,
             NEXT_PUBLIC_APP_URL: urls.app,
         });
         expect(buildStackEnv("app", { appsRoot, urls })).toMatchObject({
             NEXT_PUBLIC_API_URL: urls.api,
             NEXT_PUBLIC_APP_URL: urls.app,
         });
-        // An empty app URL is what sends the landing CTA to the web sign-up page.
-        expect(buildStackEnv("web", { appsRoot, urls })).toMatchObject({
-            NEXT_PUBLIC_API_URL: urls.api,
-            NEXT_PUBLIC_APP_URL: "",
-        });
-    });
-
-    it("turns members on in the api and the app, over the empty value of .env.example, and not in the web", () => {
-        for (const app of ["api", "app", "web"]) {
-            writeEnv(app, ".env.example", [
-                'NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED=""',
-            ]);
-        }
-
-        expect(
-            buildStackEnv("api", { appsRoot, urls })
-                .NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED
-        ).toBe("true");
-        expect(
-            buildStackEnv("app", { appsRoot, urls })
-                .NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED
-        ).toBe("true");
-        expect(
-            buildStackEnv("web", { appsRoot, urls })
-                .NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED
-        ).toBe("");
     });
 
     it("works without any local env file", () => {
-        writeEnv("web", ".env.example", ['NEXT_PUBLIC_WEB_URL=""']);
+        writeEnv("app", ".env.example", ['NEXT_PUBLIC_APP_URL=""']);
 
-        expect(() => buildStackEnv("web", { appsRoot, urls })).not.toThrow();
+        expect(() => buildStackEnv("app", { appsRoot, urls })).not.toThrow();
     });
 });
 

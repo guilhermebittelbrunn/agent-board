@@ -27,16 +27,16 @@ test("the account section follows the URL, the sidebar and the tabs", async ({
         page.getByRole("heading", { level: 2, name: accountCopy.tabs.security })
     ).toBeVisible();
 
-    const sidebarPrivacyLink = page.getByRole("link", {
-        name: accountCopy.tabs.privacy,
+    const sidebarProfileLink = page.getByRole("link", {
+        name: accountCopy.tabs.profile,
         exact: true,
     });
-    await sidebarPrivacyLink.click();
-    await expectQueryParam(page, "tab", "privacy");
+    await sidebarProfileLink.click();
+    await expectQueryParam(page, "tab", "profile");
     await expect(
-        page.getByRole("heading", { level: 2, name: accountCopy.tabs.privacy })
+        page.getByRole("heading", { level: 2, name: accountCopy.tabs.profile })
     ).toBeVisible();
-    await expect(sidebarPrivacyLink).toHaveAttribute("aria-current", "page");
+    await expect(sidebarProfileLink).toHaveAttribute("aria-current", "page");
 
     await page
         .getByRole("tablist", { name: accountCopy.sectionNav.label })
@@ -66,16 +66,16 @@ test("a link without a section lands on the profile", async ({ page }) => {
     ).toBeVisible();
 });
 
-test("the billing deep link keeps the checkout outcome in the URL", async ({
+test("a removed section lands on the profile and keeps the other parameters", async ({
     page,
 }) => {
-    await page.goto(`${accountPath}?tab=billing&checkout=canceled`);
+    await page.goto(`${accountPath}?tab=billing&from=menu`);
 
     await expect(
         page
             .getByRole("tablist", { name: accountCopy.sectionNav.label })
-            .getByRole("tab", { name: accountCopy.tabs.billing })
+            .getByRole("tab", { name: accountCopy.tabs.profile })
     ).toHaveAttribute("aria-selected", "true");
-    await expectQueryParam(page, "checkout", "canceled");
-    await expectQueryParam(page, "tab", "billing");
+    await expectQueryParam(page, "tab", "profile");
+    await expectQueryParam(page, "from", "menu");
 });
