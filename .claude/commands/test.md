@@ -16,6 +16,18 @@ critérios de aceite + execução de testes + validação executável.
 suíte são seus — e a evidência que sobrevive é o **texto** do `test/report.md`, não o print (§7 de
 [`docs/review-checklist.md`](../../docs/review-checklist.md)).
 
+<!-- board-mode:start -->
+## Modo board (`--board <card-id>`)
+
+Se `$ARGUMENTS` contiver `--board <card-id>`, esta execução foi disparada pelo agent-board e **não há
+ninguém no teclado**. Siga [`.claude/rules/board-mode.md`](../rules/board-mode.md): onde ela conflitar com
+os passos abaixo, ela vence. Nesta etapa, em resumo:
+
+- Sem perguntas: gere sempre o roteiro de teste manual; rode e2e só se o ambiente tiver browser.
+- Teste relacionado falhando por defeito do código → `needs_rework`; por ambiente → `failed` com o motivo.
+- Termine com commit dos testes criados e de `docs/features/<slug>/test/`, e push.
+<!-- board-mode:end -->
+
 ## Regras de escrita (`humanizer` + `caveman`)
 
 Regra em [`.claude/rules/writing-skills.md`](../rules/writing-skills.md); as skills estão no
