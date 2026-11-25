@@ -4,6 +4,11 @@ Board Kanban pessoal que orquestra o desenvolvimento por specs com agentes do Cl
 para um repositório do GitHub; cada card é uma spec do backlog daquele repositório; cada coluna é uma etapa
 do pipeline; arrastar um card dispara a etapa, e o agente registra no card o que fez.
 
+![Prévia do agent-board: o quadro, um card arrastado que dispara a Análise, as perguntas do agente no card, uma spec escrita a partir de um pedido e um ciclo com várias specs](docs/design/agent-board.gif)
+
+A prévia é montada a partir do [desenho das telas](docs/design/README.md); a interface do board ainda está
+sendo construída.
+
 ```
 Tarefas → Análise → Executando → Revisando → Testando → Aguardando PR → Concluído
           /analyze   /develop     /review     /test      /observe, /mediate
