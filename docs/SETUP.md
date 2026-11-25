@@ -1,10 +1,10 @@
 # Setup local & variáveis de ambiente
 
-Como subir o boilerplate do zero e o mapa **real** das variáveis de ambiente. A fonte de verdade de cada var é o `keys.ts` do pacote correspondente (validado por `@t3-oss/env-nextjs`) e o `env.ts` de cada app.
+Como subir o agent-board do zero e o mapa **real** das variáveis de ambiente. A fonte de verdade de cada var é o `keys.ts` do pacote correspondente (validado por `@t3-oss/env-nextjs`) e o `env.ts` de cada app.
 
-> Os `.env.example` de `apps/{api,app,web}` refletem **apenas** as vars usadas por este fork (agrupadas e comentadas). Copie o de cada app para `.env` (ou `.env.local`) e preencha. Este documento detalha **como obter/usar cada uma**. As chaves herdadas do upstream next-forge e não usadas aqui — Clerk, `DATABASE_URL`, BetterStack, Svix, Knock, Liveblocks, BaseHub, `FLAGS_SECRET` e PostHog — foram removidas.
+> Os `.env.example` de `apps/{api,app}` refletem **apenas** as vars usadas aqui (agrupadas e comentadas). Copie o de cada app para `.env` (ou `.env.local`) e preencha. Este documento detalha **como obter/usar cada uma**.
 
-> 🚀 **Indo para produção?** Este documento cobre o ambiente local. Os passos que só existem fora do repo — publicar as rules do Firestore, verificar o domínio de e-mail no DNS, ligar branch protection — estão em [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md), em formato de checklist.
+> 🚀 **Indo para produção?** Este documento cobre o ambiente local. Os passos que só existem fora do repo — publicar as rules do Firestore, ligar o login Google no domínio, ligar branch protection — estão em [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md), em formato de checklist.
 
 ## Pré-requisitos
 
@@ -17,8 +17,7 @@ Como subir o boilerplate do zero e o mapa **real** das variáveis de ambiente. A
   ```
 
   Para não repetir a cada terminal, ponha as duas linhas no `~/.zshrc`.
-- Contas: **Firebase** (Auth + Firestore), **Stripe**, **Resend** — necessárias **para publicar**, não para desenvolver. Para desenvolver local, os emuladores substituem o Firebase (ver [Emulador do Firebase](#emulador-do-firebase-caminho-local-padrão)). Opcional: **Arcjet** (segurança), Google Analytics/PostHog.
-- [Stripe CLI](https://docs.stripe.com/stripe-cli) para webhooks locais.
+- Contas: **Firebase** (Auth + Firestore) — necessária **para publicar**, não para desenvolver. Para desenvolver local, os emuladores substituem o Firebase (ver [Emulador do Firebase](#emulador-do-firebase-caminho-local-padrão)). Opcional: **Arcjet** (segurança), Google Analytics.
 
 ```bash
 nvm use            # Node 22.12.0
@@ -30,15 +29,15 @@ pnpm install
 Cada var é lida pelo `keys.ts` indicado. Copie o `.env.example` de cada app para `.env.local` (ou `.env`) e preencha **apenas** o que está abaixo.
 
 ### Firebase — Auth (Admin, server) · pacote `@repo/auth` (`packages/auth/keys.ts`)
-Usado pelos **três** apps: `apps/api` (guards verificam o ID token), e `apps/app` + `apps/web` (proxy/SSR verificam a sessão **e mintam** o session cookie compartilhado + custom tokens da SSO cross-app — ver [`docs/AUTH-SSO.md`](AUTH-SSO.md)). Cada app precisa do service account.
+Usado pelos **dois** apps: `apps/api` (guards verificam o ID token) e `apps/app` (proxy/SSR verificam a sessão **e mintam** o session cookie e os custom tokens). Cada app precisa do service account.
 
 | Var | Obrigatória | Onde obter |
 |-----|-------------|-----------|
 | `FIREBASE_ADMIN_PROJECT_ID` | sim* | Firebase Console → Project settings → Service accounts |
 | `FIREBASE_ADMIN_CLIENT_EMAIL` | sim | idem (gerar chave privada de service account) |
 | `FIREBASE_ADMIN_PRIVATE_KEY` | sim | idem — manter `\n` escapados; o código faz `replace(/\\n/g, "\n")` |
-| `FIREBASE_WEB_API_KEY` | sim | Web API key (Identity Toolkit, usada no sign-in/sign-up REST). Faz fallback p/ `NEXT_PUBLIC_FIREBASE_API_KEY` |
-| `FIREBASE_STORAGE_BUCKET` | **não** | Bucket do Cloud Storage (ex.: `<project-id>.firebasestorage.app`). **Chave do upload de arquivo**: vazia, `POST /files` responde `STORAGE_NOT_CONFIGURED` (503) e o painel mantém o campo de URL. Faz fallback p/ `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`. ⚠️ Exige plano **Blaze** — ver [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md) §6 |
+| `FIREBASE_WEB_API_KEY` | sim | Web API key (Identity Toolkit, usada no sign-in REST e na criação de usuário pelo admin). Faz fallback p/ `NEXT_PUBLIC_FIREBASE_API_KEY` |
+| `FIREBASE_STORAGE_BUCKET` | **não** | Bucket do Cloud Storage (ex.: `<project-id>.firebasestorage.app`). **Chave do upload de arquivo**: vazia, `POST /files` responde `STORAGE_NOT_CONFIGURED` (503) e o painel mantém o campo de URL. Faz fallback p/ `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`. ⚠️ Exige plano **Blaze** — ver [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md) |
 
 \* `FIREBASE_ADMIN_PROJECT_ID` cai para `NEXT_PUBLIC_FIREBASE_PROJECT_ID` se omitido (mesmo projeto).
 
@@ -49,10 +48,10 @@ Usado pelos **três** apps: `apps/api` (guards verificam o ID token), e `apps/ap
 > variables` se elas não estiverem no ambiente de build (só `NODE_ENV=development` pula a validação).
 > Considere isso ao configurar CI ou qualquer build fora da Vercel.
 
-> ⚠️ **A service account é tudo ou nada.** `packages/auth/keys.ts` aceita o conjunto **inteiramente ausente** (um front que só precise de `FIREBASE_WEB_API_KEY`), mas rejeita um conjunto **parcial** como erro de env, nomeando as vars que faltam. Atenção ao caso de borda: como `FIREBASE_ADMIN_PROJECT_ID` cai para `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, ter essa var pública configurada já torna o conjunto "não vazio" — então `FIREBASE_ADMIN_CLIENT_EMAIL` e `FIREBASE_ADMIN_PRIVATE_KEY` passam a ser exigidas. É o comportamento desejado (os três apps precisam do service account), mas explica a mensagem se você configurar só a parte pública.
+> ⚠️ **A service account é tudo ou nada.** `packages/auth/keys.ts` aceita o conjunto **inteiramente ausente** (um front que só precise de `FIREBASE_WEB_API_KEY`), mas rejeita um conjunto **parcial** como erro de env, nomeando as vars que faltam. Atenção ao caso de borda: como `FIREBASE_ADMIN_PROJECT_ID` cai para `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, ter essa var pública configurada já torna o conjunto "não vazio" — então `FIREBASE_ADMIN_CLIENT_EMAIL` e `FIREBASE_ADMIN_PRIVATE_KEY` passam a ser exigidas. É o comportamento desejado (os dois apps precisam do service account), mas explica a mensagem se você configurar só a parte pública.
 
 ### Firebase — client (browser) · lido em `@repo/auth/client.ts` e providers
-Usado por `apps/app` e `apps/web` (sign-in/sign-up no cliente, sessão).
+Usado por `apps/app` (sign-in no cliente, sessão).
 
 `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID`, `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` — todos em Firebase Console → Project settings → Your apps (Web).
 
@@ -61,65 +60,39 @@ Usado por `apps/app` e `apps/web` (sign-in/sign-up no cliente, sessão).
 > 📦 **`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` é também o interruptor do upload de arquivo** no `apps/app`:
 > preenchida, o formulário mostra o seletor de arquivo e o host do bucket entra na política de imagem;
 > vazia, ele mantém o campo de URL. Deve ter o **mesmo valor** de `FIREBASE_STORAGE_BUCKET` na `apps/api`.
-> Ativação, permissões da service account e custo: [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md) §6.
+> Ativação, permissões da service account e custo: [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md).
 
-### URLs entre apps
+### URLs entre os apps
 | Var | App | Para quê |
 |-----|-----|----------|
-| `NEXT_PUBLIC_API_URL` | `app`, `web`, `api` | Base URL do `@repo/sdk`. Em dev: `http://localhost:3002`. **Sem isto o front não fala com a API.** |
-| `NEXT_PUBLIC_APP_URL` | todos | URL do painel. Link "Ir para o painel" (web, modo subscription), redirect comum→painel, e **base das URLs de retorno do Stripe checkout/portal** (api). |
-| `NEXT_PUBLIC_WEB_URL` | todos | URL da web. Redirect do comum → web no modo `simple`. |
-| `NEXT_PUBLIC_DOCS_URL` | `web` | Link de Documentação no header e no footer da landing, em aba nova (opcional; oculto se vazio). Com o link, a barra completa do header aparece a partir de 1280 px. |
-| `CORS_ORIGIN` | `api` | **Lista de origens separada por vírgula** (`https://app.example.com,https://example.com`) autorizadas a chamar a API pelo browser. **Obrigatória em produção**: sem ela (ou com valor vazio) o processo da API imprime `[boot] CORS_ORIGIN is required in production…` e sai com código 1 (`apps/api/instrumentation.ts`). Fora de produção, vazia = `http://localhost:3000,http://localhost:3001`. **Não existe coringa.** Requisição sem header `Origin` (servidor→servidor, prefetch RSC) passa sem cabeçalho de CORS, exceto escrita (`POST`/`PUT`/`PATCH`/`DELETE`) que leva o cookie `access-token` sem `Authorization`: essa recebe `403 AUTH_FORBIDDEN_ORIGIN`. Origem fora da lista também recebe `403 AUTH_FORBIDDEN_ORIGIN`. |
+| `NEXT_PUBLIC_API_URL` | `app`, `api` | Base URL do `@repo/sdk`. Em dev: `http://localhost:3002`. **Sem isto o front não fala com a API.** |
+| `NEXT_PUBLIC_APP_URL` | `app`, `api` | URL do painel. |
+| `CORS_ORIGIN` | `api` | **Lista de origens separada por vírgula** (`https://app.example.com`) autorizadas a chamar a API pelo browser. **Obrigatória em produção**: sem ela (ou com valor vazio) o processo da API imprime `[boot] CORS_ORIGIN is required in production…` e sai com código 1 (`apps/api/instrumentation.ts`). Fora de produção, vazia = `http://localhost:3000`. **Não existe coringa.** Requisição sem header `Origin` (servidor→servidor, prefetch RSC) passa sem cabeçalho de CORS, exceto escrita (`POST`/`PUT`/`PATCH`/`DELETE`) que leva o cookie `access-token` sem `Authorization`: essa recebe `403 AUTH_FORBIDDEN_ORIGIN`. Origem fora da lista também recebe `403 AUTH_FORBIDDEN_ORIGIN`. |
 
 > ⚠️ **Preview deploys**: o domínio efêmero (`*.vercel.app`) não está em `CORS_ORIGIN` e o browser será recusado. Acrescente a origem do preview à variável do ambiente de preview — mesma armadilha dos *Authorized domains* do Firebase.
 
-### Modo de produto e sessão · `@repo/next-config` (`packages/next-config/keys.ts`) + `@repo/auth/session`
+### Sessão · `@repo/auth/session`
 | Var | App | Para quê |
 |-----|-----|----------|
-| `NEXT_PUBLIC_PRODUCT_MODE` | `app`, `web` | `subscription` (usuário opera no painel; assinatura Stripe) \| `simple` (usuário opera na web; painel admin-only). Default `subscription`. Dirige roteamento/navbar/áreas — ver [`docs/AUTH-SSO.md`](AUTH-SSO.md) e [`docs/PAYMENTS.md`](PAYMENTS.md). |
-| `NEXT_PUBLIC_PRIVACY_CONTACT` | `web` | Endereço publicado como canal de privacidade nas páginas legais. Vazio: o canal cai no formulário de `/contact`, que entrega na caixa de `NEXT_PUBLIC_APP_SUPPORT_EMAIL`. |
-| `SESSION_COOKIE_DOMAIN` | `app`, `web` | **Vazio em dev** (cookie host-only em `localhost`, compartilhado entre portas). Em prod: domínio registrável pai (`example.com`) para `app.example.com` + `example.com` compartilharem a sessão. Nunca um public suffix (`vercel.app`). |
-| `SESSION_COOKIE_MAX_AGE_DAYS` | `app`, `web` | Duração da sessão em dias (Firebase: ~0.0035–14). Default 5. |
-| `SESSION_ABSOLUTE_MAX_AGE_DAYS` | `app`, `web` | Teto absoluto da sessão em dias, contado da autenticação original. Enquanto a aba está aberta o cookie é renovado; passado o teto a renovação é recusada com `AUTH_SESSION_EXPIRED` e o cookie é limpo. Default 30, grampeado entre `SESSION_COOKIE_MAX_AGE_DAYS` e 90. |
-| `ONBOARDING_ENABLED` | `app` | Fluxo de onboarding depois do cadastro (nome de exibição e idioma), lido em `apps/app/env.ts`. Vazio ou ausente: ligado. `"false"`: ninguém é desviado e `/onboarding` redireciona para o painel. A API continua gravando o estado inicial em perfis novos, então quem se cadastrar com a variável em `"false"` passa pelo fluxo uma vez se ela voltar a ficar vazia. |
+| `SESSION_COOKIE_DOMAIN` | `app` | **Vazio** salvo quando outro host do mesmo domínio registrável precisar da sessão (`example.com`). Nunca um public suffix (`vercel.app`). |
+| `SESSION_COOKIE_MAX_AGE_DAYS` | `app` | Duração da sessão em dias (Firebase: ~0.0035–14). Default 5. |
+| `SESSION_ABSOLUTE_MAX_AGE_DAYS` | `app`, `api` | Teto absoluto da sessão em dias, contado da autenticação original. Enquanto a aba está aberta o cookie é renovado; passado o teto a renovação é recusada com `AUTH_SESSION_EXPIRED` e o cookie é limpo. Default 30, grampeado entre `SESSION_COOKIE_MAX_AGE_DAYS` e 90. |
 
-### Marca e SEO · `@repo/next-config` (`packages/next-config/brand.ts`) + `@repo/seo`
+### Marca e metadata · `@repo/next-config` (`packages/next-config/brand.ts`) + `@repo/seo`
 Todas opcionais. Vazias ou ausentes, valem os padrões neutros, e valor malformado conta como ausente. São
-`NEXT_PUBLIC_*`, gravadas no bundle no build: trocar pede deploy novo. Roteiro completo em
-[`FORKING.md`](FORKING.md).
+`NEXT_PUBLIC_*`, gravadas no bundle no build: trocar pede deploy novo.
 
 | Var | App | Para quê |
 |-----|-----|----------|
-| `NEXT_PUBLIC_APP_NAME` | `app`, `web`, `api` | Nome do produto na barra lateral, no painel de entrada, no header/footer da web, no `<title>`/Open Graph, no JSON-LD, nos e-mails e no nome do remetente. Padrão `next-boilerplate`. |
-| `NEXT_PUBLIC_APP_LOGO_URL` | `app`, `web`, `api` | URL absoluta `https` e pública do logo (`http` só em `localhost`, `127.0.0.1` ou `[::1]`; qualquer outro `http` é descartado), usada no app, na web e nos e-mails. A origem entra no `img-src` da CSP. Vazia: cada superfície mostra seu ícone genérico. |
-| `NEXT_PUBLIC_APP_SUPPORT_EMAIL` | `api` e `web`; `app` por simetria | Na `api`, destino do formulário de contato e linha de suporte no rodapé dos e-mails para usuários. Na `web`, decide se o formulário de `/contact` aparece. Vazia: o formulário mostra o canal como indisponível, a API responde `CONTACT_UNAVAILABLE` e os e-mails saem sem a linha. |
-| `NEXT_PUBLIC_APP_AUTHOR` | `app`, `web` | Autor e `publisher` na metadata. Vazio: o nome da marca. |
-| `NEXT_PUBLIC_APP_AUTHOR_URL` | `app`, `web` | URL do autor na metadata. |
-| `NEXT_PUBLIC_TWITTER_HANDLE` | `app`, `web` | `twitter:creator`. |
+| `NEXT_PUBLIC_APP_NAME` | `app`, `api` | Nome na barra lateral, no painel de entrada e no `<title>`/Open Graph. Padrão `agent-board`. |
+| `NEXT_PUBLIC_APP_LOGO_URL` | `app`, `api` | URL absoluta `https` e pública do logo (`http` só em `localhost`, `127.0.0.1` ou `[::1]`; qualquer outro `http` é descartado). A origem entra no `img-src` da CSP. Vazia: ícone genérico. |
+| `NEXT_PUBLIC_APP_SUPPORT_EMAIL` | `app`, `api` | Endereço de suporte exibido pela marca. Opcional. |
+| `NEXT_PUBLIC_APP_AUTHOR` | `app` | Autor e `publisher` na metadata. Vazio: o nome da marca. |
+| `NEXT_PUBLIC_APP_AUTHOR_URL` | `app` | URL do autor na metadata. |
+| `NEXT_PUBLIC_TWITTER_HANDLE` | `app` | `twitter:creator`. |
 
 ### i18n · `@repo/internationalization`
-`NEXT_PUBLIC_DEFAULT_LOCALE` (`pt-br` | `en` | `es`, default `pt-br`) — locale usado quando a URL não traz prefixo de idioma.
-
-### Stripe — pagamentos · pacote `@repo/payments` (`packages/payments/keys.ts`)
-| Var | Obrigatória | Onde obter |
-|-----|-------------|-----------|
-| `STRIPE_SECRET_KEY` | p/ pagamentos | Stripe Dashboard → Developers → API keys (`sk_...`) |
-| `STRIPE_WEBHOOK_SECRET` | p/ webhooks | `stripe listen` imprime `whsec_...`, ou Dashboard → Webhooks |
-
-Opcionais: vazias ou ausentes, a API sobe com a cobrança desligada (a aba billing mostra o placeholder e as
-rotas de pagamento respondem `PAYMENTS_NOT_CONFIGURED`). Preencha as duas ou nenhuma; com só uma, a API avisa
-no boot. Uma chave com prefixo errado (`pk_` como secret, por exemplo) falha a validação. Passo a passo em
-[`docs/PRE-PRODUCTION.md`](PRE-PRODUCTION.md), item 12.
-
-### Resend — e-mail · pacote `@repo/email` (`packages/email/keys.ts`)
-`RESEND_TOKEN` (API key `re_...`) e `RESEND_FROM` (remetente verificado).
-
-Entrar com link por e-mail é opcional e nasce desligado: `EMAIL_LINK_SIGN_IN_ENABLED="true"` na `apps/api` liga.
-Exige as duas variáveis acima e `NEXT_PUBLIC_APP_URL` na API; sem elas a opção não aparece no login. Em projeto
-real também exige o "Link de e-mail" ativo no Firebase e o domínio da app autorizado
-([`docs/PRE-PRODUCTION.md`](PRE-PRODUCTION.md), item 15). Com o emulador, o código do link aparece em
-`GET http://127.0.0.1:9099/emulator/v1/projects/demo-next-boilerplate/oobCodes`.
+Um idioma só, `pt-br`. `NEXT_PUBLIC_DEFAULT_LOCALE` existe para quando outro idioma voltar; hoje qualquer valor diferente de `pt-br` é ignorado.
 
 ### Arcjet — segurança · pacote `@repo/security` (`packages/security/keys.ts`)
 `ARCJET_KEY` (opcional para dev; recomendado em produção).
@@ -134,17 +107,16 @@ O caminho local padrão são **três comandos**, em dois terminais — sem conta
 ```bash
 pnpm emulators   # terminal 1: Auth + Firestore + Storage emulados (deixe rodando)
 pnpm seed        # terminal 2: popula o estado inicial
-pnpm dev         # terminal 2: todos os apps (3000/3001/3002/3003)
+pnpm dev         # terminal 2: app (3000) e api (3002)
 ```
 
 Detalhes, credenciais do seed e como sair do emulador: [Emulador do Firebase](#emulador-do-firebase-caminho-local-padrão).
 
 ```bash
 pnpm --filter app dev             # só um app
-pnpm --filter api dev:with-stripe # API (3002) + encaminhamento de webhooks Stripe
 ```
 
-Portas: `app` 3000 · `web` 3001 · `api` 3002 · `email` 3003 · emulador Auth 9099 · Firestore 8080 ·
+Portas: `app` 3000 · `api` 3002 · emulador Auth 9099 · Firestore 8080 ·
 Storage 9199 · UI do emulador 4001. O `emulators:start` também reserva **4400** (hub), **4500** e **9150** — não são
 configuráveis pelo `firebase.json` e entram na conta de "porta ocupada derruba tudo".
 
@@ -186,7 +158,7 @@ Consequências que valem entender antes de mexer:
   o pipeline. O build continua sendo verificado onde ele roda de verdade: localmente e na Vercel.
 - **`--frozen-lockfile` é um gate de graça.** Mexeu num `package.json` sem rodar `pnpm install`? A PR fica
   vermelha na instalação. Commite o `pnpm-lock.yaml` junto.
-- **Fork privado paga o `e2e` em minutos de Actions.** O `e2e` sobe emulador, três servidores `next dev` e
+- **Repositório privado paga o `e2e` em minutos de Actions.** O `e2e` sobe emulador, dois servidores `next dev` e
   um navegador, e é o job de teto mais alto (25 min). O `verify` também sobe os emuladores de Firestore e
   Storage para o `test:emulator`, e o primeiro run baixa o JAR de rules do Storage. Repositório público não
   paga.
@@ -195,8 +167,8 @@ Consequências que valem entender antes de mexer:
 
 O job `secrets` baixa o binário do Gitleaks do release oficial e confere o SHA-256 contra o valor fixado no
 próprio workflow, sem action de terceiro e sem chave de licença. Ele varre só os commits que a PR traz (ou
-o push, na `main`), não o histórico inteiro: o histórico do repositório de referência já tem uma chave
-apontada pelo secret scanning do GitHub, e uma varredura completa reprovaria o primeiro push de todo fork.
+o push, na `main`), não o histórico inteiro: o histórico herdado do core já tem uma chave apontada pelo
+secret scanning do GitHub, e uma varredura completa reprovaria o primeiro push.
 Para subir de versão, troque `GITLEAKS_VERSION` e `GITLEAKS_SHA256` juntos, com o valor do arquivo
 `gitleaks_<versão>_checksums.txt` do release. O Dependabot não enxerga esse download.
 
@@ -226,7 +198,7 @@ já está lá (`@grpc/grpc-js`) mostra o formato.
 
 ### Runbook — branch protection (ação manual no GitHub)
 
-Workflow é arquivo versionado; **required check não é**. Um fork clona `.github/workflows/` mas nasce sem
+Workflow é arquivo versionado; **required check não é**. Um repositório novo herda `.github/workflows/` mas nasce sem
 nenhuma proteção — o CI apenas sinaliza, e nada impede um push direto em `main`. Para que a verificação
 bloqueie o merge, alguém precisa ligar isto **uma vez por repositório**:
 
@@ -253,24 +225,18 @@ o botão de merge tem de ficar bloqueado.
 
 ## Testes E2E (Playwright)
 
-A suíte vive em `apps/e2e` e percorre, num Chromium de verdade e contra o emulador, os fluxos que todo fork
-herda: cadastro com onboarding, login (comum, admin, senha errada, deep link com `?redirect=`), CRUD de
-`entity`, troca de painel do admin, usuário comum barrado no `/admin`, o CTA de cadastro da landing, a saída
-entre apps (sair na landing encerra a sessão da app, e sair na app encerra a da landing) e o fluxo da
-equipe (convite, aceite, transferência de propriedade e saída do antigo dono). Membros e convites ficam ligados
-(`NEXT_PUBLIC_ORGANIZATION_MEMBERS_ENABLED="true"`) na `api` e na `app` da suíte inteira; o modo B2C, com a
-variável vazia, fica com os testes de unidade. A suíte não tem provedor de e-mail, então o convite é gravado direto
-no emulador com um token conhecido (`apps/e2e/support/firestoreEmulator.ts`) e a emissão pela tela fica com os
-testes de rota. Nas
-telas percorridas ela roda o axe e falha em violação `critical` ou `serious`.
+A suíte vive em `apps/e2e` e percorre, num Chromium de verdade e contra o emulador: login (comum, admin,
+senha errada, deep link com `?redirect=`), CRUD de `entity`, troca de painel do admin, usuário comum barrado
+no `/admin`, as seções da conta e o foco que não fica escondido sob as barras fixas. Nas telas percorridas
+ela roda o axe e falha em violação `critical` ou `serious`.
 
 A suíte tem dois projetos. O `chromium` roda tudo em desktop. O `mobile` (Chromium com o perfil do Pixel 7 e
-viewport de 390 × 844) roda só os fluxos que um visitante precisa completar no celular: landing, login,
-cadastro com onboarding e CRUD de `entity`. No celular, cada `expectAccessible` também reprova a rota que rola
-na horizontal (`scrollWidth` do documento maior que o `clientWidth`, critério 1.4.10 da WCAG).
+viewport de 390 × 844) roda só os fluxos que alguém precisa completar no celular: login e CRUD de `entity`.
+No celular, cada `expectAccessible` também reprova a rota que rola na horizontal (`scrollWidth` do documento
+maior que o `clientWidth`, critério 1.4.10 da WCAG).
 
-É rede de regressão. Ela não julga tema, alinhamento nem idioma (roda só em `pt-br`, no tema claro, e o celular
-só a 390 px), então não substitui a passada com `agent-browser` numa entrega de front-end.
+É rede de regressão. Ela não julga tema nem alinhamento (roda no tema claro, e o celular só a 390 px), então
+não substitui a passada com `agent-browser` numa entrega de front-end.
 
 ### Rodar local
 
@@ -278,21 +244,21 @@ Precisa do JDK 21 no `PATH` (ver [Pré-requisitos](#pré-requisitos)) e, na prim
 
 ```bash
 pnpm --filter e2e exec playwright install chromium
-pnpm e2e                          # sobe emulador + api/app/web, roda o seed e a suíte
+pnpm e2e                          # sobe emulador + api/app, roda o seed e a suíte
 pnpm --filter e2e e2e --project=mobile   # só os fluxos críticos a 390 px (mais o setup)
 pnpm --filter e2e e2e:report      # abre o relatório HTML da última execução
 ```
 
-O `pnpm e2e` sobe tudo sozinho e derruba ao terminar. As portas 3000, 3001 e 3002 precisam estar livres: a
-suíte nunca reaproveita um `app`, `web` ou `api` já de pé, porque um `pnpm dev` aberto pode estar lendo o
-`.env` local. Se uma delas estiver ocupada, o erro nomeia a porta. Para rodar mesmo assim, troque as três
-portas da suíte:
+O `pnpm e2e` sobe tudo sozinho e derruba ao terminar. As portas 3000 e 3002 precisam estar livres: a
+suíte nunca reaproveita um `app` ou `api` já de pé, porque um `pnpm dev` aberto pode estar lendo o `.env`
+local. Se uma delas estiver ocupada, o erro nomeia a porta. Para rodar mesmo assim, troque as portas da
+suíte:
 
 ```bash
-E2E_APP_PORT=3100 E2E_WEB_PORT=3101 E2E_API_PORT=3102 pnpm e2e
+E2E_APP_PORT=3100 E2E_API_PORT=3102 pnpm e2e
 ```
 
-Sem essas variáveis, valem 3000/3001/3002. O emulador é a exceção: se já houver um no ar, a suíte usa esse.
+Sem essas variáveis, valem 3000/3002. O emulador é a exceção: se já houver um no ar, a suíte usa esse.
 Em qualquer caso o projeto `setup` roda o seed no começo, e o estado do emulador volta ao de
 [Estado que o `pnpm seed` cria](#estado-que-o-pnpm-seed-cria).
 
@@ -334,24 +300,6 @@ Entrada que não casa mais nada aparece como anotação `a11y-stale-exception` n
 remova-a. Corrigiu o componente? Tire a exceção no mesmo PR. Violação `minor` e `moderate` não reprova e fica
 no anexo JSON de cada teste.
 
-### Lighthouse da landing
-
-```bash
-pnpm --filter web build           # o comando mede só build de produção
-pnpm lighthouse                   # sobe next start na 3001, mede e derruba
-pnpm lighthouse --url "$WEB"      # mede um servidor já de pé (preview da Vercel, por exemplo)
-```
-
-O `pnpm lighthouse` mede home, preços e contato em `pt-br` (`--locale en` ou `es` troca o idioma) com o
-Lighthouse 12.8.2 em perfil mobile, baixado pelo `npx` na primeira execução. Ele usa o Chromium do Playwright,
-o mesmo do `pnpm e2e`, a menos que `CHROME_PATH` aponte para outro navegador. A tabela com o veredito de cada
-métrica, nos limiares da [parte 3 da entrega](delivery/03-product-quality.md#34-desempenho-pagespeed),
-sai no terminal e em `apps/e2e/lighthouse-results/summary.md`, junto dos JSON brutos (pasta fora do Git).
-
-É medição, não gate: pontuação abaixo da meta termina com código 0. O código 1 fica para erro de execução,
-como página que o Lighthouse não conseguiu medir, build ausente ou porta ocupada (use `--port`). O Lighthouse
-13 exige Node 22.19 ou mais novo, e o repositório fixa `22.12.0` no `.nvmrc`; por isso a versão fica em 12.8.2.
-
 ## Cobertura
 
 ```bash
@@ -381,11 +329,11 @@ pronto para os agents rodarem typecheck, testes, lint e subir os apps:
 | `scripts.setup` | `pnpm install` na criação do workspace (root + `apps/*` + `packages/*`). |
 | `scripts.archive` | Remove todo `node_modules` do worktree antes de arquivar (~2 GB por workspace). |
 | `scripts.run_mode` | `nonconcurrent`: as portas são fixas nos scripts `dev` e os apps se referenciam por `NEXT_PUBLIC_*_URL`, então **um workspace roda de cada vez**. |
-| `scripts.run.*` | Botão Run: `dev` (todos), `app`, `web`, `api`, `test`, `check`. |
+| `scripts.run.*` | Botão Run: `dev` (todos), `app`, `api`, `test`, `check`. |
 
 ⚠️ Conductor só passa a refletir o `settings.toml` **depois que ele chega à branch default no remoto**
 (`origin/main`). Antes disso, para valer já: copie o arquivo para `.conductor/settings.local.toml` no
-diretório raiz do repositório (`~/next-boilerplate/`) — essa cópia é pessoal, não versionada, e tem
+diretório raiz do repositório (`~/agent-board/`) — essa cópia é pessoal, não versionada, e tem
 precedência. **Apague-a depois do merge**, ou ela continuará sobrepondo o arquivo compartilhado.
 
 Para rodar dois workspaces em paralelo seria preciso parametrizar as portas (`$CONDUCTOR_PORT`) nos
@@ -398,19 +346,16 @@ scripts `dev` **e** nas URLs cruzadas de cada `.env` — hoje não é suportado.
 - Provisione o Firestore no Firebase Console (modo de produção) e publique rules **e** índices:
 
 ```bash
-npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes
+npx -y firebase-tools@latest deploy --project <id> --only firestore:rules,firestore:indexes
 ```
 
-- Os índices compostos **declarados** para as consultas atuais estão em [`firestore.indexes.json`](../firestore.indexes.json). O Firestore serve as consultas de hoje sem eles (só igualdades, resolvidas pelos índices de campo único automáticos), então a declaração é preventiva — não espere um erro se remover. Se uma consulta nova responder `FAILED_PRECONDITION … requires an index`, a mensagem do Firestore nomeia o índice exato: acrescente a entrada ao arquivo e republique.
+- Os índices compostos das consultas atuais estão em [`firestore.indexes.json`](../firestore.indexes.json) e são cobertos por `apps/api/__tests__/firestoreIndexes.test.ts`. As listas paginadas e os resumos precisam deles no projeto real; o emulador serve as mesmas consultas sem índice. Se uma consulta nova responder `FAILED_PRECONDITION … requires an index`, a mensagem do Firestore nomeia o índice exato: acrescente a entrada ao arquivo e republique.
 
-### Projeto alvo — `.firebaserc` é versionado
+### Projeto alvo — sem `.firebaserc`
 
-O [`.firebaserc`](../.firebaserc) na raiz é **versionado** e seu `default` aponta para o projeto de referência deste boilerplate. Isso encurta os comandos (sem `--project`) e mantém o project id num lugar só.
-
-**Um fork não deve rodar `firebase use <id>`**: esse comando **reescreve um arquivo versionado**, deixando o `git status` sujo para sempre ou forçando um commit do id próprio por cima. Use uma das duas saídas:
-
-- `npx -y firebase-tools@latest deploy --project <id-do-fork> --only firestore:rules,firestore:indexes` — o flag **sobrepõe** o `default` sem tocar no arquivo. **Recomendado.**
-- `npx -y firebase-tools@latest use --add` — grava um **alias** nomeado ao lado do `default`, o que ao menos torna a mudança intencional e revisável no diff.
+O repositório não versiona `.firebaserc`. Passe o projeto em todo comando com `--project <id>`; se quiser
+um atalho local, `npx -y firebase-tools@latest use --add` grava um alias num `.firebaserc` que você mantém
+fora do commit.
 
 ## Emulador do Firebase (caminho local padrão)
 
@@ -420,7 +365,6 @@ sem conta no Google e sem tocar em dado real** — o service account do Firebase
 ```bash
 cp apps/api/.env.example apps/api/.env
 cp apps/app/.env.example apps/app/.env
-cp apps/web/.env.example apps/web/.env
 
 pnpm emulators   # terminal 1 — deixe rodando; Ctrl+C encerra e descarta o estado
 pnpm seed        # terminal 2
@@ -448,11 +392,12 @@ emulador não estiverem preenchidos, ou se o project id não começar com `demo-
 
 Os emuladores aceitam qualquer project id prefixado com `demo-` sem credencial nenhuma, e o Google nunca
 emite um — é esse par que permite rodar sem conta. O id vai **na linha de comando** (`pnpm emulators` já
-passa `--project`), nunca no [`.firebaserc`](../.firebaserc), que é versionado (ver a seção acima).
+passa `--project`). O nome vem do core e foi mantido para não reescrever o seed, a suíte E2E e os testes de
+emulador.
 
 ### Voltar para um projeto Firebase real
 
-**Esvazie o bloco do emulador** nos três `.env` (`FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`,
+**Esvazie o bloco do emulador** nos dois `.env` (`FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`,
 `FIREBASE_STORAGE_EMULATOR_HOST`, `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST`,
 `NEXT_PUBLIC_FIREBASE_STORAGE_EMULATOR_HOST`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`) e preencha o service account
 e as `NEXT_PUBLIC_FIREBASE_*`. Sem nenhuma dessas variáveis, o comportamento é exatamente o de antes de os
@@ -460,7 +405,7 @@ emuladores existirem — o código não tem default algum, quem é opinativo é 
 
 > ⚠️ **Trate o bloco como unidade.** Preencher metade — servidor emulado e navegador não, ou o contrário —
 > coloca os dois lados em projetos Firebase diferentes: o login "funciona" e o perfil não é encontrado.
-> É a falha mais provável de um fork.
+> É a falha mais provável ao sair do emulador.
 
 ### Armadilhas
 
@@ -491,8 +436,8 @@ emuladores existirem — o código não tem default algum, quem é opinativo é 
 
 ## Primeiro admin (bootstrap de desenvolvimento)
 
-O cadastro público cria sempre um usuário **comum**, e a rota que cria admin exige um admin autenticado —
-então o primeiro admin de um ambiente novo não nasce pelo produto.
+Não há cadastro público, e a rota que cria usuários exige um admin autenticado — então o primeiro admin de
+um ambiente novo não nasce pelo produto.
 
 **No emulador** o `pnpm seed` já entrega `admin@example.com`, e não é preciso mais nada. Para criar outro,
 ou para um projeto real:
@@ -518,7 +463,3 @@ nessa conta e promove o perfil a admin. Rodar de novo é a forma de voltar a ent
 > ⚠️ **Sem nenhum host de emulador configurado, o script recusa rodar** e explica como prosseguir. Criar um
 > administrador com senha conhecida num projeto real é irreversível, então isso exige `--allow-real-project`
 > (ou `DEV_ADMIN_ALLOW_REAL_PROJECT=1`) escrito à mão.
-
-## Pendências de higiene (recomendadas)
-
-- Os `.env.example` já não trazem chaves do projeto de origem (Clerk, `DATABASE_URL`, BetterStack, Svix, Knock, Liveblocks, BaseHub). O que sobrou dele está na raiz (`package.json`, `tsup.config.ts`, `.autorc`, `CHANGELOG.md`) e a limpeza está descrita em [`FORKING.md`](FORKING.md), seção "Resíduos do projeto de origem".

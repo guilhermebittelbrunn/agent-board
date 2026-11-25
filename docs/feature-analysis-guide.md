@@ -1,6 +1,6 @@
 # Guia de análise e entrega de tarefas
 
-Roteiro de **tech lead** para analisar, planejar e revisar uma tarefa neste boilerplate. É o checklist
+Roteiro de **tech lead** para analisar, planejar e revisar uma tarefa neste repositório. É o checklist
 que o `planejador-tarefa` (`/analyze`) preenche e que o `analista-qa` (`/test`) usa para derivar critérios
 de aceite.
 
@@ -31,7 +31,7 @@ de aceite.
 | i18n | `packages/internationalization/translations/apps/app/pages/common/entities.ts` |
 | Testes | `apps/app/__tests__/entityFormSchema.test.ts`, `apps/app/__tests__/useEntityCrud.test.tsx` |
 
-Regras por escopo (auto-carregadas): `apps/api/CLAUDE.md`, `apps/app/CLAUDE.md`, `apps/web/CLAUDE.md`,
+Regras por escopo (auto-carregadas): `apps/api/CLAUDE.md`, `apps/app/CLAUDE.md`,
 `packages/CLAUDE.md`. Convenções detalhadas (design system/RHF): [`AGENTS.md`](../AGENTS.md).
 
 ---
@@ -41,14 +41,12 @@ Regras por escopo (auto-carregadas): `apps/api/CLAUDE.md`, `apps/app/CLAUDE.md`,
 - [ ] Resumo objetivo da feature/tarefa em uma frase.
 - [ ] Objetivos explícitos e o que **não** está no escopo.
 - [ ] **Corte de MVP**: qual é a menor fatia vertical que entrega valor observável? O que fica para
-      depois? (Este repo existe para gerar MVPs — resista a construir o caso geral.)
-- [ ] Apps impactados: `apps/app` (painel) · `apps/web` (landing) · `apps/api` · `packages/*`.
+      depois? (O board é ferramenta de uso próprio — resista a construir o caso geral.)
+- [ ] Apps impactados: `apps/app` (painel) · `apps/api` · `packages/*`.
 - [ ] **Área do painel**: comum (`(common)`), admin (`(admin)/admin`) ou ambas? Muda o guard e o layout.
-- [ ] **Modo de produto**: o comportamento difere entre `NEXT_PUBLIC_PRODUCT_MODE=subscription` e
-      `simple`? (No `simple`, o usuário comum opera na `apps/web` e o painel é admin-only — ver
-      [`AUTH-SSO.md`](AUTH-SSO.md).)
-- [ ] Depende de assinatura/plano ativo? Ver [`PAYMENTS.md`](PAYMENTS.md).
-- [ ] Dependências externas (Firebase, Stripe, Resend, Arcjet) e vars de env novas.
+- [ ] **Papel no board**: quem pode ver e quem pode disparar? (owner/maintainer/operator/viewer, limitado
+      pela permissão no GitHub — ver [`board/ACCESS.md`](board/ACCESS.md).)
+- [ ] Dependências externas (Firebase, GitHub, Claude Code, Arcjet) e vars de env novas.
 - [ ] É **genérico** (cabe em `packages/*`) ou **específico do produto** (fica em `apps/*`)? A regra
       mestra do repo é *genérico no pacote, específico no app*.
 
@@ -74,10 +72,9 @@ Mudança de forma de documento é retrocompatível por natureza — o risco est�
 - [ ] Coleção nova ou existente? Nome no **singular** (`"entity"`, `"user"`), embora a rota seja plural.
 - [ ] Para cada campo novo: nome (dê **≥2 opções** quando não for óbvio), tipo, valor default,
       `null` permitido? e a justificativa.
-- [ ] **Escopo/ownership**: o recurso é **da organização** (dado de negócio, como `entity`: grava
-      `organizationId` como escopo e `userId` como autor, e toda leitura filtra por
-      `ctx.organization.organizationId`) ou **da pessoa** (notificação, preferência: filtra por
-      `ctx.subjectProfile.id`)? Ver "Escopo de dados: organização" em `docs/ARCHITECTURE.md`.
+- [ ] **Escopo/ownership**: o recurso é **de um board** (card, execução, membro: toda leitura filtra pelo
+      board depois do guard de papel) ou **da pessoa** (`entity`, notificação, preferência: filtra por
+      `ctx.subjectProfile.id`)? Ver "Escopo de dados" em `docs/ARCHITECTURE.md`.
 - [ ] Campos herdados do `BaseRepository`: `createdAt`, `updatedAt`, `deletedAt` são estampados
       automaticamente no `create` — **não** os declare no `CreateRequest`.
 - [ ] **Soft delete** é o padrão (`deletedAt`); `delete()` do `BaseRepository` nunca remove de fato.
@@ -86,8 +83,8 @@ Mudança de forma de documento é retrocompatível por natureza — o risco est�
 
 - [ ] Que consultas a feature exige (filtro, ordenação, busca, paginação)?
 - [ ] ⚠️ A paginação do `BaseRepository` (`paginate`) ordena sempre por `createdAt` desc e pelo id, com
-      cursor. O filtro fica no método do repositório (ex.: `entityRepository.listByOrganization` filtra
-      `organizationId` e `deletedAt`), e cada combinação de filtro com essa ordenação exige um índice
+      cursor. O filtro fica no método do repositório (ex.: `entityRepository.listByUser` filtra
+      `userId` e `deletedAt`), e cada combinação de filtro com essa ordenação exige um índice
       composto. Ordenação ou busca diferente disso é **decisão de arquitetura a registrar**, não algo a
       improvisar no handler.
 - [ ] Consulta nova precisa de **índice composto** no Firestore? (`where` + `orderBy` em campos
@@ -116,7 +113,7 @@ O SDK é a **única porta** do front para a API; o tipo dele é o contrato. Semp
       (`list` → `DTO[]`, `findById` → `DTO`, `create` → `DTO`, `update` → `{ id }`, `delete` → `void`).
 - [ ] Registrada no `Client` (`packages/sdk/src/client/index.ts`) e o **contexto** correto
       (`common` | `admin`).
-- [ ] Mudança de contrato **quebra** consumidor existente (`apps/app`, `apps/web`)? Liste os usos
+- [ ] Mudança de contrato **quebra** consumidor existente (`apps/app`)? Liste os usos
       (`rg` pelo nome do tipo/método) e o plano de atualização — a ordem de commit é
       SDK → API → app.
 
@@ -130,14 +127,13 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 ### 4.1 Rota e guard
 
 - [ ] Método(s) e path (sem prefixo `/api` — os grupos `(routes)`/`(guards)` não entram na URL).
-- [ ] **Guard**: `requireOrganizationApi` (usuário comum, dado da organização; expõe também
-      `ctx.organization`), `requireCommonPanelApi` (usuário comum; expõe `ctx.subjectProfile`, ciente de
-      impersonação) ou `requireAdminApi` (só admin; **não** tem `subjectProfile`).
-- [ ] Rota `[id]`: genérico do guard (`requireOrganizationApi<RouteIdParamsContext>`, ou o do painel
-      comum) + `resolveIdFromContext(ctx)`.
-- [ ] **Ownership**: recurso da organização usa `requireOrganizationApi` e o predicado do repositório
-      (`findInOrganization(id, ctx.organization.organizationId)` → `null` → 404); recurso da pessoa usa
-      `if (!row || row.userId !== ctx.subjectProfile.id) → 404`. Vale **em todos** os handlers que tocam
+- [ ] **Guard**: `requireCommonPanelApi` (usuário comum; expõe `ctx.subjectProfile`, ciente de
+      impersonação), `requireAdminApi` (só admin; **não** tem `subjectProfile`) ou o guard de papel do
+      board, quando existir.
+- [ ] Rota `[id]`: genérico do guard (`requireCommonPanelApi<RouteIdParamsContext>`) +
+      `resolveIdFromContext(ctx)`.
+- [ ] **Ownership**: recurso da pessoa usa o predicado do repositório
+      (`findOwnedBy(id, ctx.subjectProfile.id)` → `null` → 404); recurso de board, o escopo do board. Vale **em todos** os handlers que tocam
       o id (404, não 403 — não vaze existência).
 - [ ] Header customizado novo? Então adicione em `allowHeaders` do CORS em `apps/api/proxy.ts`.
 
@@ -165,15 +161,15 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 - [ ] Toda resposta de erro é `{ error: { code: "SCREAMING_SNAKE" } }` + status de `HTTP_STATUS`.
       Nunca stack trace, nunca mensagem interna como copy.
 - [ ] Liste os **códigos novos** e o status de cada um.
-- [ ] ⚠️ **Todo código novo exige entrada em `apiErrors` nos 3 idiomas**
-      (`packages/internationalization/translations/packages/shared/utils.ts`) — o teste de paridade
-      (`packages/internationalization/__tests__/parity.test.ts`) falha sem isso. Use `/i18n-sync`.
+- [ ] ⚠️ **Todo código novo exige entrada em `apiErrors`**
+      (`packages/internationalization/translations/packages/shared/utils.ts`) — sem ela a tela mostra o
+      texto genérico. Use `/i18n-sync`.
 - [ ] Contrato de resposta: `list`/`get` → `{ data }` 200 · `create` → `{ data }` 201 ·
       `update` → `{ data: { id } }` 200 · `delete` → sem body, 204.
 
 ---
 
-## 5. Front-end (`apps/app` / `apps/web`)
+## 5. Front-end (`apps/app`)
 
 ### 5.1 Rotas e renderização
 
@@ -217,7 +213,7 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 
 - [ ] **Zero string de UI em JSX** — label, placeholder, `aria-label`, toast, título de coluna, texto
       de confirmação, `emptyText`, mensagem de Zod.
-- [ ] Chave nova existe nos **3 idiomas** (`pt-br`, `en`, `es`) com a mesma estrutura; use `/i18n-sync`.
+- [ ] Chave nova existe no dicionário `pt-br`; use `/i18n-sync`.
 - [ ] Variável do dicionário com nome descritivo (`entitiesList`, `entityMessages`) — **nunca** `t`/`d`.
 - [ ] Locale via `getDictionary()` (client/server) ou `getDictionaryForLocale(locale)` quando a rota já
       dá o `[locale]`.
@@ -266,7 +262,7 @@ Regra de ouro 11: front-end não está pronto sem ser percorrido com `agent-brow
 - [ ] Fluxos a percorrer, nomeados (qual tela, qual ação, qual resultado esperado).
 - [ ] Estados que precisam existir para o fluxo ser observável: normal, vazio, erro, formulário inválido,
       submit em andamento — e **como produzir cada um** (seed, dado de QA, requisição forçada).
-- [ ] Combinações que o diff torna arriscadas: **light + dark + mobile**, os 3 idiomas, comum × admin ×
+- [ ] Combinações que o diff torna arriscadas: **light + dark + mobile**, comum × admin ×
       admin personificando (o `Table` é antd: cheque que respeita o tema).
 - [ ] O que **não** dá para observar sem infra externa — já marcado, para virar 🔒 em vez de reprovar.
 
@@ -278,13 +274,13 @@ Monte um quadro com casos explícitos, cobrindo:
 
 - [ ] Autorização: usuário comum × admin × admin personificando × não autenticado.
 - [ ] Ownership: tentar acessar/editar/excluir recurso de **outro** usuário (esperado: 404).
-- [ ] Modo de produto (`subscription` × `simple`), quando relevante.
+- [ ] Papel no board (owner × maintainer × operator × viewer × sem acesso no GitHub), quando relevante.
 - [ ] Valores-limite: mínimo/máximo de tamanho, `0`, negativo, string vazia, campo só com espaços,
       data inválida, campo opcional ausente × `null` × preenchido.
 - [ ] Filtros/busca combinados e resultado vazio; manipulação de URL/query param para acessar dado alheio.
 - [ ] Duplo clique / submit repetido / cancelar durante requisição.
 - [ ] Comportamento **anterior × posterior** à mudança.
-- [ ] Erros esperados com o `error.code` exato e a mensagem traduzida nos 3 idiomas.
+- [ ] Erros esperados com o `error.code` exato e a mensagem traduzida.
 - [ ] Tema (light/dark) e responsivo (mobile/desktop).
 
 ### 9.1 Formato obrigatório de entrega
@@ -321,10 +317,10 @@ Depois da análise, produza exemplos concretos para aprovação **antes** de imp
       normaliza.
 - [ ] **Front**: árvore de arquivos a criar (página, `(hooks)`, `(components)`, `(validations)`),
       `queryKeys` e a lista de campos do formulário com o componente `HookForm*` de cada um.
-- [ ] **i18n**: a árvore de chaves novas (mesma estrutura nos 3 idiomas) + códigos em `apiErrors`.
+- [ ] **i18n**: a árvore de chaves novas + códigos em `apiErrors`.
 - [ ] **Adaptação de código existente**: arquivos afetados, pseudo-diffs, pontos de atenção.
-- [ ] **Ordem de implementação/commit**: SDK → API → app/web → i18n.
-- [ ] **Env/config nova** e o que cada fork precisa configurar.
+- [ ] **Ordem de implementação/commit**: SDK → API → app → i18n.
+- [ ] **Env/config nova** e onde configurar (local, Vercel, repositório importado).
 
 > **Objetivo:** um mini blueprint validado antes de codar — reduz retrabalho e alinha decisões.
 
@@ -338,8 +334,7 @@ Compare o entregue com a análise e o blueprint. O checklist operacional de revi
 - [ ] Cada item do blueprint foi entregue? Divergências registradas e justificadas?
 - [ ] Cada critério de aceite foi verificado — por unit, integração, e2e ou manual? Anexe evidência.
 - [ ] `pnpm check` e `pnpm --filter <app> typecheck` limpos no escopo.
-- [ ] Paridade de i18n nos 3 idiomas (`pnpm --filter @repo/internationalization test`).
-- [ ] Fluxo percorrido pelo `/test` (light/dark/mobile, 3 idiomas), com o observado descrito **em texto**
+- [ ] Fluxo percorrido pelo `/test` (light/dark/mobile), com o observado descrito **em texto**
       no `report.md` — o screenshot é gitignored e não sobrevive.
 - [ ] Melhorias detectadas durante a revisão documentadas (mesmo que fiquem fora de escopo).
 
@@ -347,8 +342,8 @@ Compare o entregue com a análise e o blueprint. O checklist operacional de revi
 
 ## 12. Pós-entrega
 
-- [ ] Vars de env a configurar em produção (Vercel) e segredos (Firebase/Stripe/Resend).
+- [ ] Vars de env a configurar em produção (Vercel) e segredos (Firebase, GitHub App, Claude).
 - [ ] Índices do Firestore e regras de segurança a publicar.
-- [ ] Webhook a cadastrar no provedor (Stripe) e o que valida que ele chegou.
+- [ ] Webhook a cadastrar no provedor (GitHub App) e o que valida que ele chegou.
 - [ ] Plano de rollback (é só reverter o commit? há dado gravado que fica órfão?).
-- [ ] O que um **fork** deste boilerplate precisa ajustar para usar a feature.
+- [ ] O que um **repositório importado** precisa ajustar (kit, `.kanban/board.yml`) para usar a feature.

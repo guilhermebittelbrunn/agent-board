@@ -1,17 +1,18 @@
 # Orientação para agentes (IA e contribuidores)
 
-Este repositório é um **boilerplate full stack** em monorepo (`pnpm` + `turbo`). Forks devem manter o mesmo padrão arquitetural; evite regras de negócio ou domínio único dentro de pacotes compartilhados.
+Este repositório é o **agent-board**, um fork enxuto do next-boilerplate em monorepo (`pnpm` + `turbo`). Mantém o mesmo padrão arquitetural do core; evite regras de negócio dentro de pacotes compartilhados (o contrato do board vive em `packages/kanban-contract`, nomeado pelo domínio).
 
 ## Onde vive cada coisa
 
 | Área | Caminho | Papel |
 |------|---------|--------|
-| App Next (UI, rotas, marketing/admin) | `apps/app/` | Consome `@repo/sdk`, `@repo/design-system`, `@repo/internationalization`, `@repo/auth`. |
+| App Next (board, conta, admin) | `apps/app/` | Consome `@repo/sdk`, `@repo/design-system`, `@repo/internationalization`, `@repo/auth`. |
 | API Next (rotas HTTP) | `apps/api/` | Orquestração HTTP, validação na borda, uso de pacotes `@repo/*`. |
 | Cliente HTTP e tipos de API | `packages/sdk/` | Única porta de chamada à API a partir do front. |
 | UI compartilhada e tema | `packages/design-system/` | Componentes genéricos; sem fluxo de negócio de produto. |
-| Traduções | `packages/internationalization/` | Chaves estáveis; textos de exemplo neutros. |
-| Auth, e-mail, pagamentos, etc. | `packages/auth`, `packages/email`, `packages/payments`, … | Integrações reutilizáveis; configuráveis por env. |
+| Traduções | `packages/internationalization/` | Chaves estáveis em pt-br; textos de exemplo neutros. |
+| Auth e integrações | `packages/auth`, `packages/analytics`, `packages/security`, … | Integrações reutilizáveis; configuráveis por env. |
+| Contrato do board | `packages/kanban-contract/` | Schema do `.kanban/board.yml`, papéis, transições do card, ferramentas dos agentes. |
 
 ## Princípios (resumo)
 
@@ -22,15 +23,14 @@ Este repositório é um **boilerplate full stack** em monorepo (`pnpm` + `turbo`
 
 ## Convenções de implementação
 
-- **Locale no app**: para resolver locale atual, prefira `getDictionary()` (client/server) ou `getDictionaryForLocale(...)` quando a rota já fornece `[locale]`. Esses helpers já aplicam fallback/default. O do servidor segue o segmento `[locale]` da URL, que o proxy repassa no header `x-request-locale`, e só cai no cookie `x-locale` quando o header falta; o do client lê o segmento `[locale]` pelo `LocaleProvider` dos root layouts (cookie só sem provider) e, no servidor, só pode ser chamado durante o render. Componente client que fica montado numa troca de idioma (acima do segmento `[locale]`, como o `AuthProvider`) usa `useDictionary()`, que re-renderiza quando o idioma muda.
+- **Locale no app**: há um idioma só (`pt-br`), mas as rotas mantêm o segmento `[locale]`. Para ler o dicionário, prefira `getDictionary()` (client/server) ou `getDictionaryForLocale(...)` quando a rota já fornece `[locale]`; os dois aplicam fallback/default. O do client, no servidor, só pode ser chamado durante o render. Componente client acima do segmento `[locale]` (como o `AuthProvider`) usa `useDictionary()`.
 - **Nomenclatura de arquivos**: componentes React em **TitleCase** (ex.: `PanelNavbarControls.tsx`); hooks em **camelCase** (ex.: `useListUsers.ts`).
 
 ## Regras por escopo (`CLAUDE.md` aninhados)
 
-As regras acionáveis por área vivem em `CLAUDE.md` aninhados, **carregados automaticamente** pelo Claude Code ao trabalhar em cada pasta (equivalente nativo às antigas regras por glob do Cursor). A regra núcleo (fork-friendly, anti-padrões) está no [`CLAUDE.md`](CLAUDE.md) raiz, sempre carregado.
+As regras acionáveis por área vivem em `CLAUDE.md` aninhados, **carregados automaticamente** pelo Claude Code ao trabalhar em cada pasta (equivalente nativo às antigas regras por glob do Cursor). A regra núcleo (anti-padrões, regras de ouro) está no [`CLAUDE.md`](CLAUDE.md) raiz, sempre carregado.
 
 - `apps/app` (rotas, UI, hooks, i18n front, nomenclatura, CRUD): [`apps/app/CLAUDE.md`](apps/app/CLAUDE.md).
-- `apps/web` (landing, SEO, i18n front): [`apps/web/CLAUDE.md`](apps/web/CLAUDE.md).
 - `apps/api` (rotas, guards, repos, `error.code`/i18n): [`apps/api/CLAUDE.md`](apps/api/CLAUDE.md).
 - `packages/*` (SDK, design system, i18n): [`packages/CLAUDE.md`](packages/CLAUDE.md).
 

@@ -1,18 +1,18 @@
 # CLAUDE.md
 
-Guia de entrada para o Claude Code neste repositório. **Curto de propósito**: este arquivo é sempre carregado (regras de ouro + mapa). As regras **por escopo** ficam em `CLAUDE.md` aninhados (`apps/api`, `apps/app`, `apps/web`, `packages`), que o Claude carrega automaticamente ao trabalhar naquela árvore. Os padrões detalhados (incl. design system/RHF) vivem em [`AGENTS.md`](AGENTS.md).
+Guia de entrada para o Claude Code neste repositório. **Curto de propósito**: este arquivo é sempre carregado (regras de ouro + mapa). As regras **por escopo** ficam em `CLAUDE.md` aninhados (`apps/api`, `apps/app`, `packages`), que o Claude carrega automaticamente ao trabalhar naquela árvore. Os padrões detalhados (incl. design system/RHF) vivem em [`AGENTS.md`](AGENTS.md).
 
 ## O que é este repo
 
 **agent-board** — ferramenta **pessoal**: um board Kanban que orquestra o pipeline de agentes do Claude Code (`/analyze → /develop → /review → /test`) **em outros repositórios**. Cada board aponta para um repositório do GitHub; cada card é uma spec; cada coluna é uma etapa; arrastar um card dispara a etapa e o agente escreve no card o que fez.
 
-É um **fork do next-boilerplate** (histórico do core + remoto `upstream`; melhorias do core entram com `git merge upstream/main`, ver [`docs/FORKING.md`](docs/FORKING.md) §1). **Não é um MVP**: landing, cobrança, e-mail transacional, três idiomas e telas de conta de usuário final ainda estão aqui por herança e **saem** na spec [`fork-cleanup`](specs/features/fork-cleanup.md). Não construa nada novo em cima deles.
+É um **fork enxuto do next-boilerplate** (histórico do core + remoto `upstream`; melhorias do core entram com `git fetch upstream && git merge upstream/main`, mantendo as remoções nos conflitos). **Não é um MVP**: não tem landing, cobrança, e-mail transacional, organizações, trilha de auditoria nem fluxos de conta de usuário final; o login fica em e-mail/senha e Google até a spec `github-sign-in`. O corte está registrado em [`fork-cleanup`](docs/features/fork-cleanup/spec.md).
 
 Visão, arquitetura e decisões do board: [`docs/board/`](docs/board/README.md). O que falta construir: [`specs/BACKLOG.md`](specs/BACKLOG.md).
 
 **Anti-padrões a evitar** (sempre): URL da API hardcoded fora do SDK/env tipado; texto de UI solto sem passar pelo sistema de traduções; autorização só no cliente (espelhe na API); redefinir fora de `@repo/kanban-contract` um tipo do domínio do board que já existe lá. Nomes de código em inglês; mudanças mínimas; respeite Biome/Ultracite (`pnpm check`/`pnpm fix`).
 
-Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth via GitHub + Firestore) · GitHub App · Claude Agent SDK (runner) · i18n próprio · Biome/Ultracite · Vitest · Playwright.
+Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) · GitHub App · Claude Agent SDK (runner) · i18n próprio (pt-br) · Biome/Ultracite · Vitest · Playwright.
 
 ## Mapa do repositório
 
@@ -21,17 +21,15 @@ Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth via GitHub + Fi
 | `app` | `apps/app` | 3000 | UI do board: boards, colunas, cards, linha do tempo, membros e configuração. |
 | `api` | `apps/api` | 3002 | API HTTP: guards → repositórios Firestore → DTOs; orquestrador (estados e fila), contrato dos agentes (HTTP + MCP) e webhooks do GitHub. |
 | `e2e` | `apps/e2e` | — | Suíte Playwright dos fluxos críticos. |
-| `web` · `email` | `apps/web` · `apps/email` | 3001 · 3003 | Herdados do core (landing e preview de e-mail); **saem** na `fork-cleanup`. |
 
 | Package | O que é |
 |---------|---------|
 | `@repo/kanban-contract` | **Fonte única** do domínio do board: schema do `.kanban/board.yml`, papéis × permissão do GitHub, estados do card e transições, payloads das ferramentas dos agentes. API, app e runner importam daqui. |
 | `@repo/sdk` | **Fachada** de chamada à API (axios). O front nunca usa `fetch`/axios direto. |
 | `@repo/design-system` | UI compartilhada (shadcn), tema, componentes `HookForm*` (RHF). |
-| `@repo/internationalization` | Dicionário próprio; o board vai usar só pt-br. |
-| `@repo/auth` | Firebase (Admin no server, client SDK). No board, o único login será o GitHub. |
+| `@repo/internationalization` | Dicionário próprio, só pt-br (as rotas mantêm o segmento `[locale]`). |
+| `@repo/auth` | Firebase (Admin no server, client SDK). Hoje e-mail/senha e Google; o login GitHub chega na spec `github-sign-in`. |
 | `@repo/shared` | Utils transversais (`HTTP_STATUS`, `FormattedError`, mappers de data, etc.). |
-| `@repo/payments` · `@repo/email` | Herdados do core; **saem** na `fork-cleanup`. Não use. |
 | `@repo/analytics` · `@repo/security` · `@repo/seo` · `@repo/next-config` · `@repo/typescript-config` | Integrações e config compartilhadas. |
 
 | Pasta | O que é |
@@ -43,18 +41,16 @@ Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth via GitHub + Fi
 ## Comandos essenciais
 
 ```bash
-pnpm dev            # sobe todos os apps via turbo (3000/3001/3002/3003)
-pnpm --filter app dev   # sobe só um app (app | web | api | email)
+pnpm dev            # sobe app (3000) e api (3002) via turbo
+pnpm --filter app dev   # sobe só um app (app | api)
 pnpm check          # lint/format check (Biome fixado no lockfile) — rode antes de finalizar
 pnpm fix            # auto-fix de lint/format
 pnpm test           # Vitest em todos os workspaces (turbo)
 pnpm build          # build de produção (turbo; depende de test)
 pnpm --filter app typecheck   # tsc --noEmit de um workspace
 pnpm bump-ui        # re-sincroniza componentes shadcn no design-system
-pnpm e2e            # suíte Playwright (apps/e2e): sobe emulador + api/app/web e roda os fluxos críticos
+pnpm e2e            # suíte Playwright (apps/e2e): sobe emulador + api/app e roda os fluxos críticos
 pnpm coverage       # cobertura Vitest consolidada do repo em coverage/ (sem limiar)
-pnpm lighthouse     # Lighthouse mobile do build de produção da landing (medição, não gate)
-pnpm kickoff        # formulário visual do começo de um fork (http://localhost:3010) → docs/product/
 
 pnpm turbo run lint typecheck test test:emulator   # os gates do job verify do CI, na mesma linha
 ```
@@ -62,19 +58,19 @@ pnpm turbo run lint typecheck test test:emulator   # os gates do job verify do C
 `lint`, `typecheck` e `test` são tasks do turbo: cacheadas, paralelas e com `env: []` (herméticas em
 relação a variáveis de ambiente). `lint` é task da **raiz** (`//#lint`) porque o Biome varre o repositório
 inteiro a partir de um único `biome.jsonc`. `test:emulator` é a exceção: roda a suíte da `apps/api` contra
-os emuladores de Firestore e Storage (security rules, upload, expurgo), nunca vem do cache e **exige JDK
+os emuladores de Firestore e Storage (security rules, upload), nunca vem do cache e **exige JDK
 21**. `pnpm test` roda `test` e `test:emulator`; `pnpm turbo run test` e o `build` continuam sem Java.
 **O CI roda exatamente essa linha** — se passa no seu terminal, passa no GitHub Actions. O pipeline está
 em [`.github/workflows/ci.yml`](.github/workflows/ci.yml) e descrito em [`docs/SETUP.md`](docs/SETUP.md). O
 `pnpm e2e` fica fora dessa linha de propósito (precisa de JDK 21, browser e servidores de pé) e roda num job
 próprio, `e2e`, em toda PR que não é só documentação.
 
-Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. A API roda webhooks da Stripe localmente com `pnpm --filter api dev:with-stripe`.
+Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. Local: `pnpm emulators` + `pnpm seed` + `pnpm dev`, sem conta no Google ([`docs/SETUP.md`](docs/SETUP.md)).
 
 ## Regras de ouro (o essencial — detalhes nas cursor rules)
 
 1. **SDK é a única porta para a API.** No front, chame `apiClient.<recurso>.<ação>()` (de `@/shared/lib/client`), nunca `fetch`/axios cru nem URL hardcoded.
-2. **Nada de string de UI solta.** Todo texto visível (labels, placeholders, `aria-label`, toasts, colunas, confirmações) vem do dictionary `@repo/internationalization`. Use a skill [`/i18n-sync`](.claude/skills/i18n-sync/SKILL.md) para manter pt-br/en/es em paridade.
+2. **Nada de string de UI solta.** Todo texto visível (labels, placeholders, `aria-label`, toasts, colunas, confirmações) vem do dictionary `@repo/internationalization`. Use a skill [`/i18n-sync`](.claude/skills/i18n-sync/SKILL.md).
 3. **Erros de API por código.** A API responde `{ error: { code: "FOO_BAR" } }`; o app mapeia `code` → texto via `apiErrors` (`translations/packages/shared/utils.ts`) + `FormattedError`/`handleClientError`. Nunca vaze stack trace como copy.
 4. **Autorização espelhada na API.** Guards no servidor sempre (`requireCommonPanelApi`/`requireAdminApi`); UI oculta nunca é a única proteção.
 5. **Firestore via repositório + mapper.** Estenda `BaseRepository<DTO>` e passe o mapper no `super` (`super(db, "tabela", mapper)`); normalize `Timestamp`→ISO no mapper, não no handler.
@@ -83,7 +79,7 @@ Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. A API roda webhooks da Stripe loc
 8. **Hooks de dados**: listas `useListX` + `fetchXList`; por id `useFindXById` + `findXById` no mesmo arquivo, com `enabled` coerente. Toggle de `enabled` só faz `setQueryData` (sem `invalidateQueries`).
 9. **Nomes de arquivo (apps/app)**: módulos de feature em camelCase (`userFormFields.tsx`); componente React exportado em PascalCase. Variáveis de dictionary com nome descritivo (nunca `t`/`d`).
 10. **Mudanças mínimas + Server Components por padrão.** `"use client"` só com estado/eventos/browser API. Não refatore arquivos fora da tarefa. Rode `pnpm check` antes de concluir.
-11. **Quem executa o produto é o QA.** Fluxo que toca UI/layout (`apps/app`, `apps/web`, `packages/design-system`) não está pronto sem ser percorrido com a skill **`agent-browser`** (light + dark + mobile, 3 idiomas) — mas isso acontece **uma vez**, no `/test`, pelo `analista-qa`. O `/develop` faz smoke para se desbloquear; o `/review` lê código e roda os gates estáticos. Nenhum dos dois sobe app, dirige browser ou tira screenshot. O que a revisão não confirma lendo código vira a lista **"Verificar no `/test`"**, e afirmação herdada sem medição própria não conta como aprovada. Divisão e evidência na §7 de [`docs/review-checklist.md`](docs/review-checklist.md). A suíte E2E (`pnpm e2e`, Playwright) roda no CI como rede de regressão dos fluxos críticos e não substitui essa passada: ela confere que o fluxo funciona, não julga tema, responsivo nem layout.
+11. **Quem executa o produto é o QA.** Fluxo que toca UI/layout (`apps/app`, `packages/design-system`) não está pronto sem ser percorrido com a skill **`agent-browser`** (light + dark + mobile) — mas isso acontece **uma vez**, no `/test`, pelo `analista-qa`. O `/develop` faz smoke para se desbloquear; o `/review` lê código e roda os gates estáticos. Nenhum dos dois sobe app, dirige browser ou tira screenshot. O que a revisão não confirma lendo código vira a lista **"Verificar no `/test`"**, e afirmação herdada sem medição própria não conta como aprovada. Divisão e evidência na §6 de [`docs/review-checklist.md`](docs/review-checklist.md). A suíte E2E (`pnpm e2e`, Playwright) roda no CI como rede de regressão dos fluxos críticos e não substitui essa passada: ela confere que o fluxo funciona, não julga tema, responsivo nem layout.
 
 **Referência viva**: o CRUD de exemplo `entity` cobre o slice inteiro de ponta a ponta — use como template:
 - API: `apps/api/app/(routes)/entities/`, `apps/api/(shared)/repositories/entity.repository.ts`, `.../mappers/entity.mapper.ts`, `.../validation/entity.schema.ts`
@@ -106,18 +102,17 @@ Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. A API roda webhooks da Stripe loc
 | Vai mexer em… | Regras (auto-carregadas) |
 |---------------|------|
 | `apps/app` (rotas, UI, hooks) | [`apps/app/CLAUDE.md`](apps/app/CLAUDE.md) |
-| `apps/web` (landing, SEO) | [`apps/web/CLAUDE.md`](apps/web/CLAUDE.md) |
 | `apps/api` (rotas, guards, repos) | [`apps/api/CLAUDE.md`](apps/api/CLAUDE.md) |
 | `packages/*` | [`packages/CLAUDE.md`](packages/CLAUDE.md) |
 | Design system / formulários RHF | seção "Design system — inputs e formulários" em [`AGENTS.md`](AGENTS.md) |
 | Revisar um diff | [`docs/review-checklist.md`](docs/review-checklist.md) (fonte única das invariantes) |
 | Planejar/analisar uma tarefa | [`docs/feature-analysis-guide.md`](docs/feature-analysis-guide.md) |
 | Decidir **o que** construir | [`specs/README.md`](specs/README.md) + [`specs/BACKLOG.md`](specs/BACKLOG.md) (backlog de funcionalidades) |
-| Entregar um produto (fork) | [`docs/delivery/README.md`](docs/delivery/README.md) (etapa obrigatória, `/deliver`) + [`docs/templates/README.template.md`](docs/templates/README.template.md) (README de todo fork segue este modelo) |
 | Domínio do board (qualquer coisa de board, card, coluna, execução) | [`docs/board/`](docs/board/README.md) + `packages/kanban-contract/src` |
 | Acesso, papéis, GitHub App | [`docs/board/ACCESS.md`](docs/board/ACCESS.md) |
 | Ferramentas que os agentes chamam | [`docs/board/CONTRACT.md`](docs/board/CONTRACT.md) + [`.claude/rules/board-mode.md`](.claude/rules/board-mode.md) |
 | Importar repositórios, `board.yml`, kit | [`docs/board/IMPORT.md`](docs/board/IMPORT.md) + [`kit/README.md`](kit/README.md) |
+| Ordem das fases, custos, decisões em aberto | [`docs/board/ROADMAP.md`](docs/board/ROADMAP.md) + [`docs/board/DECISIONS.md`](docs/board/DECISIONS.md) |
 | Qualquer coisa | este `CLAUDE.md` (sempre carregado) + `.claude/rules/*` |
 
 ## Trabalhando com IA neste repo
@@ -134,8 +129,8 @@ descobrir  planejar     implementar   revisar     QA
 /cycle — a linha inteira numa tacada, sem parar para perguntar (não commita)
 ```
 
-O ciclo começa no **backlog de funcionalidades** ([`specs/`](specs/README.md)): o `/spec` varre o repo,
-confronta com padrões de mercado e escreve as specs; você aprova uma e roda **`/analyze <nome-da-spec>`**
+O ciclo começa no **backlog de funcionalidades** ([`specs/`](specs/README.md)): o `/spec` varre o repo e
+escreve as specs; você aprova uma e roda **`/analyze <nome-da-spec>`**
 (o nome da spec é o argumento padrão). No fim, `/spec --sync` audita o backlog contra o código — é isso que
 faz disso um **loop**, e não uma lista de desejos. Spec responde *o quê/por quê*; o plano do `/analyze`
 responde *como*. **`specs/` contém só o que não foi entregue**; o ciclo de vida completo está em
@@ -151,19 +146,9 @@ da spec → padrão do repo → menor raio de impacto, e junta tudo num relatór
 descartou. Pendências que exigem infra externa vão para [`docs/PRE-PRODUCTION.md`](docs/PRE-PRODUCTION.md).
 ⛔ Ele **não commita nem cria branch** — rodar o `/cycle` não é aprovação de commit.
 
-**`/kickoff`** é o **começo de um fork**: o formulário do `pnpm kickoff` descreve produto, domínio, telas e
-marca (com pré-visualização ao vivo e o prompt de design para o Claude Design) e salva em `docs/product/`; o
-comando lê isso, completa as lacunas e gera as specs do MVP. Passo a passo em [`docs/FORKING.md`](docs/FORKING.md) §0.
-
-**`/deliver`** é a **etapa de entrega**, obrigatória antes da entrega final de todo fork: segurança, infra e
-hardening, qualidade do produto, documentação e políticas legais, cada parte com a sua especificação em
-[`docs/delivery/`](docs/delivery/README.md), e um relatório versionado em `docs/delivery/reports/<data>/`.
-Ele audita e registra; não corrige código nem commita. O README de todo fork segue
-[`docs/templates/README.template.md`](docs/templates/README.template.md), sempre.
-
 Apoio: [`docs/feature-analysis-guide.md`](docs/feature-analysis-guide.md) (roteiro de análise + formato dos
 critérios de aceite) · [`docs/review-checklist.md`](docs/review-checklist.md) (**fonte única** do que a
-revisão cobra) · [`docs/GLOSSARY.md`](docs/GLOSSARY.md) (vocabulário do boilerplate).
+revisão cobra) · [`docs/GLOSSARY.md`](docs/GLOSSARY.md) (vocabulário do repo e do board).
 
 Regras sempre em contexto: [`.claude/rules/git-commits.md`](.claude/rules/git-commits.md) (⛔ nunca commitar
 em `main`/`production`; só o `revisor-codigo` cria branch e valida o nome dela; push só com seu "sim"),
@@ -177,23 +162,17 @@ interativas, commit e push por etapa, relatório no card): [`.claude/rules/board
 
 ### Skills do projeto (digite `/` para invocar)
 
-- **`/market-research`** — pesquisa de mercado **com fontes** para decidir se uma feature merece entrar no core (prevalência entre starters, exigência de provedor/lei, custo herdado pelos forks); grava nota citável em `specs/reference/research/`.
 - **`/spec-audit`** — reconcilia o backlog `specs/` com a realidade do código (fecha o loop; é o motor do `/spec --sync`).
 - **`/new-crud`** — scaffold de um CRUD vertical completo (SDK → API → app → i18n), seguindo o padrão `entity`.
 - **`/new-api-route`** — cria rota na `apps/api` (validação, guard, repo+mapper, `error.code`).
-- **`/i18n-sync`** — adiciona/valida chaves nos 3 idiomas + `apiErrors` (com teste de paridade determinístico).
-- **`/payments-flow`** — fluxo de assinatura Stripe (planos, checkout, portal, webhook). Ver [`docs/PAYMENTS.md`](docs/PAYMENTS.md).
+- **`/i18n-sync`** — adiciona/valida chaves do dicionário (pt-br) + `apiErrors`.
 - **`/write-tests`** — testes Vitest (schema, mapper, rota, hook, componente) no setup do repo. Sempre no **nível mais barato que prova o comportamento**: teste que exige emulador ou app de pé só quando a infra for o objeto do teste.
 - **`caveman`** — modo comprimido para a **conversa** (retorno de subagent, mensagem de comando). Nunca em arquivo, código ou commit; o par dela é a `humanizer` (global), obrigatória antes de salvar prosa. Regra em [`.claude/rules/writing-skills.md`](.claude/rules/writing-skills.md).
 - **`agent-browser`** — automação de browser para **validar layouts e fluxos** (QA/dogfooding). Dono exclusivo é o `analista-qa`, no `/test` (ver regra de ouro 11).
-- **`brag-slim`** — vídeo de demonstração do produto (20 s, trilha própria, `ffmpeg`), baixado de [latent-spaces/brag](https://github.com/latent-spaces/brag) (MIT). Usado na parte 4 do `/deliver`, a partir das telas de `pnpm --filter e2e showcase` (só emulador). Saída em `brag-output/` (ignorado); entregáveis em `apps/web/public/showcase/`.
 - **`vercel-react-best-practices`** — guia de performance React/Next (auto-aciona ao escrever/refatorar componentes, data fetching, bundle).
-- **`frontend-design`** — direção de design visual ao criar/reformular UI (útil principalmente na `apps/web`).
+- **`frontend-design`** — direção de design visual ao criar/reformular UI do board.
 - **`web-design-guidelines`** — revisão de UI contra guidelines de interface/acessibilidade.
-- **`copywriting`** — copy de marketing (landing/CTA da `apps/web`).
 - **`brainstorming`** — explora intenção/requisitos e gera o design **antes** de implementar (gate de aprovação para features/componentes novos).
 - **`ui-ux-pro-max`** — base de design UI/UX (estilos, paletas, tipografia, guidelines) ao criar/refatorar telas.
-- **`seo-audit`** — auditoria de SEO técnico/on-page (útil na `apps/web`).
-- **`ai-seo`** — otimização de conteúdo para AI search / citação por LLMs (AEO/GEO), na `apps/web`.
 - Agente **`code-reviewer`** — revisão **read-only** avulsa, afinada às convenções deste repo (peça "revise o diff"). Aplica o mesmo checklist do `revisor-codigo`, mas não edita arquivos, não toca na branch e não executa o produto.
 - Skills globais úteis: `/code-review`, `/security-review`, `/verify`.
