@@ -1,7 +1,7 @@
 ---
 id: pr-flow
 title: Coluna Aguardando PR (abrir, acompanhar e concluir)
-status: proposed
+status: approved
 value: alto
 effort: M
 audience: time
@@ -10,7 +10,7 @@ area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: [github-app-integration, orchestrator]
 contends_on: []
 feature: -
-updated: 2026-11-25
+updated: 2026-11-26
 ---
 
 # Coluna Aguardando PR (abrir, acompanhar e concluir)
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** abrir a PR do card, acompanhar reviews e CI e concluir no merge.
 > - **Por quê:** o fim da tarefa acontece no GitHub e hoje fica fora do card.
-> - **Status:** `proposed` · valor alto · esforço M · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `approved` · valor alto · esforço M · time
+> - **Próximo passo:** `/analyze pr-flow`, pelo card do board
 
 ## Problema
 
