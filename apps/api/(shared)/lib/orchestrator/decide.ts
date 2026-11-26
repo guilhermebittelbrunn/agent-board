@@ -1,0 +1,334 @@
+import {
+    type BoardConfig,
+    type CardLane,
+    type CardLastRun,
+    type CardState,
+    isAwaitingApproval,
+    type RunEndReason,
+    type RunPerson,
+    type RunTrigger,
+    resolveBranchName,
+    resolveTransition,
+    type StageConfig,
+    type StageDispatch,
+    type StageOutcome,
+} from "@repo/kanban-contract";
+import type { BoardDTO, BoardStageSettingsDTO } from "@repo/sdk/src/types";
+import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
+import type { CardRecord } from "@/(shared)/mappers/card.mapper";
+import type { NewRun, RunRecord } from "@/(shared)/mappers/run.mapper";
+
+export type OrchestratorRefusal = { ok: false; code: string; status: number };
+
+const refuse = (code: string, status: number): OrchestratorRefusal => ({
+    ok: false,
+    code,
+    status,
+});
+
+export type TriggerDecision =
+    | OrchestratorRefusal
+    | {
+          ok: true;
+          stage: StageConfig;
+          branch: string;
+          trigger: RunTrigger;
+          resetReworkLoops: boolean;
+      };
+
+function branchOf(card: CardRecord, config: BoardConfig): string | null {
+    if (card.branch !== null) {
+        return card.branch;
+    }
+    try {
+        return resolveBranchName(config, card.slug);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Whether a person may start `stageKey` on this card, and what kind of start it is. The
+ * kind is decided here, never taken from the request: entering a stage from elsewhere is a
+ * drag, the same stage while the board waits for approval is an approval, and anything else
+ * on the same stage runs it again.
+ */
+export function decideTrigger(
+    card: CardRecord,
+    stageKey: string,
+    config: BoardConfig
+): TriggerDecision {
+    const stage = config.stages.find((candidate) => candidate.key === stageKey);
+    if (stage === undefined) {
+        return refuse("CARD_STAGE_NOT_FOUND", HTTP_STATUS.UNPROCESSABLE_ENTITY);
+    }
+    if (card.lane === "tasks" && !card.ready) {
+        return refuse("CARD_NOT_READY", HTTP_STATUS.CONFLICT);
+    }
+    const branch = branchOf(card, config);
+    if (branch === null) {
+        return refuse("CARD_BRANCH_INVALID", HTTP_STATUS.UNPROCESSABLE_ENTITY);
+    }
+
+    const sameStage = card.lane === "stage" && card.stageKey === stageKey;
+    let trigger: RunTrigger = "drag";
+    if (sameStage) {
+        trigger = isAwaitingApproval(card) ? "approve" : "rerun";
+    }
+    return {
+        ok: true,
+        stage,
+        branch,
+        trigger,
+        resetReworkLoops: card.lane !== "stage",
+    };
+}
+
+export function newRunFor(input: {
+    card: Pick<CardRecord, "id" | "boardId" | "slug">;
+    stage: StageConfig;
+    config: BoardConfig;
+    branch: string;
+    trigger: RunTrigger;
+    by: RunPerson;
+}): NewRun {
+    const { card, stage } = input;
+    return {
+        boardId: card.boardId,
+        cardId: card.id,
+        slug: card.slug,
+        stageKey: stage.key,
+        command: stage.command,
+        agent: stage.agent ?? null,
+        model: stage.model,
+        effort: stage.effort,
+        maxTurns: input.config.limits.maxTurnsPerStage,
+        branch: input.branch,
+        trigger: input.trigger,
+        triggeredBy: input.by,
+    };
+}
+
+export type TriggerPlan =
+    | OrchestratorRefusal
+    | { ok: true; run: NewRun; card: Record<string, unknown> };
+
+/**
+ * What the trigger transaction writes, decided on the card it read. Questions still open
+ * from an earlier run are dropped: the new run supersedes them, the way a new `ask` does,
+ * and they stay on the timeline unanswered.
+ */
+export function planTrigger(
+    card: CardRecord | null,
+    input: {
+        stageKey: string;
+        config: BoardConfig;
+        by: RunPerson;
+        now: Date;
+        trigger?: RunTrigger;
+    }
+): TriggerPlan {
+    if (card === null) {
+        return refuse("CARD_NOT_FOUND", HTTP_STATUS.NOT_FOUND);
+    }
+    if (card.activeRunId !== null) {
+        return refuse("CARD_RUN_ACTIVE", HTTP_STATUS.CONFLICT);
+    }
+    const decision = decideTrigger(card, input.stageKey, input.config);
+    if (!decision.ok) {
+        return decision;
+    }
+    return {
+        ok: true,
+        run: newRunFor({
+            card,
+            stage: decision.stage,
+            config: input.config,
+            branch: decision.branch,
+            trigger: input.trigger ?? decision.trigger,
+            by: input.by,
+        }),
+        card: {
+            lane: "stage",
+            stageKey: decision.stage.key,
+            state: "queued",
+            branch: decision.branch,
+            pendingAsk: null,
+            movedAt: input.now,
+            movedByUserId: input.by.userId,
+            updatedAt: input.now,
+            ...(decision.resetReworkLoops ? { reworkLoops: 0 } : {}),
+        },
+    };
+}
+
+export type CompletionPlan = {
+    card: {
+        lane: CardLane;
+        stageKey: string | null;
+        state: CardState;
+        reworkLoops: number;
+    };
+    next: { stage: StageConfig; trigger: "transition" } | null;
+};
+
+/**
+ * Where a stage result takes the card. This is the only caller of `resolveTransition` in
+ * the API: an agent's report, a timeout and a failed dispatch all come through here.
+ */
+export function planCompletion(input: {
+    card: Pick<CardRecord, "state" | "reworkLoops">;
+    run: Pick<RunRecord, "stageKey">;
+    outcome: StageOutcome;
+    config: BoardConfig;
+    stageSettings: BoardStageSettingsDTO;
+}): CompletionPlan {
+    const { card, run, config } = input;
+    const known = config.stages.some((stage) => stage.key === run.stageKey);
+    if (!known) {
+        return {
+            card: {
+                lane: "stage",
+                stageKey: run.stageKey,
+                state: "failed",
+                reworkLoops: card.reworkLoops,
+            },
+            next: null,
+        };
+    }
+
+    const position = resolveTransition({
+        config,
+        current: {
+            stageKey: run.stageKey,
+            state: card.state,
+            reworkLoops: card.reworkLoops,
+        },
+        outcome: input.outcome,
+        approvalGateEnabled:
+            input.stageSettings[run.stageKey]?.approvalGate ?? false,
+    });
+
+    if (position.stageKey === null) {
+        return {
+            card: {
+                lane: "done",
+                stageKey: null,
+                state: "idle",
+                reworkLoops: position.reworkLoops,
+            },
+            next: null,
+        };
+    }
+    const nextStage =
+        position.state === "queued"
+            ? config.stages.find((stage) => stage.key === position.stageKey)
+            : undefined;
+    return {
+        card: {
+            lane: "stage",
+            stageKey: position.stageKey,
+            state: position.state,
+            reworkLoops: position.reworkLoops,
+        },
+        next:
+            nextStage === undefined
+                ? null
+                : { stage: nextStage, trigger: "transition" },
+    };
+}
+
+export type RunClose = {
+    status: "finished" | "stopped";
+    outcome: StageOutcome | null;
+    endReason: RunEndReason;
+    stoppedBy: RunPerson | null;
+};
+
+export function lastRunOf(
+    run: Pick<RunRecord, "id" | "stageKey">,
+    close: RunClose,
+    finishedAt: Date
+): Omit<CardLastRun, "finishedAt"> & { finishedAt: Date } {
+    return {
+        id: run.id,
+        stageKey: run.stageKey,
+        status: close.status,
+        outcome: close.outcome,
+        endReason: close.endReason,
+        stoppedByLogin: close.stoppedBy?.login ?? null,
+        finishedAt,
+    };
+}
+
+const byQueueOrder = (left: RunRecord, right: RunRecord): number =>
+    left.queuedAt.localeCompare(right.queuedAt) ||
+    left.id.localeCompare(right.id);
+
+/**
+ * The queued runs that may start now. The limit of a stage counts running cards only, so a
+ * queued card already sits in its column and starts as soon as a slot frees up.
+ */
+export function pickPromotions(
+    runs: RunRecord[],
+    stageSettings: BoardStageSettingsDTO
+): RunRecord[] {
+    const live = runs.filter((run) => run.active);
+    const promoted: RunRecord[] = [];
+    const stageKeys = new Set(live.map((run) => run.stageKey));
+    for (const stageKey of stageKeys) {
+        const inStage = live.filter((run) => run.stageKey === stageKey);
+        const running = inStage.filter((run) => run.status === "running");
+        const queued = inStage
+            .filter((run) => run.status === "queued")
+            .sort(byQueueOrder);
+        const limit = stageSettings[stageKey]?.wipLimit ?? null;
+        const slots =
+            limit === null
+                ? queued.length
+                : Math.max(0, limit - running.length);
+        promoted.push(...queued.slice(0, slots));
+    }
+    return promoted.sort(byQueueOrder);
+}
+
+export function findExpired(runs: RunRecord[], now: Date): RunRecord[] {
+    return runs.filter(
+        (run) =>
+            run.active &&
+            run.status === "running" &&
+            run.deadlineAt !== null &&
+            Date.parse(run.deadlineAt) <= now.getTime()
+    );
+}
+
+export function deadlineFor(startedAt: Date, config: BoardConfig): Date {
+    const MS_PER_MINUTE = 60_000;
+    return new Date(
+        startedAt.getTime() + config.limits.stageTimeoutMinutes * MS_PER_MINUTE
+    );
+}
+
+export function toStageDispatch(
+    run: RunRecord,
+    board: Pick<BoardDTO, "repository">
+): StageDispatch {
+    return {
+        runId: run.id,
+        boardId: run.boardId,
+        cardId: run.cardId,
+        slug: run.slug,
+        stageKey: run.stageKey,
+        command: run.command,
+        agent: run.agent,
+        model: run.model,
+        effort: run.effort,
+        maxTurns: run.maxTurns,
+        branch: run.branch,
+        repository: {
+            owner: board.repository.owner,
+            name: board.repository.name,
+        },
+        triggeredBy: run.triggeredBy,
+    };
+}
