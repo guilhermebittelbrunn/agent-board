@@ -53,7 +53,7 @@ parar esperando alguém. Roteiro em [`IMPORT.md`](IMPORT.md).
 
 | # | Spec | Entrega |
 |---|------|---------|
-| 1 | [`github-sign-in`](../../specs/features/github-sign-in.md) | Login GitHub. Hoje o login é e-mail/senha e Google, herdados; o GitHub entra aqui |
+| 1 | [`github-sign-in`](../../specs/features/github-sign-in.md) | Login GitHub. E-mail/senha só no emulador; o Google saiu |
 | 2 | [`github-app-integration`](../../specs/features/github-app-integration.md) | Ler repositórios, receber webhooks, consultar permissão de cada pessoa |
 | 3 | [`board-import`](../../specs/features/board-import.md) | O repositório vira um board com as colunas do `board.yml` |
 | 4 | [`board-members`](../../specs/features/board-members.md) | Guard por papel efetivo antes de existir ação que gaste dinheiro |

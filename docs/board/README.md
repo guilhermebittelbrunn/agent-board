@@ -28,7 +28,7 @@ As principais, em uma linha cada; o porquê e as que estão em aberto ficam em [
 | Decisão | Escolha |
 |---------|---------|
 | Base do código | Fork da `main` do next-boilerplate (`b7f9124`) com o core como remoto `upstream`; o que era de produto para cliente final saiu na spec [`fork-cleanup`](../features/fork-cleanup/spec.md) |
-| Identidade | Conta do GitHub (spec `github-sign-in`); até lá, e-mail/senha e Google |
+| Identidade | Conta do GitHub (spec `github-sign-in`); e-mail/senha só no emulador |
 | Permissão | Papel no board limitado pela permissão no repositório do GitHub |
 | Fonte do backlog | `specs/` + `specs/BACKLOG.md` de cada repositório importado |
 | Com que credencial a etapa roda | A de quem disparou; API key do board como fallback |

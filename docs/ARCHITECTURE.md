@@ -68,7 +68,7 @@ GitHub). O guard composto que resolve esse papel nasce na spec `board-members`; 
 ## Autenticação e impersonação (admin)
 
 - **Provider**: Firebase. No servidor, `@repo/auth/server` inicializa o Admin SDK (`FIREBASE_ADMIN_*`) e expõe uma API estilo Clerk (`auth()`, `currentUser()`, `getCurrentUser(token)`). O token vem do cookie `access-token`.
-- **Login hoje**: e-mail/senha e Google, com usuários do seed do emulador ou criados pelo admin. A spec `github-sign-in` troca isso pelo login com GitHub.
+- **Login**: GitHub pelo popup do Firebase; a API lê o `login` no Firebase e grava em `user.github`. E-mail/senha só existe no emulador (seed, E2E e QA local) e o servidor recusa fora dele. Detalhe em [`SECURITY.md`](SECURITY.md).
 - **Admin impersona usuário comum**: o SDK carrega `requestUserId`/`x-role` e o guard `requireCommonPanelApi` resolve o `subjectProfile` como o usuário personificado, só para leitura. Ao trocar o usuário em `PanelNavbarControls`, o `setImpersonatedUser` grava os cookies e chama `router.refresh()`.
 - **Regra**: autorização é **sempre** repetida no servidor (guards). UI oculta nunca é a única proteção.
 
