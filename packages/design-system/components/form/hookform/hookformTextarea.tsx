@@ -35,6 +35,7 @@ export function HookFormTextarea<T extends FieldValues>(
         required = false,
         hidden = false,
         hint,
+        id,
         ...rest
     } = props;
     const { formState } = useFormContext();
@@ -59,7 +60,7 @@ export function HookFormTextarea<T extends FieldValues>(
                                 }
                                 error={errorMessage}
                                 hint={hint}
-                                id={field.name}
+                                id={id ?? field.name}
                                 label={label}
                                 name={field.name}
                                 onBlur={field.onBlur}
