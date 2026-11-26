@@ -1,25 +1,29 @@
 import { z } from "zod";
 import { STAGE_OUTCOMES } from "./cardState";
 
-const MAX_MARKDOWN = 20_000;
+export const MAX_MARKDOWN = 20_000;
 const MAX_HEADER = 24;
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 4;
 const MAX_QUESTIONS = 4;
 const MAX_TITLE = 140;
+const MAX_QUESTION = 1000;
+const MAX_OPTION_LABEL = 120;
+const MAX_OPTION_DESCRIPTION = 500;
+const MAX_ARTIFACT_PATH = 1024;
 const COMMIT_SHA = /^[0-9a-f]{40}$/;
 
 const cardRef = { cardId: z.string().min(1) };
 const stageRef = { ...cardRef, stage: z.string().min(1) };
 
 export const questionSchema = z.object({
-    question: z.string().min(1),
+    question: z.string().min(1).max(MAX_QUESTION),
     header: z.string().min(1).max(MAX_HEADER),
     options: z
         .array(
             z.object({
-                label: z.string().min(1),
-                description: z.string().optional(),
+                label: z.string().min(1).max(MAX_OPTION_LABEL),
+                description: z.string().max(MAX_OPTION_DESCRIPTION).optional(),
             })
         )
         .min(MIN_OPTIONS)
@@ -46,7 +50,7 @@ export const askInputSchema = z.object({
 
 export const attachArtifactInputSchema = z.object({
     ...stageRef,
-    path: z.string().min(1),
+    path: z.string().min(1).max(MAX_ARTIFACT_PATH),
     commitSha: z.string().regex(COMMIT_SHA),
 });
 
@@ -73,5 +77,20 @@ export const AGENT_CONTRACT_TOOLS = {
 } as const;
 
 export type AgentContractTool = keyof typeof AGENT_CONTRACT_TOOLS;
+export type Question = z.infer<typeof questionSchema>;
+export type PostUpdateInput = z.infer<typeof postUpdateInputSchema>;
 export type AskInput = z.infer<typeof askInputSchema>;
+export type AttachArtifactInput = z.infer<typeof attachArtifactInputSchema>;
 export type CompleteStageInput = z.infer<typeof completeStageInputSchema>;
+
+/** `create_card` stays out until a card can be born outside the sync of the repository's specs. */
+export const AGENT_MCP_TOOLS = [
+    "get_card",
+    "post_update",
+    "ask",
+    "attach_artifact",
+    "complete_stage",
+] as const satisfies readonly AgentContractTool[];
+
+export const isAgentContractTool = (name: string): name is AgentContractTool =>
+    Object.hasOwn(AGENT_CONTRACT_TOOLS, name);

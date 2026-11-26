@@ -4,6 +4,7 @@ export * from "./boardConfig";
 export * from "./boardConfigDiff";
 export * from "./boardConfigIssues";
 export * from "./boardLanes";
+export * from "./cardEvent";
 export * from "./cardState";
 export * from "./identity";
 export * from "./roles";
