@@ -1,7 +1,7 @@
 ---
 id: orchestrator
 title: Orquestrador de etapas (estados, fila e transições)
-status: proposed
+status: in-progress
 value: alto
 effort: G
 audience: time
@@ -9,8 +9,8 @@ phase: 1
 area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: [card-timeline]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: orchestrator
+updated: 2026-11-26
 ---
 
 # Orquestrador de etapas (estados, fila e transições)
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** arrastar um card dispara a etapa e o resultado move o card sozinho.
 > - **Por quê:** sem um ponto único, telas e agentes moveriam cards cada um do seu jeito.
-> - **Status:** `proposed` · valor alto · esforço G · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço G · time
+> - **Próximo passo:** `/develop` (plano em `docs/features/orchestrator/analyze/plan.md`)
 
 ## Problema
 
