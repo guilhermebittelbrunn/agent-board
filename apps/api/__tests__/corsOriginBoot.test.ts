@@ -18,7 +18,15 @@ const EXIT_FAILURE = 1;
 const RATE_LIMIT_DISABLED = /rate limiting is DISABLED/;
 const MALFORMED_ARCJET_KEY = /does not start with "ajkey_"/;
 
-const MANAGED_VARS = ["NODE_ENV", "NEXT_RUNTIME", "CORS_ORIGIN", "ARCJET_KEY"];
+const MANAGED_VARS = [
+    "NODE_ENV",
+    "NEXT_RUNTIME",
+    "CORS_ORIGIN",
+    "ARCJET_KEY",
+    "GITHUB_APP_ID",
+    "GITHUB_APP_PRIVATE_KEY",
+    "GITHUB_WEBHOOK_SECRET",
+];
 const originalEnv = { ...process.env };
 
 function givenBootEnv(vars: Record<string, string>) {
@@ -119,7 +127,13 @@ describe("boot notice for the rate limiter", () => {
         const error = vi.spyOn(console, "error").mockImplementation(() => {
             // capture any unexpected boot error
         });
-        givenBootEnv({ NODE_ENV: "development", ARCJET_KEY: "ajkey_test" });
+        givenBootEnv({
+            NODE_ENV: "development",
+            ARCJET_KEY: "ajkey_test",
+            GITHUB_APP_ID: "12345",
+            GITHUB_APP_PRIVATE_KEY: "test-key",
+            GITHUB_WEBHOOK_SECRET: "test-secret",
+        });
 
         await register();
 
