@@ -3,12 +3,17 @@
 import { cn } from "@repo/design-system/lib/utils";
 import { useId } from "react";
 import type * as React from "react";
+import { Badge } from "./badge";
 import { Label } from "./label";
 import { RadioGroup, RadioGroupItem } from "./radio-group";
 
 export type RadioOption = {
   value: string;
   label: string;
+  /** Secondary line under the label. */
+  description?: string;
+  /** Short tag next to the label, e.g. to flag a suggested option. */
+  badge?: string;
 };
 
 export type RadioGroupInputProps = {
@@ -59,13 +64,17 @@ export function RadioGroupInput({
           const htmlId = optionDomId(rootId, option.value);
           return (
             <label
-              className="flex cursor-pointer items-center gap-2"
+              className={cn(
+                "flex cursor-pointer gap-2",
+                option.description ? "items-start" : "items-center"
+              )}
               htmlFor={htmlId}
               key={option.value}
             >
               <RadioGroupItem
                 aria-invalid={Boolean(error)}
                 className={cn(
+                  option.description ? "mt-0.5" : "",
                   error
                     ? "border-destructive aria-invalid:border-destructive"
                     : ""
@@ -73,7 +82,23 @@ export function RadioGroupInput({
                 id={htmlId}
                 value={option.value}
               />
-              <span className="text-sm">{option.label}</span>
+              {option.description || option.badge ? (
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="flex flex-wrap items-center gap-2 text-sm">
+                    {option.label}
+                    {option.badge ? (
+                      <Badge variant="secondary">{option.badge}</Badge>
+                    ) : null}
+                  </span>
+                  {option.description ? (
+                    <span className="text-muted-foreground text-sm">
+                      {option.description}
+                    </span>
+                  ) : null}
+                </span>
+              ) : (
+                <span className="text-sm">{option.label}</span>
+              )}
             </label>
           );
         })}
