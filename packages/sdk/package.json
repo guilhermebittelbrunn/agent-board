@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@repo/auth": "workspace:*",
+    "@repo/kanban-contract": "workspace:*",
     "@repo/shared": "workspace:*",
     "react": "19.2.0",
     "axios": "^1.21.1"

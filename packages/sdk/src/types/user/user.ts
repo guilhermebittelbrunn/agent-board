@@ -1,5 +1,7 @@
 /** biome-ignore-all lint/style/noEnum: enums for role */
 
+import type { GithubIdentity } from "@repo/kanban-contract";
+
 export enum UserType {
     ADMIN = "admin",
     COMMON = "common",
@@ -26,6 +28,8 @@ export type UserDTO = {
      * each write once. Absent on profiles that predate the field.
      */
     lastAccessAt?: Date | null;
+    /** Written by the server from Firebase on each GitHub sign-in; absent on password accounts. */
+    github?: GithubIdentity | null;
 };
 
 export type AdminCreateUserRequest = {

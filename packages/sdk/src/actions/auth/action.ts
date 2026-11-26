@@ -10,20 +10,13 @@ export type AuthMePayload = {
     preferences: UserPreferences | null;
 };
 
-export type GoogleSignInRequest = {
+/** The Firebase ID token of the GitHub popup sign-in, never the GitHub access token. */
+export type GithubSignInRequest = {
     idToken: string;
-    requestUri: string;
 };
 
-export type GoogleSignInSession = {
-    idToken: string;
-    refreshToken: string;
-    expiresIn: string;
-};
-
-export type GoogleSignInResponse = {
-    session: GoogleSignInSession;
-    user: AuthMePayload | null;
+export type GithubSignInResponse = {
+    user: AuthMePayload;
 };
 
 export type AuthSessionStanding = { active: true };
@@ -50,15 +43,12 @@ export default class AuthActions {
         return data.data;
     }
 
-    /**
-     * Google popup (Firebase client) → Google ID token → API `/auth/sign-in/google`,
-     * returning the same `session` + merged `user` shape as e-mail/password sign-in.
-     */
-    async signInWithGoogle(
-        body: GoogleSignInRequest
-    ): Promise<GoogleSignInResponse> {
-        const { data } = await this.client.request<GoogleSignInResponse>({
-            url: "/auth/sign-in/google",
+    /** Creates the profile on first sign-in and syncs the GitHub identity stored on it. */
+    async signInWithGithub(
+        body: GithubSignInRequest
+    ): Promise<GithubSignInResponse> {
+        const { data } = await this.client.request<GithubSignInResponse>({
+            url: "/auth/sign-in/github",
             method: "POST",
             data: body,
         });
