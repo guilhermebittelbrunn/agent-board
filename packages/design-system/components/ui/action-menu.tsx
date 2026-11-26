@@ -27,6 +27,8 @@ interface ActionsMenuProps {
     deleteLabels?: ActionMenuDeleteLabels;
     items?: ActionMenuItem[];
     className?: string;
+    /** Names the trigger when a list renders one menu per row, e.g. "Actions for <name>". */
+    triggerLabel?: string;
 }
 
 export function ActionsMenu({
@@ -35,6 +37,7 @@ export function ActionsMenu({
     deleteLabels,
     items,
     className,
+    triggerLabel,
 }: ActionsMenuProps) {
     const { dictionary } = getDictionary();
     const translation = dictionary.components.actionMenu;
@@ -104,6 +107,7 @@ export function ActionsMenu({
                                     {
                                         icon: (
                                             <EditOutlined
+                                                aria-hidden
                                                 style={{ scale: 1.25 }}
                                             />
                                         ),
@@ -127,6 +131,7 @@ export function ActionsMenu({
                                     {
                                         icon: (
                                             <DeleteOutlined
+                                                aria-hidden
                                                 style={{ scale: 1.25 }}
                                             />
                                         ),
@@ -155,7 +160,7 @@ export function ActionsMenu({
                     <button
                         aria-expanded={menuOpen}
                         aria-haspopup="menu"
-                        aria-label={translation.trigger}
+                        aria-label={triggerLabel ?? translation.trigger}
                         className={cn(
                             "flex h-full w-full items-center justify-center rounded-full p-2 outline-none hover:cursor-pointer hover:opacity-40 focus-visible:ring-[3px] focus-visible:ring-ring/50",
                             className,
