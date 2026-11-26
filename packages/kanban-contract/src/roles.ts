@@ -48,10 +48,59 @@ export function canTriggerStages(role: BoardRole | null): boolean {
     return role !== null && boardRank(role) >= boardRank("operator");
 }
 
+/** Sync the backlog, reorder Tasks and move cards between columns without triggering a stage. */
+export function canPrioritizeCards(role: BoardRole | null): boolean {
+    return role !== null && boardRank(role) >= boardRank("operator");
+}
+
+/** Answering a stage's questions resumes that stage, so it takes the same role as triggering one. */
+export function canAnswerQuestions(role: BoardRole | null): boolean {
+    return role !== null && boardRank(role) >= boardRank("operator");
+}
+
+export function canCommentOnCards(role: BoardRole | null): boolean {
+    return role !== null;
+}
+
 export function canManageMembers(role: BoardRole | null): boolean {
     return role !== null && boardRank(role) >= boardRank("maintainer");
 }
 
 export function canConfigureBoard(role: BoardRole | null): boolean {
     return role === "owner";
+}
+
+export const INVITABLE_BOARD_ROLES = [
+    "viewer",
+    "operator",
+    "maintainer",
+] as const;
+export type InvitableBoardRole = (typeof INVITABLE_BOARD_ROLES)[number];
+
+// A board has a single owner, so no one is invited or promoted to `owner`, and no one hands out a role above their own.
+export function canGrantRole(
+    actor: BoardRole | null,
+    role: BoardRole
+): boolean {
+    if (actor === null || !canManageMembers(actor) || role === "owner") {
+        return false;
+    }
+    return boardRank(role) <= boardRank(actor);
+}
+
+export function grantableRoles(actor: BoardRole | null): InvitableBoardRole[] {
+    return INVITABLE_BOARD_ROLES.filter((role) => canGrantRole(actor, role));
+}
+
+export function canChangeMember(
+    actor: { id: string; role: BoardRole | null },
+    target: { id: string; role: BoardRole }
+): boolean {
+    if (actor.role === null || !canManageMembers(actor.role)) {
+        return false;
+    }
+    if (target.role === "owner" || target.id === actor.id) {
+        return false;
+    }
+    return boardRank(target.role) <= boardRank(actor.role);
 }
