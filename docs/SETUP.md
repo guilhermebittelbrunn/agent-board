@@ -69,7 +69,13 @@ Usado por `apps/app` (sign-in no cliente, sessão).
 | `NEXT_PUBLIC_APP_URL` | `app`, `api` | URL do painel. |
 | `CORS_ORIGIN` | `api` | **Lista de origens separada por vírgula** (`https://app.example.com`) autorizadas a chamar a API pelo browser. **Obrigatória em produção**: sem ela (ou com valor vazio) o processo da API imprime `[boot] CORS_ORIGIN is required in production…` e sai com código 1 (`apps/api/instrumentation.ts`). Fora de produção, vazia = `http://localhost:3000`. **Não existe coringa.** Requisição sem header `Origin` (servidor→servidor, prefetch RSC) passa sem cabeçalho de CORS, exceto escrita (`POST`/`PUT`/`PATCH`/`DELETE`) que leva o cookie `access-token` sem `Authorization`: essa recebe `403 AUTH_FORBIDDEN_ORIGIN`. Origem fora da lista também recebe `403 AUTH_FORBIDDEN_ORIGIN`. |
 
-> ⚠️ **Preview deploys**: o domínio efêmero (`*.vercel.app`) não está em `CORS_ORIGIN` e o browser será recusado. Acrescente a origem do preview à variável do ambiente de preview — mesma armadilha dos *Authorized domains* do Firebase.
+> ⚠️ **Preview deploys**: os dois apps pulam o build fora de produção. O `ignoreCommand` do `vercel.json`
+> roda `scripts/skip-ci.js`, que só deixa buildar quando `VERCEL_ENV` é `production`, porque as
+> credenciais do Firebase ficam só no ambiente Production da Vercel. Para ter preview, configure o
+> ambiente Preview com um projeto Firebase separado e tire essa checagem dos dois scripts. Aí entra outra
+> armadilha: o domínio efêmero (`*.vercel.app`) não está em `CORS_ORIGIN` e o browser será recusado.
+> Acrescente a origem do preview à variável do ambiente de preview, como nos *Authorized domains* do
+> Firebase.
 
 ### GitHub App do board · `apps/api/env.ts`
 Só na `apps/api`. As três são opcionais até a ida a produção, e string vazia conta como ausente.
