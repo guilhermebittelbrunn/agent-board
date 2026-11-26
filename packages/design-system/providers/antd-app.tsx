@@ -1,5 +1,6 @@
 "use client";
 
+import { StyleProvider } from "@ant-design/cssinjs";
 import { useDictionary } from "@repo/internationalization/client";
 import type { Locale } from "@repo/internationalization/utils";
 import {
@@ -154,13 +155,18 @@ export function AntdAppProvider({ children }: { children: ReactNode }) {
     const { locale } = useDictionary();
     // next-themes keeps the stored preference in resolvedTheme even when a page forces a theme.
     const activeTheme = forcedTheme ?? resolvedTheme;
+    // antd's styles go into the `antd` cascade layer, which the app stylesheet orders below Tailwind's
+    // utilities. Unlayered, its global `a { color; background-color: transparent }` beat any
+    // utility class on a link, such as a link styled with `buttonVariants`.
     return (
-        <ConfigProvider
-            locale={antdLocales[locale]}
-            theme={antdThemes[activeTheme === "dark" ? "dark" : "light"]}
-            wave={{ disabled: false }}
-        >
-            {children}
-        </ConfigProvider>
+        <StyleProvider layer>
+            <ConfigProvider
+                locale={antdLocales[locale]}
+                theme={antdThemes[activeTheme === "dark" ? "dark" : "light"]}
+                wave={{ disabled: false }}
+            >
+                {children}
+            </ConfigProvider>
+        </StyleProvider>
     );
 }

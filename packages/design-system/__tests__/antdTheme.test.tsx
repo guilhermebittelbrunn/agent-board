@@ -191,6 +191,25 @@ describe("AntdAppProvider", () => {
         }
     );
 
+    it("puts every antd style in the antd cascade layer, global link reset included", () => {
+        render(
+            <AntdAppProvider>
+                <Button>probe</Button>
+            </AntdAppProvider>
+        );
+
+        const antdStyles = Array.from(
+            document.head.querySelectorAll("style[data-css-hash]"),
+            (style) => style.textContent ?? ""
+        ).filter((css) => css.trim().length > 0);
+
+        expect(antdStyles.length).toBeGreaterThan(0);
+        expect(antdStyles.some((css) => css.includes("a{"))).toBe(true);
+        for (const css of antdStyles) {
+            expect(css.trimStart().startsWith("@layer antd")).toBe(true);
+        }
+    });
+
     it("dark: the solid primary button keeps the primary foreground as text", () => {
         themeState.resolvedTheme = "dark";
 
