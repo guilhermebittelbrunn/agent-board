@@ -4,7 +4,6 @@ import { type FirebaseApp, getApps, initializeApp } from "firebase/app";
 import {
     type Auth,
     connectAuthEmulator,
-    GoogleAuthProvider,
     getAdditionalUserInfo,
     getAuth,
     onAuthStateChanged,
@@ -12,7 +11,6 @@ import {
     reload,
     signInWithCustomToken,
     signInWithEmailAndPassword,
-    signInWithPopup,
     signOut,
     type User,
     type UserCredential,
@@ -144,15 +142,6 @@ export const getAuthClient = () => {
 export const signIn = ({ email, password }: SignInDTO) => {
     const auth = getAuthClient();
     return signInWithEmailAndPassword(auth, email, password);
-};
-
-/**
- * Sign in with Google using popup
- */
-export const signInWithGoogle = () => {
-    const auth = getAuthClient();
-    const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
 };
 
 export const isNewAccount = (credential: UserCredential): boolean =>
