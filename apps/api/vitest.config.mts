@@ -14,6 +14,16 @@ export default defineConfig({
     },
     resolve: {
         alias: {
+            // The `@repo` alias below maps to folders, so a package `exports` subpath that is
+            // not a folder has to be spelled out or Node loads the raw `.ts` file.
+            "@repo/kanban-contract/board-config-yaml": path.resolve(
+                __dirname,
+                "../../packages/kanban-contract/src/boardConfigYaml.ts"
+            ),
+            "@repo/kanban-contract/spec-frontmatter": path.resolve(
+                __dirname,
+                "../../packages/kanban-contract/src/specFrontmatter.ts"
+            ),
             "@": path.resolve(__dirname, "./"),
             "@repo": path.resolve(__dirname, "../../packages"),
         },
