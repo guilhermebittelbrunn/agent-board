@@ -34,6 +34,7 @@ export default function ProfileDropdown() {
     const displayName = account?.displayName ?? user?.displayName ?? null;
     const email = account?.email ?? user?.email ?? null;
     const avatarSrc = account?.avatarUrl ?? user?.photoURL ?? "";
+    const githubLogin = account?.github?.login ?? null;
     const initials =
         displayName?.slice(0, 2) ?? email?.split("@")[0]?.slice(0, 2) ?? "";
 
@@ -54,7 +55,7 @@ export default function ProfileDropdown() {
                 <DropdownMenuGroup className="gap-0 truncate">
                     <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
                     <DropdownMenuLabel className="my-0 truncate py-0 text-muted-foreground text-sm">
-                        {email}
+                        {githubLogin ? `@${githubLogin}` : email}
                     </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
