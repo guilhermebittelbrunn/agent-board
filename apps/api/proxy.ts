@@ -50,13 +50,17 @@ const securityOptions = buildApiOptions();
  * billed as storage and egress. Changing the password spends Identity Toolkit quota on
  * each attempt.
  *
+ * `/runner/register` has no guard either: the one-time code is the credential, so the
+ * strict budget is what keeps guessing it slow.
+ *
  * Matched exactly: a neighbour of a listed path falls back to the standard budget.
  */
 const STRICT_RATE_LIMITED_PATHS = [
     "/auth/sign-in",
-    "/auth/sign-in/google",
+    "/auth/sign-in/github",
     "/files",
     "/account/password",
+    "/runner/register",
 ];
 
 function rateLimitBudgetFor(request: NextRequest): RateLimitBudget | null {

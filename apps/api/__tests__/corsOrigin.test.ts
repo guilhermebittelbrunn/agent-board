@@ -426,7 +426,7 @@ describe("api proxy rate limit", () => {
 
     it("counts the public authentication endpoints", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
-        const publicAuthPaths = ["/auth/sign-in", "/auth/sign-in/google"];
+        const publicAuthPaths = ["/auth/sign-in", "/auth/sign-in/github"];
 
         for (const path of publicAuthPaths) {
             await proxy(
@@ -448,6 +448,15 @@ describe("api proxy rate limit", () => {
         }
 
         expect(budgetsSpent()).toEqual(passwordPaths.map(() => "strict"));
+    });
+
+    it("counts runner registration in the strict budget and its polling in the standard one", async () => {
+        const proxy = await loadProxy(APP_ORIGIN);
+
+        await proxy(makeRequest({ method: "POST", path: "/runner/register" }));
+        await proxy(makeRequest({ method: "POST", path: "/runner/claim" }));
+
+        expect(budgetsSpent()).toEqual(["strict", "standard"]);
     });
 
     it("counts the rest of the account area in the standard budget", async () => {
@@ -590,7 +599,7 @@ describe("api proxy rate limit", () => {
     /**
      * The strict budget is spent on an exact pathname, so a sibling route under the same
      * prefix falls back to the standard one. That is the price of never charging
-     * `/auth/sign-in/google` twice for a single request.
+     * `/auth/sign-in/github` twice for a single request.
      */
     it("counts the neighbours of a strict path in the standard budget", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
@@ -762,5 +771,87 @@ describe("api proxy rate limit", () => {
         );
 
         expect(checkRateLimitMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("agent endpoints behind the proxy", () => {
+    const RUN_SECRET_LENGTH = 43;
+    const runToken = (runId: string, secretChar: string) =>
+        `Bearer kbr_${runId}_${secretChar.repeat(RUN_SECRET_LENGTH)}`;
+
+    function subjectsSpent(): unknown[] {
+        return checkRateLimitMock.mock.calls.map(
+            ([, options]) =>
+                (options as { subject?: string } | undefined)?.subject
+        );
+    }
+
+    it("refuses a foreign origin on /mcp even with a run token, before any rate limit call", async () => {
+        const proxy = await loadProxy(APP_ORIGIN);
+
+        const response = await proxy(
+            makeRequest({
+                origin: FOREIGN_ORIGIN,
+                method: "POST",
+                path: "/mcp",
+                authorization: runToken("run1", "A"),
+            })
+        );
+
+        expect(response.status).toBe(FORBIDDEN);
+        expect(await response.json()).toEqual({
+            error: { code: "AUTH_FORBIDDEN_ORIGIN" },
+        });
+        expect(checkRateLimitMock).not.toHaveBeenCalled();
+    });
+
+    it("lets an agent call without an origin reach /mcp and /agent/tools", async () => {
+        const proxy = await loadProxy(APP_ORIGIN);
+
+        for (const path of ["/mcp", "/agent/tools/get_card"]) {
+            const response = await proxy(
+                makeRequest({
+                    method: "POST",
+                    path,
+                    authorization: runToken("run1", "A"),
+                })
+            );
+
+            expect(response.headers.get("x-middleware-next")).toBe("1");
+        }
+        expect(budgetsSpent()).toEqual(["standard", "standard"]);
+    });
+
+    it("spends one bucket per run, whatever the secret, apart from anonymous callers", async () => {
+        const proxy = await loadProxy(APP_ORIGIN);
+
+        await proxy(
+            makeRequest({
+                method: "POST",
+                path: "/mcp",
+                authorization: runToken("run1", "A"),
+            })
+        );
+        await proxy(
+            makeRequest({
+                method: "POST",
+                path: "/mcp",
+                authorization: runToken("run1", "B"),
+            })
+        );
+        await proxy(
+            makeRequest({
+                method: "POST",
+                path: "/mcp",
+                authorization: runToken("run2", "A"),
+            })
+        );
+        await proxy(makeRequest({ method: "POST", path: "/mcp" }));
+
+        const [first, sameRun, otherRun, anonymous] = subjectsSpent();
+        expect(first).toMatch(HASHED_SUBJECT);
+        expect(sameRun).toBe(first);
+        expect(otherRun).not.toBe(first);
+        expect(anonymous).not.toBe(first);
     });
 });

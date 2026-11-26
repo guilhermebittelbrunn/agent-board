@@ -169,53 +169,39 @@ export async function identityApplyOobCode(
     return parseToolkitJson<ToolkitApplyOob>(res, "Email verification failed");
 }
 
-type IdpSuccess = ToolkitSuccess & {
-    isNewUser?: boolean;
+export type ToolkitProviderUserInfo = {
+    providerId: string;
+    rawId?: string;
+    screenName?: string;
+    displayName?: string;
+    photoUrl?: string;
 };
 
-function parseIdpResponse(res: Response): Promise<IdpSuccess> {
-    return (async () => {
-        const data = (await res.json()) as Partial<IdpSuccess> &
-            ToolkitErrorBody;
-        if (!res.ok || data.error) {
-            const msg = data.error?.message ?? "Google sign-in failed";
-            throw new IdentityToolkitError(msg, data.error?.code);
-        }
-        if (
-            !(
-                data.localId &&
-                data.idToken &&
-                data.refreshToken &&
-                data.expiresIn
-            )
-        ) {
-            throw new IdentityToolkitError(
-                "Invalid response from identity provider"
-            );
-        }
-        return data as IdpSuccess;
-    })();
-}
+type ToolkitLookup = {
+    users?: Array<{ providerUserInfo?: ToolkitProviderUserInfo[] }>;
+};
 
 /**
- * Completes Firebase Auth using a Google OAuth ID token (from the client popup),
- * same session shape as password sign-in.
+ * Reads the provider data Firebase stored for the account behind `idToken`. The ID token
+ * itself authorizes the lookup, so no service credential and no provider token is needed.
  */
-export async function identitySignInWithGoogleIdToken(
-    googleIdToken: string,
-    requestUri: string
-): Promise<IdpSuccess> {
+export async function identityLookupProvider(
+    idToken: string,
+    providerId: string
+): Promise<ToolkitProviderUserInfo | null> {
     const key = getWebApiKey();
-    const postBody = `id_token=${encodeURIComponent(googleIdToken)}&providerId=google.com`;
-    const res = await fetch(`${base()}/accounts:signInWithIdp?key=${key}`, {
+    const res = await fetch(`${base()}/accounts:lookup?key=${key}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            postBody,
-            requestUri,
-            returnSecureToken: true,
-            returnIdpCredential: true,
-        }),
+        body: JSON.stringify({ idToken }),
     });
-    return parseIdpResponse(res);
+    const data = await parseToolkitJson<ToolkitLookup>(
+        res,
+        "Account lookup failed"
+    );
+    return (
+        data.users?.[0]?.providerUserInfo?.find(
+            (info) => info.providerId === providerId
+        ) ?? null
+    );
 }
