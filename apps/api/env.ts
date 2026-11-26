@@ -22,6 +22,9 @@ export const env = createEnv({
         // inherited, which below is every development run — and the upload capability
         // would read as switched off on every local machine.
         FIREBASE_STORAGE_BUCKET: z.string().optional(),
+        GITHUB_APP_ID: z.string().regex(/^\d+$/).optional(),
+        GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+        GITHUB_WEBHOOK_SECRET: z.string().optional(),
     },
     // Redeclared even though `core()` already provides it: `skipValidation` makes
     // createEnv answer with this module's own `runtimeEnv` and drop everything inherited,
@@ -38,6 +41,9 @@ export const env = createEnv({
             process.env.FIREBASE_STORAGE_BUCKET ||
             process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
             undefined,
+        GITHUB_APP_ID: process.env.GITHUB_APP_ID || undefined,
+        GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY || undefined,
+        GITHUB_WEBHOOK_SECRET: process.env.GITHUB_WEBHOOK_SECRET || undefined,
         NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     },
     skipValidation: process.env.NODE_ENV === "development",
