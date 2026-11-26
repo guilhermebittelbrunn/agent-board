@@ -1,0 +1,363 @@
+import type {
+    ActiveRunView,
+    ExecutorReport,
+    RunEndReason,
+    RunPerson,
+    RunTrigger,
+    StageOutcome,
+} from "@repo/kanban-contract";
+import type { BoardDTO } from "@repo/sdk/src/types";
+import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
+import { logEvent } from "@repo/shared/utils/helpers/log";
+import { agentEventFromTool } from "@/(shared)/lib/card-events";
+import { findUnclaimed } from "@/(shared)/lib/runner/runner-claim";
+import { type CardRecord, cardIdFor } from "@/(shared)/mappers/card.mapper";
+import type { RunRecord } from "@/(shared)/mappers/run.mapper";
+import { cardRepository } from "@/(shared)/repositories/card.repository";
+import { cardEventRepository } from "@/(shared)/repositories/card-event.repository";
+import { runRepository } from "@/(shared)/repositories/run.repository";
+import {
+    deadlineFor,
+    findExpired,
+    type OrchestratorRefusal,
+    pickPromotions,
+    planCompletion,
+    planTrigger,
+    toStageDispatch,
+} from "./decide";
+import { getStageExecutor } from "./executor";
+import { executorsForUsers, resolveExecutorFor } from "./executor-choice";
+
+type Board = Pick<BoardDTO, "id" | "config" | "repository" | "stageSettings">;
+
+export type TriggerResult =
+    | OrchestratorRefusal
+    | { ok: true; card: CardRecord; run: RunRecord };
+
+export type StopResult = OrchestratorRefusal | { ok: true; card: CardRecord };
+
+async function readBack(
+    cardId: string,
+    runId: string
+): Promise<{ card: CardRecord; run: RunRecord } | null> {
+    const [card, run] = await Promise.all([
+        cardRepository.findById(cardId),
+        runRepository.findById(runId),
+    ]);
+    return card && run ? { card, run } : null;
+}
+
+/** Queues `stageKey` on the card and starts it right away when the column has a free slot. */
+export async function triggerStage(input: {
+    board: Board;
+    slug: string;
+    stageKey: string;
+    by: RunPerson;
+    trigger?: RunTrigger;
+    now?: Date;
+}): Promise<TriggerResult> {
+    const now = input.now ?? new Date();
+    const queued = await runRepository.enqueueOnCard(
+        cardIdFor(input.board.id, input.slug),
+        (card) =>
+            planTrigger(card, {
+                stageKey: input.stageKey,
+                config: input.board.config,
+                by: input.by,
+                now,
+                trigger: input.trigger,
+            })
+    );
+    if (!queued.ok) {
+        return queued;
+    }
+    await pumpBoard(input.board, now);
+    const stored = await readBack(queued.cardId, queued.runId);
+    return stored
+        ? { ok: true, ...stored }
+        : { ok: false, code: "CARD_NOT_FOUND", status: HTTP_STATUS.NOT_FOUND };
+}
+
+/**
+ * Applies a stage result to the card. Every result goes through here, whoever reports it
+ * (the agent, a timeout, a dispatch that failed), and a second call for the same run is
+ * ignored.
+ */
+export async function completeRun(input: {
+    board: Board;
+    runId: string;
+    outcome: StageOutcome;
+    endReason: RunEndReason;
+    now?: Date;
+}): Promise<{ ignored: boolean }> {
+    const now = input.now ?? new Date();
+    const { board } = input;
+    const result = await runRepository.finishOnCard({
+        runId: input.runId,
+        close: {
+            status: "finished",
+            outcome: input.outcome,
+            endReason: input.endReason,
+            stoppedBy: null,
+        },
+        config: board.config,
+        plan: (card, run) =>
+            planCompletion({
+                card,
+                run,
+                outcome: input.outcome,
+                config: board.config,
+                stageSettings: board.stageSettings,
+            }),
+        now,
+    });
+    if (result.ignored) {
+        return { ignored: true };
+    }
+    await pumpBoard(board, now);
+    return { ignored: false };
+}
+
+export async function stopRun(input: {
+    board: Board;
+    slug: string;
+    by: RunPerson;
+    now?: Date;
+}): Promise<StopResult> {
+    const now = input.now ?? new Date();
+    const stopped = await runRepository.stopOnCard(
+        cardIdFor(input.board.id, input.slug),
+        input.by,
+        now
+    );
+    if (!stopped.ok) {
+        return stopped;
+    }
+    const run = await runRepository.findById(stopped.runId);
+    if (run?.executor) {
+        await getStageExecutor(run.executor)?.cancel(stopped.runId);
+    }
+    await pumpBoard(input.board, now);
+    const card = await cardRepository.findById(stopped.cardId);
+    return card
+        ? { ok: true, card }
+        : { ok: false, code: "CARD_NOT_FOUND", status: HTTP_STATUS.NOT_FOUND };
+}
+
+/**
+ * After a person answers a stage's questions, runs that stage again so the agent reads
+ * the answers. A card that is not waiting, or a board without an executor, is left alone.
+ */
+export async function resumeAfterAnswer(input: {
+    board: Board;
+    slug: string;
+    by: RunPerson;
+    now?: Date;
+}): Promise<void> {
+    if ((await resolveExecutorFor(input.by.userId, input.now)) === null) {
+        return;
+    }
+    const card = await cardRepository.findBySlug(input.board.id, input.slug);
+    if (
+        card === null ||
+        card.lane !== "stage" ||
+        card.stageKey === null ||
+        card.state !== "waiting_input" ||
+        card.activeRunId !== null ||
+        card.pendingAsk !== null
+    ) {
+        return;
+    }
+    await triggerStage({
+        board: input.board,
+        slug: input.slug,
+        stageKey: card.stageKey,
+        by: input.by,
+        trigger: "answer",
+        now: input.now,
+    });
+}
+
+/**
+ * Starts what fits in the columns. Each run gets the executor of the person who triggered
+ * it, so a runner only ever runs its owner's stages; a run whose person has no executor
+ * ends right away with `no_runner`.
+ */
+async function pumpBoard(board: Board, now: Date): Promise<void> {
+    const live = await runRepository.listActiveByBoard(board.id);
+    const queuedBy = live
+        .filter((run) => run.status === "queued")
+        .map((run) => run.triggeredBy.userId);
+    if (queuedBy.length === 0) {
+        return;
+    }
+    const byUser = await executorsForUsers(queuedBy, now);
+    const started = await runRepository.promote({
+        boardId: board.id,
+        pick: (runs, stored) => pickPromotions(runs, stored.stageSettings),
+        executorFor: (run) => byUser.get(run.triggeredBy.userId) ?? null,
+        deadlineFor: (startedAt, stored) =>
+            deadlineFor(startedAt, stored.config),
+        now,
+    });
+    for (const run of started) {
+        const executor =
+            run.executor === null ? null : getStageExecutor(run.executor);
+        if (executor === null) {
+            logEvent("orchestrator", "no_runner", {
+                boardId: board.id,
+                runId: run.id,
+            });
+            await completeRun({
+                board,
+                runId: run.id,
+                outcome: "failed",
+                endReason: "no_runner",
+                now,
+            });
+            continue;
+        }
+        let dispatched = false;
+        try {
+            dispatched = (await executor.dispatch(toStageDispatch(run, board)))
+                .ok;
+        } catch {
+            dispatched = false;
+        }
+        if (!dispatched) {
+            logEvent("orchestrator", "dispatch_failed", {
+                boardId: board.id,
+                runId: run.id,
+            });
+            await completeRun({
+                board,
+                runId: run.id,
+                outcome: "failed",
+                endReason: "dispatch_failed",
+                now,
+            });
+        }
+    }
+}
+
+const toActiveRunView = (run: RunRecord): ActiveRunView => ({
+    runId: run.id,
+    cardId: run.cardId,
+    slug: run.slug,
+    stageKey: run.stageKey,
+    command: run.command,
+    startedAt: new Date(run.startedAt ?? run.queuedAt),
+});
+
+/** Writes what an executor reported on the timeline, the way an agent's tools would. */
+async function recordReport(
+    board: Board,
+    run: RunRecord,
+    report: ExecutorReport
+): Promise<void> {
+    const card = await cardRepository.findById(run.cardId);
+    if (card === null) {
+        return;
+    }
+    const ctx = { card, config: board.config };
+    const ref = { cardId: run.cardId, stage: run.stageKey };
+    const events = [
+        ...(report.questions
+            ? [
+                  agentEventFromTool(
+                      {
+                          tool: "ask",
+                          input: { ...ref, questions: report.questions },
+                      },
+                      ctx
+                  ),
+              ]
+            : []),
+        agentEventFromTool(
+            {
+                tool: "complete_stage",
+                input: {
+                    ...ref,
+                    outcome: report.outcome,
+                    summary: report.summary,
+                },
+            },
+            ctx
+        ),
+    ];
+    for (const event of events) {
+        if (event.ok) {
+            await cardEventRepository.appendAgentEvent(card, {
+                ...event.write,
+                runId: run.id,
+            });
+        }
+    }
+}
+
+/**
+ * What depends on the clock rather than on a request: runs past their deadline, and the
+ * results an executor collects by itself. It runs at the start of every board read, which
+ * stands in for a scheduler the free plans do not offer.
+ */
+export async function tick(board: Board, now = new Date()): Promise<void> {
+    const runs = await runRepository.listActiveByBoard(board.id);
+    if (runs.length === 0) {
+        return;
+    }
+    const expired = findExpired(runs, now);
+    for (const run of expired) {
+        await completeRun({
+            board,
+            runId: run.id,
+            outcome: "failed",
+            endReason: "timeout",
+            now,
+        });
+    }
+
+    const expiredIds = new Set(expired.map((run) => run.id));
+    for (const run of findUnclaimed(runs, now)) {
+        if (expiredIds.has(run.id)) {
+            continue;
+        }
+        expiredIds.add(run.id);
+        await completeRun({
+            board,
+            runId: run.id,
+            outcome: "failed",
+            endReason: "no_runner",
+            now,
+        });
+    }
+
+    const fake = getStageExecutor("fake");
+    const running = runs.filter(
+        (run) =>
+            run.status === "running" &&
+            run.executor === "fake" &&
+            !expiredIds.has(run.id)
+    );
+    if (fake?.collect && running.length > 0) {
+        const byId = new Map(running.map((run) => [run.id, run]));
+        const reports = await fake.collect(running.map(toActiveRunView), now);
+        for (const report of reports) {
+            const run = byId.get(report.runId);
+            if (run === undefined) {
+                continue;
+            }
+            await recordReport(board, run, report);
+            await completeRun({
+                board,
+                runId: run.id,
+                outcome: report.outcome,
+                endReason: "agent",
+                now,
+            });
+        }
+    }
+
+    if (runs.some((run) => run.status === "queued")) {
+        await pumpBoard(board, now);
+    }
+}
