@@ -30,8 +30,9 @@ propostas nem participa da triagem.
 ## O que já existe no repo
 
 - `.claude/commands/spec.md` — modo descoberta: pergunta o foco (produto, dx, confiança ou equilibrado) e
-  o tamanho do lote, e aciona o `estrategista-produto` com a skill `market-research`.
-- `.claude/skills/market-research/` — pesquisa com fontes e data.
+  o tamanho do lote, e aciona o `estrategista-produto`, que pesquisa com `WebSearch`/`WebFetch` e cita
+  cada fonte com a data de coleta. A skill `market-research` do core saiu no `fork-cleanup`; a pesquisa
+  ficou nas instruções do próprio agente (`.claude/agents/estrategista-produto.md`).
 - `packages/kanban-contract/src/agentContract.ts` — `create_card`, que já deixa um agente criar card no
   backlog.
 - Spec `spec-authoring` — coluna Rascunhos e aprovação de spec.

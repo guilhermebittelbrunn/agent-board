@@ -1,7 +1,7 @@
 ---
 id: card-backlog
 title: Cards a partir do backlog de specs e board com colunas
-status: proposed
+status: in-progress
 value: alto
 effort: G
 audience: time
@@ -9,8 +9,8 @@ phase: 1
 area: [apps/api, apps/app, packages/sdk, packages/design-system, packages/kanban-contract]
 depends_on: [board-import, board-members]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: card-backlog
+updated: 2026-11-26
 ---
 
 # Cards a partir do backlog de specs e board com colunas
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** o backlog de specs do repositório aparece como cards, com prioridade e colunas.
 > - **Por quê:** é onde o time decide o que entra e acompanha o andamento.
-> - **Status:** `proposed` · valor alto · esforço G · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço G · time
+> - **Próximo passo:** `/develop card-backlog` (plano em [`docs/features/card-backlog/analyze/plan.md`](../../docs/features/card-backlog/analyze/plan.md))
 
 ## Problema
 

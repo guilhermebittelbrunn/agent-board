@@ -1,7 +1,7 @@
 ---
 id: board-import
 title: Criar board importando um repositório
-status: proposed
+status: in-progress
 value: alto
 effort: M
 audience: time
@@ -9,8 +9,8 @@ phase: 1
 area: [apps/api, apps/app, packages/sdk, packages/kanban-contract]
 depends_on: [github-app-integration, github-sign-in]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: board-import
+updated: 2026-11-26
 ---
 
 # Criar board importando um repositório
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** criar um board escolhendo um repositório e lendo o `.kanban/board.yml` dele.
 > - **Por quê:** é o primeiro valor visível: o repositório vira colunas, com erro claro quando o arquivo está errado.
-> - **Status:** `proposed` · valor alto · esforço M · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço M · time
+> - **Próximo passo:** `/develop board-import`, com o plano em [`docs/features/board-import/analyze/plan.md`](../../docs/features/board-import/analyze/plan.md).
 
 ## Problema
 
@@ -67,6 +67,8 @@ exatamente o que corrigir.
 
 - Um `board.yml` alterado depois da criação pode remover uma coluna com cards; recarregar deve recusar
   (ou pedir destino) quando houver cards na coluna removida.
+- O parser de YAML entra como dependência direta da API. Hoje `yaml` e `js-yaml` só aparecem como
+  dependências transitivas no lockfile.
 
 ## Sinais de pronto
 

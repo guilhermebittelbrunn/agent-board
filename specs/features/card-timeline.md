@@ -1,7 +1,7 @@
 ---
 id: card-timeline
 title: Linha do tempo do card, perguntas e respostas
-status: proposed
+status: in-progress
 value: alto
 effort: M
 audience: time
@@ -9,8 +9,8 @@ phase: 1
 area: [apps/api, apps/app, packages/sdk, packages/kanban-contract]
 depends_on: [card-backlog]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: card-timeline
+updated: 2026-11-26
 ---
 
 # Linha do tempo do card, perguntas e respostas
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** cada card mostra o que os agentes fizeram em cada etapa, as perguntas e as respostas.
 > - **Por quê:** quem prioriza ou revisa precisa entender a tarefa sem abrir código nem sessões.
-> - **Status:** `proposed` · valor alto · esforço M · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço M · time
+> - **Próximo passo:** `/develop` (plano em `docs/features/card-timeline/analyze/plan.md`)
 
 ## Problema
 
