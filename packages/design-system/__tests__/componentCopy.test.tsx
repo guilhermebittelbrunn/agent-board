@@ -89,8 +89,6 @@ globalThis.ResizeObserver ??=
 globalThis.IntersectionObserver ??=
     NoopObserver as unknown as typeof globalThis.IntersectionObserver;
 
-const ENTER = { key: "Enter", code: "Enter", keyCode: 13, which: 13 };
-
 function copyFor(locale: Locale) {
     return globalTranslations[locale].components;
 }
@@ -110,24 +108,19 @@ describe.each(locales)(
     (locale) => {
         const copy = copyFor(locale);
 
-        it("nomeia o gatilho e os itens do seletor de tema", async () => {
+        it("nomeia o botão de tema pela ação, nos dois temas, sem abrir menu", () => {
             renderInLocale(locale, <ModeToggle />);
 
-            const trigger = screen.getByRole("button", {
-                name: copy.modeToggle.trigger,
-            });
-            fireEvent.keyDown(trigger, ENTER);
-
-            const menu = await screen.findByRole("menu");
+            const toggle = screen.getByRole("button");
             expect(
-                within(menu)
-                    .getAllByRole("menuitem")
-                    .map((item) => item.textContent)
-            ).toEqual([
-                copy.modeToggle.light,
-                copy.modeToggle.dark,
-                copy.modeToggle.system,
-            ]);
+                within(toggle).getByText(copy.modeToggle.useDark)
+            ).toBeTruthy();
+            expect(
+                within(toggle).getByText(copy.modeToggle.useLight)
+            ).toBeTruthy();
+
+            fireEvent.click(toggle);
+            expect(screen.queryByRole("menu")).toBeNull();
         });
 
         it("nomeia o gatilho e o trilho da barra lateral", () => {
