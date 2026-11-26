@@ -43,6 +43,11 @@ export default defineConfig({
     },
     resolve: {
         alias: {
+            // Same as vitest.config.mts: a package `exports` subpath that is not a folder.
+            "@repo/kanban-contract/spec-frontmatter": path.resolve(
+                __dirname,
+                "../../packages/kanban-contract/src/specFrontmatter.ts"
+            ),
             "@": path.resolve(__dirname, "./"),
             "@repo": path.resolve(__dirname, "../../packages"),
         },
