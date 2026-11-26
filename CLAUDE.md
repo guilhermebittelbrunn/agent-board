@@ -12,7 +12,7 @@ Visão, arquitetura e decisões do board: [`docs/board/`](docs/board/README.md).
 
 **Anti-padrões a evitar** (sempre): URL da API hardcoded fora do SDK/env tipado; texto de UI solto sem passar pelo sistema de traduções; autorização só no cliente (espelhe na API); redefinir fora de `@repo/kanban-contract` um tipo do domínio do board que já existe lá. Nomes de código em inglês; mudanças mínimas; respeite Biome/Ultracite (`pnpm check`/`pnpm fix`).
 
-Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) · GitHub App · Claude Agent SDK (runner) · i18n próprio (pt-br) · Biome/Ultracite · Vitest · Playwright.
+Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) · GitHub App · Claude Code CLI (`claude -p`, no runner) · i18n próprio (pt-br) · Biome/Ultracite · Vitest · Playwright.
 
 ## Mapa do repositório
 
@@ -21,6 +21,7 @@ Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) ·
 | `app` | `apps/app` | 3000 | UI do board: boards, colunas, cards, linha do tempo, membros e configuração. |
 | `api` | `apps/api` | 3002 | API HTTP: guards → repositórios Firestore → DTOs; orquestrador (estados e fila), contrato dos agentes (HTTP + MCP) e webhooks do GitHub. |
 | `e2e` | `apps/e2e` | — | Suíte Playwright dos fluxos críticos. |
+| `runner` | `apps/runner` | — | CLI do runner local: registra a máquina num board, busca trabalho por polling e roda as etapas com `claude -p` num worktree. |
 
 | Package | O que é |
 |---------|---------|
