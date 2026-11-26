@@ -64,8 +64,15 @@ coringa. Detalhe em [`SECURITY.md`](SECURITY.md#cors-allowlist-sem-coringa).
       Secret do OAuth App. O Client Secret fica só no Firebase, não vai para variável de ambiente
 - [x] Email/Password e Google **desligados** no mesmo lugar
 - [x] Domínio do painel em Authentication → Settings → Authorized domains
-- [x] Depois do primeiro login, `type: "admin"` gravado à mão no documento da coleção `user` de quem
-      administra o board (todo login pelo GitHub cria o perfil como `common`)
+- [x] Quem opera os boards fica com o perfil `common`, que é como todo login pelo GitHub nasce. Não
+      promova essa conta a `admin`
+
+Boards, cards e execuções ficam no painel comum, e a API dele (`requireCommonPanelApi`, base do
+`requireBoardApi`) só aceita perfil `common`. Um admin que abre `/<locale>/boards` volta para o painel
+admin, e no painel comum só entra personificando outro usuário comum, em modo leitura. Agindo como ele
+mesmo, a API responde `403 AUTH_REQUEST_IMPERSONATION_REQUIRED`. Com o login só por GitHub, cada pessoa
+tem uma conta, então promover o único usuário a `admin` deixa o board sem ninguém que consiga criar um
+board. O painel admin hoje só gerencia usuários. Se precisar dele, use outra conta do GitHub.
 
 **Por quê.** A tela de login de produção só tem o botão "Entrar com GitHub". O popup é do Firebase, que
 precisa do OAuth App para falar com o GitHub. A API lê o `login` da pessoa no próprio Firebase
