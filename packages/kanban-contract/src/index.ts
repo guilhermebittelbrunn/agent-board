@@ -2,4 +2,5 @@
 export * from "./agentContract";
 export * from "./boardConfig";
 export * from "./cardState";
+export * from "./identity";
 export * from "./roles";
