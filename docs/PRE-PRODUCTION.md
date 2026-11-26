@@ -15,18 +15,23 @@ Marque o que fizer. O que estiver desmarcado é o que falta para o deploy ser ho
 
 ### 1. Projeto Firebase próprio
 
-- [ ] Projeto Firebase novo para o agent-board (Auth + Firestore), separado de qualquer produto
-- [ ] Service account do Admin SDK gerada e guardada nas variáveis da `apps/api` e da `apps/app` (`FIREBASE_ADMIN_*`)
-- [ ] App web registrado e configuração `NEXT_PUBLIC_FIREBASE_*` preenchida na `apps/app`
-- [ ] Emuladores esvaziados nos `.env` de produção (as quatro variáveis do bloco de emulador **vazias**)
+- [x] Projeto Firebase novo para o agent-board (Auth + Firestore), separado de qualquer produto
+- [x] Service account do Admin SDK gerada e guardada nas variáveis da `apps/api` e da `apps/app` (`FIREBASE_ADMIN_*`)
+- [x] App web registrado e configuração `NEXT_PUBLIC_FIREBASE_*` preenchida na `apps/app`
+- [x] Emuladores esvaziados nos `.env` de produção (as quatro variáveis do bloco de emulador **vazias**)
 
 O repositório não versiona `.firebaserc`: todo comando do `firebase-tools` leva `--project <id>`. Detalhe
 das variáveis, uma a uma, em [`SETUP.md`](SETUP.md).
 
+Num projeto recém-criado, a Cloud Firestore API vem desligada, e criar o banco responde 403 até ela ser
+ligada com `gcloud services enable firestore.googleapis.com --project <id>`. A ativação leva alguns
+minutos para propagar. A região do banco não muda depois de criada: escolha a mais próxima de onde a API
+roda, porque é a API que conversa com o Firestore.
+
 ### 2. Publicar as rules e os índices do Firestore
 
-- [ ] `firestore.rules` publicado
-- [ ] `firestore.indexes.json` publicado
+- [x] `firestore.rules` publicado
+- [x] `firestore.indexes.json` publicado
 
 A `apps/api` acessa o Firestore pelo Admin SDK e **ignora** as rules, então publicar não quebra a API:
 
@@ -45,22 +50,29 @@ código da API primeiro: republicar rules permissivas sem reverter reexpõe a ba
 
 ### 3. `CORS_ORIGIN`
 
-- [ ] `CORS_ORIGIN` da `apps/api` com o host do painel em produção
+- [x] `CORS_ORIGIN` da `apps/api` com o host do painel em produção
 
 Em produção, sem a lista, a API recusa subir (`[boot] CORS_ORIGIN is required in production…`). Não há
 coringa. Detalhe em [`SECURITY.md`](SECURITY.md#cors-allowlist-sem-coringa).
 
 ### 4. Login com GitHub
 
-- [ ] OAuth App do GitHub criado (Settings → Developer settings → OAuth Apps → New OAuth App), com
+- [x] OAuth App do GitHub criado (Settings → Developer settings → OAuth Apps → New OAuth App), com
       Authorization callback URL `https://<authDomain>/__/auth/handler`, onde `<authDomain>` é o
       `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` do projeto. É outro registro, separado do GitHub App do item 5
-- [ ] Firebase Console → Authentication → Sign-in method → GitHub ligado, com o Client ID e o Client
+- [x] Firebase Console → Authentication → Sign-in method → GitHub ligado, com o Client ID e o Client
       Secret do OAuth App. O Client Secret fica só no Firebase, não vai para variável de ambiente
-- [ ] Email/Password e Google **desligados** no mesmo lugar
-- [ ] Domínio do painel em Authentication → Settings → Authorized domains
-- [ ] Depois do primeiro login, `type: "admin"` gravado à mão no documento da coleção `user` de quem
-      administra o board (todo login pelo GitHub cria o perfil como `common`)
+- [x] Email/Password e Google **desligados** no mesmo lugar
+- [x] Domínio do painel em Authentication → Settings → Authorized domains
+- [x] Quem opera os boards fica com o perfil `common`, que é como todo login pelo GitHub nasce. Não
+      promova essa conta a `admin`
+
+Boards, cards e execuções ficam no painel comum, e a API dele (`requireCommonPanelApi`, base do
+`requireBoardApi`) só aceita perfil `common`. Um admin que abre `/<locale>/boards` volta para o painel
+admin, e no painel comum só entra personificando outro usuário comum, em modo leitura. Agindo como ele
+mesmo, a API responde `403 AUTH_REQUEST_IMPERSONATION_REQUIRED`. Com o login só por GitHub, cada pessoa
+tem uma conta, então promover o único usuário a `admin` deixa o board sem ninguém que consiga criar um
+board. O painel admin hoje só gerencia usuários. Se precisar dele, use outra conta do GitHub.
 
 **Por quê.** A tela de login de produção só tem o botão "Entrar com GitHub". O popup é do Firebase, que
 precisa do OAuth App para falar com o GitHub. A API lê o `login` da pessoa no próprio Firebase
@@ -79,7 +91,9 @@ Email/Password desligado, essa conta não consegue entrar. O convite por login d
 **Como verificar.**
 
 1. Abrir `https://<painel>/pt-br/sign-in`: só o botão do GitHub e as duas notas, sem campo de e-mail.
-2. Entrar pelo popup e abrir o menu de perfil: a segunda linha mostra `@<seu-login>`.
+2. Entrar pelo popup e abrir o menu de perfil: a segunda linha mostra `@<seu-login>`. Por enquanto isso
+   só vale para o perfil `common`. Para admin, o menu chama `GET /account`, que fica atrás do guard do
+   painel comum e responde `403 COMMON_PANEL_FORBIDDEN`, e a linha não aparece.
 3. No Firestore, o documento `user` da conta tem `github.id` (só dígitos) e `github.login`.
 4. Senha recusada no servidor:
 
@@ -93,15 +107,26 @@ Email/Password desligado, essa conta não consegue entrar. O convite por login d
    GitHub (o emulador atualiza). Para conferir, troque o login de uma conta de teste no GitHub, entre de
    novo e veja se `github.login` mudou. Se não mudar, o login fica parado no do primeiro acesso.
 
+Se o popup voltar com "credenciais inválidas" e o Firebase não criar nenhuma conta, confira o Client
+Secret. Na página do OAuth App, um secret que nunca autenticou continua marcado como "Never used". Um
+Client Secret do GitHub tem 40 caracteres hexadecimais, e o GitHub só mostra o valor no momento em que
+gera.
+
 ### 5. GitHub App do board
 
-- [ ] GitHub App criado na conta ou organização dona dos repositórios (Settings → Developer settings → GitHub Apps → New GitHub App). É um App próprio do board, separado do Claude GitHub App
-- [ ] Permissões de repositório: Metadata (read), Contents (read), Pull requests (read & write), Issues (read), Checks (read)
-- [ ] Eventos do webhook assinados: `member` e `installation_repositories`
-- [ ] Webhook URL `https://<host-da-api>/github/webhook`, content type `application/json`, com um segredo gerado por `openssl rand -hex 32`
-- [ ] Chave privada gerada no App, `.pem` baixado e guardado só no gerenciador de segredos
-- [ ] `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (com as quebras de linha escapadas como `\n`) e `GITHUB_WEBHOOK_SECRET` nas variáveis da `apps/api` na Vercel. Nunca na `apps/app`
-- [ ] App instalado repositório a repositório, começando por um repositório de teste que já tenha o kit aplicado
+- [x] GitHub App criado na conta ou organização dona dos repositórios (Settings → Developer settings → GitHub Apps → New GitHub App). É um App próprio do board, separado do Claude GitHub App
+- [x] Permissões de repositório: Metadata (read), Contents (read), Pull requests (read & write), Issues (read), Checks (read)
+- [x] Nenhum evento extra marcado. O `installation_repositories` chega a todo GitHub App sem precisar assinar
+- [x] Webhook URL `https://<host-da-api>/github/webhook`, content type `application/json`, com um segredo gerado por `openssl rand -hex 32`
+- [ ] Chave privada gerada no App (Credentials → Key pairs → New key), `.pem` baixado e guardado só no gerenciador de segredos
+- [x] `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (com as quebras de linha escapadas como `\n`) e `GITHUB_WEBHOOK_SECRET` nas variáveis da `apps/api` na Vercel. Nunca na `apps/app`
+- [x] App instalado repositório a repositório, começando por um repositório de teste que já tenha o kit aplicado
+
+O evento `member` fica de fora de propósito. O GitHub só oferece esse evento a um App com a permissão
+Administration (read) do repositório, ou Members numa organização, e as duas dão acesso bem maior do que o
+board precisa. Na API, o `member` só serve para limpar o cache de permissões
+(`apps/api/(shared)/lib/github/github-permission-cache.ts`), que já expira em 5 minutos e vive na memória
+de cada instância. Sem ele, um colaborador adicionado ou removido leva até 5 minutos para valer no board.
 
 Por quê: é a credencial com que a API lista os repositórios, lê o `.kanban/board.yml` e consulta a
 permissão de cada pessoa no GitHub, que limita o papel no board. Sem ele não há importação de board em
@@ -143,8 +168,8 @@ Sem a chave, o limite de requisições é um no-op explícito e a API avisa uma 
 
 ### 7. Branch protection na `main`
 
-- [ ] Exigir os checks `verify`, `e2e`, `secrets` e `audit` do CI antes do merge
-- [ ] Ligar, em Settings → Code security, Dependabot alerts, Dependabot security updates, secret scanning e push protection
+- [x] Exigir os checks `verify`, `e2e`, `secrets` e `audit` do CI antes do merge
+- [x] Ligar, em Settings → Code security, Dependabot alerts, Dependabot security updates, secret scanning e push protection
 
 O CI sinaliza e não bloqueia enquanto a proteção não existir. O `e2e` só aparece na busca do ruleset depois
 de rodar numa PR, e é pulado (o que conta como sucesso) em PR que só mexe em documentação. O modo board
@@ -153,8 +178,8 @@ passo em [`SETUP.md`](SETUP.md#runbook--branch-protection-ação-manual-no-githu
 
 ### 8. Restringir as chaves do Firebase
 
-- [ ] Chave do navegador (`NEXT_PUBLIC_FIREBASE_API_KEY`) com restrição por referenciador HTTP (`https://<painel>/*`, `https://<projeto>.firebaseapp.com/*`) e restrição de API (Identity Toolkit API, Token Service API)
-- [ ] Chave separada para `FIREBASE_WEB_API_KEY`, só com restrição de API
+- [x] Chave do navegador (`NEXT_PUBLIC_FIREBASE_API_KEY`) com restrição por referenciador HTTP (`https://<painel>/*`, `https://<projeto>.firebaseapp.com/*`) e restrição de API (Identity Toolkit API, Token Service API)
+- [x] Chave separada para `FIREBASE_WEB_API_KEY`, só com restrição de API
 
 A chave do servidor não pode ter restrição de referenciador, porque a API chama o Identity Toolkit sem
 `Referer`. Conferir sem `Referer`:
