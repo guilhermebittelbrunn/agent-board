@@ -17,6 +17,7 @@ import {
     SESSION_ORIGIN_CLAIM,
     shouldRefreshSession,
 } from "./session";
+import { isAcceptedSignInMethod } from "./sign-in-method";
 import type { SessionAuthority } from "./types";
 
 const SESSION_REVOKED_CODE = "AUTH_SESSION_REVOKED";
@@ -84,6 +85,9 @@ async function mintFailureResponse(
     if (minted.reason === "absolute-cap") {
         await clearSessionCookie();
         return jsonError("AUTH_SESSION_EXPIRED", HTTP_STATUS.UNAUTHORIZED);
+    }
+    if (minted.reason === "sign-in-method-disabled") {
+        return jsonError("AUTH_SIGN_IN_METHOD_DISABLED", HTTP_STATUS.FORBIDDEN);
     }
     return jsonError("AUTH_INVALID_TOKEN", HTTP_STATUS.UNAUTHORIZED);
 }
@@ -207,6 +211,13 @@ export async function customTokenPOST(
     const session = await getSessionFromCookie(sessionCookie);
     if (!(session && sessionCookie)) {
         return jsonError("AUTH_NO_SESSION", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    // The custom token signs in as `custom`, which is always accepted, so a cookie from a
+    // refused method would otherwise come back as an accepted one.
+    if (!isAcceptedSignInMethod(session.decoded.firebase?.sign_in_provider)) {
+        await clearSessionCookie();
+        return jsonError("AUTH_SIGN_IN_METHOD_DISABLED", HTTP_STATUS.FORBIDDEN);
     }
 
     const originSeconds = resolveSessionOriginSeconds(session.decoded);

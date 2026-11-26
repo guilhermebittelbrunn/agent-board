@@ -67,6 +67,7 @@ const MS_PER_SECOND = 1000;
 const SECONDS_PER_DAY = 86_400;
 const STATUS_OK = 200;
 const STATUS_UNAUTHORIZED = 401;
+const STATUS_FORBIDDEN = 403;
 const NOW = Date.parse("2026-06-01T12:00:00.000Z");
 const PAST_THRESHOLD_DAYS = 3;
 const CLEARED_COOKIE_MAX_AGE = 0;
@@ -153,6 +154,7 @@ function givenStaleCookie(): void {
         uid: UID,
         iat: daysAgoSeconds(PAST_THRESHOLD_DAYS),
         auth_time: daysAgoSeconds(PAST_THRESHOLD_DAYS),
+        firebase: { sign_in_provider: "github.com", identities: {} },
     });
 }
 
@@ -166,7 +168,11 @@ beforeEach(() => {
     createSessionCookieMock.mockResolvedValue("new-cookie");
     createCustomTokenMock.mockResolvedValue("custom-token");
     getUserMock.mockResolvedValue({ uid: UID });
-    verifyIdTokenMock.mockResolvedValue({ uid: UID, auth_time: nowSeconds() });
+    verifyIdTokenMock.mockResolvedValue({
+        uid: UID,
+        auth_time: nowSeconds(),
+        firebase: { sign_in_provider: "github.com", identities: {} },
+    });
 });
 
 afterEach(() => {
@@ -198,6 +204,70 @@ describe("sessionPOST com a autoridade da API", () => {
     });
 
     it("grava o cookie sem autoridade, como antes", async () => {
+        const res = await sessionPOST(request());
+
+        expect(res.status).toBe(STATUS_OK);
+        expect(cookieSetMock).toHaveBeenCalledWith(...writtenCookieCall());
+    });
+});
+
+describe("sessionPOST e o método de entrada", () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    function outsideEmulator(): void {
+        vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "");
+        vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST", "");
+        vi.stubEnv("FIRESTORE_EMULATOR_HOST", "");
+    }
+
+    function signedInWith(provider: string): void {
+        verifyIdTokenMock.mockResolvedValue({
+            uid: UID,
+            auth_time: nowSeconds(),
+            firebase: { sign_in_provider: provider, identities: {} },
+        });
+    }
+
+    it("recusa com 403 e sem cookie um token de senha fora do emulador", async () => {
+        outsideEmulator();
+        signedInWith("password");
+
+        expect(await outcomeOf(await sessionPOST(request()))).toEqual({
+            status: STATUS_FORBIDDEN,
+            body: { error: { code: "AUTH_SIGN_IN_METHOD_DISABLED" } },
+            minted: false,
+            cleared: false,
+            written: false,
+        });
+    });
+
+    it("recusa um token do Google fora do emulador", async () => {
+        outsideEmulator();
+        signedInWith("google.com");
+
+        const res = await sessionPOST(request());
+
+        expect(res.status).toBe(STATUS_FORBIDDEN);
+        expect(cookieSetMock).not.toHaveBeenCalled();
+    });
+
+    it("grava o cookie de um token de senha no emulador", async () => {
+        outsideEmulator();
+        vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
+        signedInWith("password");
+
+        const res = await sessionPOST(request());
+
+        expect(res.status).toBe(STATUS_OK);
+        expect(cookieSetMock).toHaveBeenCalledWith(...writtenCookieCall());
+    });
+
+    it("grava o cookie de um token do GitHub fora do emulador", async () => {
+        outsideEmulator();
+        signedInWith("github.com");
+
         const res = await sessionPOST(request());
 
         expect(res.status).toBe(STATUS_OK);
@@ -275,6 +345,53 @@ describe("customTokenPOST com a autoridade da API", () => {
                 token: "custom-token",
             });
         }
+    });
+});
+
+describe("customTokenPOST e o método de entrada do cookie", () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    function outsideEmulator(): void {
+        vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "");
+        vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST", "");
+        vi.stubEnv("FIRESTORE_EMULATOR_HOST", "");
+    }
+
+    function givenCookieSignedInWith(provider: string): void {
+        givenCookie(COOKIE);
+        verifySessionCookieMock.mockResolvedValue({
+            uid: UID,
+            auth_time: nowSeconds(),
+            firebase: { sign_in_provider: provider, identities: {} },
+        });
+    }
+
+    it("recusa com 403 e limpa um cookie de senha fora do emulador", async () => {
+        outsideEmulator();
+        givenCookieSignedInWith("password");
+
+        const res = await customTokenPOST(request());
+
+        expect(res.status).toBe(STATUS_FORBIDDEN);
+        await expect(res.json()).resolves.toEqual({
+            error: { code: "AUTH_SIGN_IN_METHOD_DISABLED" },
+        });
+        expect(createCustomTokenMock).not.toHaveBeenCalled();
+        expect(cookieSetMock).toHaveBeenCalledWith(...clearedCookieCall());
+    });
+
+    it("emite o custom token para um cookie de senha no emulador", async () => {
+        outsideEmulator();
+        vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
+        givenCookieSignedInWith("password");
+
+        const res = await customTokenPOST(request());
+
+        expect(res.status).toBe(STATUS_OK);
+        await expect(res.json()).resolves.toEqual({ token: "custom-token" });
+        expect(cookieSetMock).not.toHaveBeenCalled();
     });
 });
 

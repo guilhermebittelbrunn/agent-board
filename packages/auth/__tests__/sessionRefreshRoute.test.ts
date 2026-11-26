@@ -219,6 +219,7 @@ describe("sessionRefreshPOST", () => {
             iat: daysAgoSeconds(PAST_THRESHOLD_DAYS),
         });
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: UID,
             auth_time: daysAgoSeconds(PAST_THRESHOLD_DAYS),
         });
@@ -270,6 +271,7 @@ describe("sessionRefreshPOST", () => {
             iat: daysAgoSeconds(PAST_THRESHOLD_DAYS),
         });
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: UID,
             auth_time: daysAgoSeconds(BEYOND_CAP_DAYS),
         });
@@ -309,6 +311,7 @@ describe("sessionRefreshPOST", () => {
 describe("sessionPOST — o teto não é contornável pelo login", () => {
     it("recusa e limpa o cookie quando o teto estourou", async () => {
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: UID,
             auth_time: daysAgoSeconds(BEYOND_CAP_DAYS),
         });
@@ -325,6 +328,7 @@ describe("sessionPOST — o teto não é contornável pelo login", () => {
 
     it("grava o cookie de um login dentro do teto", async () => {
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: UID,
             auth_time: nowSeconds(),
         });
@@ -348,6 +352,7 @@ describe("customTokenPOST — o bootstrap de SSO carrega a origem", () => {
         verifySessionCookieMock.mockResolvedValue({
             uid: UID,
             auth_time: originSeconds,
+            firebase: { sign_in_provider: "github.com", identities: {} },
         });
         createCustomTokenMock.mockResolvedValue("custom-token");
 
@@ -367,6 +372,7 @@ describe("customTokenPOST — o bootstrap de SSO carrega a origem", () => {
             uid: UID,
             auth_time: nowSeconds(),
             sessionAuthTime: originSeconds,
+            firebase: { sign_in_provider: "github.com", identities: {} },
         });
         createCustomTokenMock.mockResolvedValue("custom-token");
 
@@ -382,6 +388,7 @@ describe("customTokenPOST — o bootstrap de SSO carrega a origem", () => {
         verifySessionCookieMock.mockResolvedValue({
             uid: UID,
             auth_time: daysAgoSeconds(BEYOND_CAP_DAYS),
+            firebase: { sign_in_provider: "github.com", identities: {} },
         });
 
         const res = await customTokenPOST(request());

@@ -128,6 +128,7 @@ beforeEach(() => {
     process.env.SESSION_ABSOLUTE_MAX_AGE_DAYS = "";
     process.env.SESSION_COOKIE_MAX_AGE_DAYS = "";
     verifyIdTokenMock.mockResolvedValue({
+        firebase: { sign_in_provider: "github.com", identities: {} },
         uid: "uid-1",
         auth_time: Date.now() / MS_PER_SECOND,
     });

@@ -200,6 +200,7 @@ describe("shouldRefreshSession", () => {
 describe("mintSessionCookie", () => {
     it("grava o cookie quando a autenticação está dentro do teto", async () => {
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: "uid-1",
             auth_time: daysAgoSeconds(ONE_DAY),
         });
@@ -222,6 +223,7 @@ describe("mintSessionCookie", () => {
 
     it("recusa sem gravar quando o teto absoluto estourou", async () => {
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: "uid-1",
             auth_time: daysAgoSeconds(BEYOND_CAP_DAYS),
         });
@@ -236,6 +238,7 @@ describe("mintSessionCookie", () => {
 
     it("conta o teto pela claim de origem, não pelo auth_time do custom token", async () => {
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: "uid-1",
             auth_time: nowSeconds(),
             sessionAuthTime: daysAgoSeconds(BEYOND_CAP_DAYS),
@@ -264,6 +267,7 @@ describe("mintSessionCookie", () => {
 
     it("recusa quando o provedor rejeita a emissão do cookie", async () => {
         verifyIdTokenMock.mockResolvedValue({
+            firebase: { sign_in_provider: "github.com", identities: {} },
             uid: "uid-1",
             auth_time: daysAgoSeconds(ONE_DAY),
         });
