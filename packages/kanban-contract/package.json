@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./board-config-yaml": "./src/boardConfigYaml.ts"
+    "./board-config-yaml": "./src/boardConfigYaml.ts",
+    "./spec-frontmatter": "./src/specFrontmatter.ts"
   },
   "scripts": {
     "test": "NODE_ENV=test vitest run",
