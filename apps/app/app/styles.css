@@ -1,2 +1,6 @@
+/* The first @layer statement fixes the cascade order. antd's styles live in `antd` (see
+ * AntdAppProvider): above Tailwind's preflight, below its utilities. */
+@layer theme, base, antd, components, utilities;
+
 @import "tailwindcss";
 @import "@repo/design-system/styles/globals.css";
