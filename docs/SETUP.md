@@ -4,7 +4,7 @@ Como subir o agent-board do zero e o mapa **real** das variáveis de ambiente. A
 
 > Os `.env.example` de `apps/{api,app}` refletem **apenas** as vars usadas aqui (agrupadas e comentadas). Copie o de cada app para `.env` (ou `.env.local`) e preencha. Este documento detalha **como obter/usar cada uma**.
 
-> 🚀 **Indo para produção?** Este documento cobre o ambiente local. Os passos que só existem fora do repo — publicar as rules do Firestore, ligar o login Google no domínio, ligar branch protection — estão em [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md), em formato de checklist.
+> 🚀 **Indo para produção?** Este documento cobre o ambiente local. Os passos que só existem fora do repo — publicar as rules do Firestore, ligar o login GitHub no domínio, ligar branch protection — estão em [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md), em formato de checklist.
 
 ## Pré-requisitos
 
@@ -36,7 +36,7 @@ Usado pelos **dois** apps: `apps/api` (guards verificam o ID token) e `apps/app`
 | `FIREBASE_ADMIN_PROJECT_ID` | sim* | Firebase Console → Project settings → Service accounts |
 | `FIREBASE_ADMIN_CLIENT_EMAIL` | sim | idem (gerar chave privada de service account) |
 | `FIREBASE_ADMIN_PRIVATE_KEY` | sim | idem — manter `\n` escapados; o código faz `replace(/\\n/g, "\n")` |
-| `FIREBASE_WEB_API_KEY` | sim | Web API key (Identity Toolkit, usada no sign-in REST e na criação de usuário pelo admin). Faz fallback p/ `NEXT_PUBLIC_FIREBASE_API_KEY` |
+| `FIREBASE_WEB_API_KEY` | sim | Web API key (Identity Toolkit: leitura da conta no login com GitHub, login por senha no emulador, troca de senha e criação de usuário pelo admin). Faz fallback p/ `NEXT_PUBLIC_FIREBASE_API_KEY` |
 | `FIREBASE_STORAGE_BUCKET` | **não** | Bucket do Cloud Storage (ex.: `<project-id>.firebasestorage.app`). **Chave do upload de arquivo**: vazia, `POST /files` responde `STORAGE_NOT_CONFIGURED` (503) e o painel mantém o campo de URL. Faz fallback p/ `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`. ⚠️ Exige plano **Blaze** — ver [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md) |
 
 \* `FIREBASE_ADMIN_PROJECT_ID` cai para `NEXT_PUBLIC_FIREBASE_PROJECT_ID` se omitido (mesmo projeto).
@@ -70,6 +70,28 @@ Usado por `apps/app` (sign-in no cliente, sessão).
 | `CORS_ORIGIN` | `api` | **Lista de origens separada por vírgula** (`https://app.example.com`) autorizadas a chamar a API pelo browser. **Obrigatória em produção**: sem ela (ou com valor vazio) o processo da API imprime `[boot] CORS_ORIGIN is required in production…` e sai com código 1 (`apps/api/instrumentation.ts`). Fora de produção, vazia = `http://localhost:3000`. **Não existe coringa.** Requisição sem header `Origin` (servidor→servidor, prefetch RSC) passa sem cabeçalho de CORS, exceto escrita (`POST`/`PUT`/`PATCH`/`DELETE`) que leva o cookie `access-token` sem `Authorization`: essa recebe `403 AUTH_FORBIDDEN_ORIGIN`. Origem fora da lista também recebe `403 AUTH_FORBIDDEN_ORIGIN`. |
 
 > ⚠️ **Preview deploys**: o domínio efêmero (`*.vercel.app`) não está em `CORS_ORIGIN` e o browser será recusado. Acrescente a origem do preview à variável do ambiente de preview — mesma armadilha dos *Authorized domains* do Firebase.
+
+### GitHub App do board · `apps/api/env.ts`
+Só na `apps/api`. As três são opcionais até a ida a produção, e string vazia conta como ausente.
+
+| Var | Para quê |
+|-----|----------|
+| `GITHUB_APP_ID` | ID numérico do App (página do App → About → App ID). |
+| `GITHUB_APP_PRIVATE_KEY` | Chave privada `.pem` gerada no App, com as quebras de linha escapadas como `\n` (o código faz `replace(/\\n/g, "\n")`, igual à chave do Firebase). |
+| `GITHUB_WEBHOOK_SECRET` | Segredo do webhook configurado no App. Valida o `X-Hub-Signature-256` de `POST /github/webhook`. |
+
+Sem `GITHUB_APP_ID` ou `GITHUB_APP_PRIVATE_KEY`, a API escolhe o cliente do GitHub assim
+(`apps/api/(shared)/lib/github/github-app-config.ts`):
+
+- emulador ligado (`FIRESTORE_EMULATOR_HOST` ou `FIREBASE_AUTH_EMULATOR_HOST` preenchido): três repositórios
+  de exemplo da instalação `1`, dono `agent-board-demo`: `sample-app` (com `.kanban/board.yml` válido),
+  `invalid-config` (com `onRework` apontando para etapa inexistente) e `no-kanban` (sem o arquivo). Todo
+  usuário é `admin` neles;
+- fora do emulador: sem cliente, e o código para quem chama é `GITHUB_APP_NOT_CONFIGURED` (503).
+
+Sem `GITHUB_WEBHOOK_SECRET`, `POST /github/webhook` responde `503 GITHUB_APP_NOT_CONFIGURED`. O boot
+imprime uma linha `[github] …` para cada caso. Criar e instalar o App:
+[`PRE-PRODUCTION.md`](PRE-PRODUCTION.md).
 
 ### Sessão · `@repo/auth/session`
 | Var | App | Para quê |
@@ -226,7 +248,7 @@ o botão de merge tem de ficar bloqueado.
 ## Testes E2E (Playwright)
 
 A suíte vive em `apps/e2e` e percorre, num Chromium de verdade e contra o emulador: login (comum, admin,
-senha errada, deep link com `?redirect=`), CRUD de `entity`, troca de painel do admin, usuário comum barrado
+senha errada, deep link com `?redirect=`, popup do GitHub servido pelo emulador), CRUD de `entity`, troca de painel do admin, usuário comum barrado
 no `/admin`, as seções da conta e o foco que não fica escondido sob as barras fixas. Nas telas percorridas
 ela roda o axe e falha em violação `critical` ou `serious`.
 
@@ -373,7 +395,110 @@ pnpm dev         # terminal 2
 
 ### Estado que o `pnpm seed` cria
 
-Todas as contas usam a senha **`demo1234`**.
+Todas as contas usam a senha **`demo1234`**. O login por senha só existe no emulador: a tela mostra o
+formulário sob "Acesso de teste (emulador)" quando `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST` está
+preenchido, e o servidor recusa senha fora dele (`403 AUTH_SIGN_IN_METHOD_DISABLED`).
+
+Para entrar com GitHub no emulador, clique em "Entrar com GitHub": o popup é do próprio emulador. Em "Add
+new account", preencha um e-mail novo e um "Screen name" no formato de login do GitHub (letras, dígitos e
+hífen simples, até 39 caracteres); ele vira o `github.login` do perfil. Um e-mail que já existe no seed cai
+em `auth/account-exists-with-different-credential`.
+
+Sem GitHub App configurado, a API responde pelo cliente falso do emulador, que dá `admin` em todos os
+repositórios de exemplo para qualquer login, menos estes, usados para testar membros e papéis:
+
+| screen name | permissão nos repositórios de exemplo |
+|-------------|---------------------------------------|
+| `qa-maintainer` | `maintain` |
+| `qa-writer` | `write` |
+| `qa-reader` | `read` |
+| `qa-outsider` | `none` |
+
+A tabela mora em `SAMPLE_COLLABORATOR_ROLES` (`apps/api/(shared)/lib/github/github-sample-repositories.ts`).
+
+O `sample-app` também tem um backlog em `specs/BACKLOG.md` (`SAMPLE_BACKLOG_FILES`, no mesmo arquivo). Um
+"Sincronizar backlog" no quadro dele passa por todos os casos da sincronização:
+
+| arquivo linkado no índice | status | o que acontece |
+|---------------------------|--------|----------------|
+| `specs/features/search-cards.md` | `approved` | Tarefas, posição 1. O corpo tem tabela, código, link relativo, link `javascript:`, uma linha `<script>` e uma imagem, para conferir o detalhe do card |
+| `specs/features/slack-alerts.md` | `proposed` | Fica em "Não prontas" |
+| `specs/features/keyboard-shortcuts.md` | `approved` | Tarefas, posição 2; sem `title`, o título vem do primeiro `# ` |
+| `specs/features/legacy-export.md` | não existe | Aparece no aviso como arquivo não encontrado |
+| `specs/features/broken-frontmatter.md` | sem `status` | Aparece no aviso como frontmatter inválido |
+| `specs/features/dark-theme.md` | `approved` | Tarefas, posição 3 |
+| `README.md` | sem frontmatter | Ignorado: não é spec |
+| `../docs/features/fork-cleanup/spec.md` | `done` | Fica em "Não prontas"; é como uma spec entregue continua achada depois de mudar de pasta |
+
+Enquanto nenhum agente escreve nos cards, a linha do tempo de um card é populada por um script à parte:
+
+```bash
+pnpm --filter api seed:timeline agent-board-demo--sample-app search-cards
+```
+
+Ele grava os eventos de `apps/api/scripts/fixtures/card-timeline.json` no card (atualizações, um artefato, duas
+perguntas pendentes, um relatório de etapa com `<script>` e link `javascript:`, um evento de etapa que saiu do
+`board.yml` e um comentário de outra pessoa) e abre as perguntas no card. O card precisa existir: sincronize o
+backlog antes. O script não apaga nada; os ids são fixos, então rodar de novo reescreve os mesmos eventos e
+reabre as perguntas. Ele usa a mesma trava do `pnpm seed`: sem os dois emuladores e um projeto `demo-*`, recusa
+rodar. Não existe rota da API para isso.
+
+Contra o emulador, a API usa um executor de etapas de teste: arrastar um card para uma etapa abre a confirmação, e
+cada execução "termina" cerca de 3 segundos depois de começar, com sucesso, avançando o card até Concluído. Para
+produzir outro resultado, escreva o roteiro do card antes de disparar:
+
+```bash
+pnpm --filter api fake-executor script agent-board-demo--sample-app search-cards needs_rework failed
+pnpm --filter api fake-executor expire agent-board-demo--sample-app search-cards
+```
+
+`script` define o resultado das próximas execuções do card, na ordem (`success`, `needs_input`, `needs_rework`,
+`failed` ou `silent`, que não responde e deixa o prazo vencer). Acabado o roteiro, as execuções voltam a terminar
+com sucesso. `expire` põe no passado o prazo da execução viva do card; o quadro marca "Falhou" na próxima leitura.
+A trava é a mesma do `pnpm seed`. Fora do emulador não há executor, e o quadro avisa que as etapas não podem ser
+disparadas.
+
+Para chamar as ferramentas dos agentes à mão (`/agent/tools/<ferramenta>` e `/mcp`, descritas em
+[`board/CONTRACT.md`](board/CONTRACT.md)), dispare a etapa com o roteiro `silent`, para o executor de teste não
+encerrar a execução no lugar do agente, e emita um token para a execução viva do card:
+
+```bash
+pnpm --filter api fake-executor script agent-board-demo--sample-app search-cards silent
+# arraste o card para Análise no quadro e confirme; depois:
+export KANBAN_RUN_TOKEN="$(pnpm --silent --filter api agent-token agent-board-demo--sample-app search-cards)"
+curl -s -X POST http://localhost:3002/agent/tools/get_card \
+  -H "Authorization: Bearer $KANBAN_RUN_TOKEN" -H 'content-type: application/json' \
+  -d '{"cardId":"agent-board-demo--sample-app__search-cards"}'
+```
+
+O token sai uma vez, só no terminal; a execução guarda o hash dele. Não cole o token em arquivo versionado nem em
+relatório: cite `kbr_<runId>_***`. `--expired` grava a validade no passado, para ver a recusa `AGENT_TOKEN_EXPIRED`.
+A trava é a mesma do `pnpm seed`.
+
+#### Runner local com o agente de teste
+
+O runner (`apps/runner`) roda etapas na sua máquina com `claude -p`. Para percorrer o caminho inteiro sem gastar a
+assinatura nem tocar num repositório real, ele aceita um agente de teste e um repositório bare local:
+
+```bash
+TMP="$(mktemp -d)"
+node apps/runner/scripts/fixture-repo.mjs "$TMP/repos"
+# no app: abra um board, "Minhas credenciais", "Gerar código"; depois:
+pnpm --filter runner cli register <código> --api http://localhost:3002 --name qa-runner --home "$TMP/home"
+pnpm --filter runner cli start --home "$TMP/home" --repo-base "file://$TMP/repos" \
+  --agent-command "node apps/runner/scripts/stub-agent.mjs"
+```
+
+Com o runner ligado, arrastar um card para uma etapa faz o diálogo dizer "Roda no seu runner local.". O agente de
+teste lê o card, posta um evento, commita um arquivo em `docs/features/<slug>/runner-smoke/` e faz push para o
+repositório bare, e fecha a etapa. As variáveis `STUB_OUTCOME` (ou `STUB_OUTCOME_<ETAPA>`: `success`, `needs_input`,
+`needs_rework`, `failed`, `none`), `STUB_TURNS` e `STUB_HANG=1` mudam o comportamento dele. Para o limite de turnos,
+use `STUB_TURNS` acima do `maxTurnsPerStage` junto com `STUB_HANG=1`, senão o agente termina antes de o runner
+encerrá-lo.
+
+Duas travas impedem o modo de teste de tocar um repositório real: o runner recusa `--agent-command` sem
+`--repo-base file://…`, e o agente de teste recusa push para remoto que não comece com `file://`. O token do runner
+fica em `<home>/config.json` (`0600`); não copie para relatório, cite `kbl_<runnerId>_***`.
 
 | e-mail | papel | dados |
 |--------|-------|-------|
@@ -463,3 +588,7 @@ nessa conta e promove o perfil a admin. Rodar de novo é a forma de voltar a ent
 > ⚠️ **Sem nenhum host de emulador configurado, o script recusa rodar** e explica como prosseguir. Criar um
 > administrador com senha conhecida num projeto real é irreversível, então isso exige `--allow-real-project`
 > (ou `DEV_ADMIN_ALLOW_REAL_PROJECT=1`) escrito à mão.
+
+> ⚠️ **Num projeto real, a conta criada pelo script não entra.** Fora do emulador o servidor só aceita login
+> pelo GitHub. Para ter um admin em produção, entre pelo GitHub e grave `type: "admin"` à mão no documento
+> `user` dessa conta ([`PRE-PRODUCTION.md`](PRE-PRODUCTION.md), item 4).
