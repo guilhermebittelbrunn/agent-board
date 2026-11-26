@@ -19,6 +19,20 @@ export function panelTitleTemplate(
 }
 
 export const PANEL_PAGE_TITLES = {
+    "/boards": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.list,
+    "/boards/new": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.create,
+    "/boards/[id]": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.board,
+    "/boards/[id]/cards/[slug]": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.card,
+    "/boards/[id]/settings": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.settings,
+    "/boards/[id]/members": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.members,
+    "/boards/[id]/credentials": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.credentials,
     "/entities": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.common.routes.platform.entities.list,
     "/entities/create": (dictionary: Dictionary) =>
