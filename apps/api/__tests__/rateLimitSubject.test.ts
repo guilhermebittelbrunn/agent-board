@@ -78,3 +78,59 @@ describe("rate limit subject", () => {
         ).resolves.toBe("anonymous");
     });
 });
+
+describe("rate limit subject of an agent run token", () => {
+    const SECRET_LENGTH = 43;
+    const SECRET = "A".repeat(SECRET_LENGTH);
+
+    it("gives each run its own bucket, whatever the secret", async () => {
+        const first = await rateLimitSubject(
+            requestWith(`Bearer kbr_run1_${SECRET}`)
+        );
+        const again = await rateLimitSubject(
+            requestWith(`Bearer kbr_run1_${"B".repeat(SECRET_LENGTH)}`)
+        );
+        const other = await rateLimitSubject(
+            requestWith(`Bearer kbr_run2_${SECRET}`)
+        );
+
+        expect(first).toMatch(HASHED_SUBJECT);
+        expect(first).toBe(again);
+        expect(first).not.toBe(other);
+        expect(first).not.toContain("run1");
+    });
+
+    it("leaves a malformed run token in the anonymous bucket", async () => {
+        expect(
+            await rateLimitSubject(requestWith("Bearer kbr_run1_short"))
+        ).toBe("anonymous");
+    });
+});
+
+describe("rate limit subject of a local runner token", () => {
+    const RUNNER_SECRET_LENGTH = 43;
+    const SECRET = "A".repeat(RUNNER_SECRET_LENGTH);
+
+    it("gives each runner its own bucket, apart from a run with the same id", async () => {
+        const runner = await rateLimitSubject(
+            requestWith(`Bearer kbl_abc_${SECRET}`)
+        );
+        const otherRunner = await rateLimitSubject(
+            requestWith(`Bearer kbl_xyz_${SECRET}`)
+        );
+        const run = await rateLimitSubject(
+            requestWith(`Bearer kbr_abc_${SECRET}`)
+        );
+
+        expect(runner).toMatch(HASHED_SUBJECT);
+        expect(runner).not.toBe(otherRunner);
+        expect(runner).not.toBe(run);
+        expect(runner).not.toContain("abc");
+    });
+
+    it("leaves a malformed runner token in the anonymous bucket", async () => {
+        expect(
+            await rateLimitSubject(requestWith("Bearer kbl_abc_short"))
+        ).toBe("anonymous");
+    });
+});
