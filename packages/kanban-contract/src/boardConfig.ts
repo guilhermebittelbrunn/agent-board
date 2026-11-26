@@ -7,6 +7,9 @@ const SLUG_PLACEHOLDER = "{slug}";
 const DEFAULT_MAX_REWORK_LOOPS = 2;
 const MAX_REWORK_LOOPS = 5;
 const DEFAULT_MAX_TURNS_PER_STAGE = 200;
+export const DEFAULT_STAGE_TIMEOUT_MINUTES = 45;
+export const MIN_STAGE_TIMEOUT_MINUTES = 5;
+export const MAX_STAGE_TIMEOUT_MINUTES = 240;
 
 export const DEFAULT_PROTECTED_BRANCHES = [
     "main",
@@ -68,6 +71,12 @@ export const boardConfigSchema = z
                     .int()
                     .positive()
                     .default(DEFAULT_MAX_TURNS_PER_STAGE),
+                stageTimeoutMinutes: z
+                    .number()
+                    .int()
+                    .min(MIN_STAGE_TIMEOUT_MINUTES)
+                    .max(MAX_STAGE_TIMEOUT_MINUTES)
+                    .default(DEFAULT_STAGE_TIMEOUT_MINUTES),
             })
             .prefault({}),
         environment: z
@@ -86,6 +95,7 @@ export const boardConfigSchema = z
                     code: "custom",
                     message: `Duplicated stage key "${key}"`,
                     path: ["stages", index, "key"],
+                    params: { rule: "stage_key_duplicated", key },
                 });
             }
         }
@@ -100,6 +110,12 @@ export const boardConfigSchema = z
                     code: "custom",
                     message: `onRework of "${stage.key}" must point to an earlier stage`,
                     path: ["stages", index, "onRework"],
+                    params: {
+                        rule: "rework_target_invalid",
+                        stageColumn: stage.column,
+                        target: stage.onRework,
+                        suggestion: config.stages[index - 1]?.key ?? null,
+                    },
                 });
             }
         }
@@ -110,6 +126,10 @@ export const boardConfigSchema = z
                 code: "custom",
                 message: `baseBranch "${config.baseBranch}" must be listed in protectedBranches`,
                 path: ["baseBranch"],
+                params: {
+                    rule: "base_branch_unprotected",
+                    baseBranch: config.baseBranch,
+                },
             });
         }
     });
