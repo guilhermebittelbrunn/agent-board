@@ -44,8 +44,11 @@ vi.mock("@/shared/lib/client", () => ({
     apiClient: { setAuthorizationHeader: vi.fn() },
 }));
 
-vi.mock("@/shared/lib/googleSignInApi", () => ({
-    signInWithGoogleViaApi: vi.fn(),
+vi.mock("@/shared/lib/githubSignInApi", () => ({
+    signInWithGithubViaApi: vi.fn(),
+}));
+vi.mock("@/shared/lib/emulatorSignIn", () => ({
+    isEmulatorSignInEnabled: () => true,
 }));
 
 vi.mock("@/shared/lib/postLoginNavigation", () => ({

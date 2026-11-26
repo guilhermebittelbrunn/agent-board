@@ -6,13 +6,13 @@ Guia de entrada para o Claude Code neste repositório. **Curto de propósito**: 
 
 **agent-board** — ferramenta **pessoal**: um board Kanban que orquestra o pipeline de agentes do Claude Code (`/analyze → /develop → /review → /test`) **em outros repositórios**. Cada board aponta para um repositório do GitHub; cada card é uma spec; cada coluna é uma etapa; arrastar um card dispara a etapa e o agente escreve no card o que fez.
 
-É um **fork enxuto do next-boilerplate** (histórico do core + remoto `upstream`; melhorias do core entram com `git fetch upstream && git merge upstream/main`, mantendo as remoções nos conflitos). **Não é um MVP**: não tem landing, cobrança, e-mail transacional, organizações, trilha de auditoria nem fluxos de conta de usuário final; o login fica em e-mail/senha e Google até a spec `github-sign-in`. O corte está registrado em [`fork-cleanup`](docs/features/fork-cleanup/spec.md).
+É um **fork enxuto do next-boilerplate** (histórico do core + remoto `upstream`; melhorias do core entram com `git fetch upstream && git merge upstream/main`, mantendo as remoções nos conflitos). **Não é um MVP**: não tem landing, cobrança, e-mail transacional, organizações, trilha de auditoria nem fluxos de conta de usuário final; o login é só pelo GitHub (e-mail/senha apenas no emulador). O corte está registrado em [`fork-cleanup`](docs/features/fork-cleanup/spec.md).
 
 Visão, arquitetura e decisões do board: [`docs/board/`](docs/board/README.md). O que falta construir: [`specs/BACKLOG.md`](specs/BACKLOG.md).
 
 **Anti-padrões a evitar** (sempre): URL da API hardcoded fora do SDK/env tipado; texto de UI solto sem passar pelo sistema de traduções; autorização só no cliente (espelhe na API); redefinir fora de `@repo/kanban-contract` um tipo do domínio do board que já existe lá. Nomes de código em inglês; mudanças mínimas; respeite Biome/Ultracite (`pnpm check`/`pnpm fix`).
 
-Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) · GitHub App · Claude Agent SDK (runner) · i18n próprio (pt-br) · Biome/Ultracite · Vitest · Playwright.
+Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) · GitHub App · Claude Code CLI (`claude -p`, no runner) · i18n próprio (pt-br) · Biome/Ultracite · Vitest · Playwright.
 
 ## Mapa do repositório
 
@@ -21,6 +21,7 @@ Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) ·
 | `app` | `apps/app` | 3000 | UI do board: boards, colunas, cards, linha do tempo, membros e configuração. |
 | `api` | `apps/api` | 3002 | API HTTP: guards → repositórios Firestore → DTOs; orquestrador (estados e fila), contrato dos agentes (HTTP + MCP) e webhooks do GitHub. |
 | `e2e` | `apps/e2e` | — | Suíte Playwright dos fluxos críticos. |
+| `runner` | `apps/runner` | — | CLI do runner local: registra a máquina num board, busca trabalho por polling e roda as etapas com `claude -p` num worktree. |
 
 | Package | O que é |
 |---------|---------|
@@ -28,7 +29,7 @@ Stack: Turborepo + pnpm + Next.js (App Router) · Firebase (Auth + Firestore) ·
 | `@repo/sdk` | **Fachada** de chamada à API (axios). O front nunca usa `fetch`/axios direto. |
 | `@repo/design-system` | UI compartilhada (shadcn), tema, componentes `HookForm*` (RHF). |
 | `@repo/internationalization` | Dicionário próprio, só pt-br (as rotas mantêm o segmento `[locale]`). |
-| `@repo/auth` | Firebase (Admin no server, client SDK). Hoje e-mail/senha e Google; o login GitHub chega na spec `github-sign-in`. |
+| `@repo/auth` | Firebase (Admin no server, client SDK). Login pelo GitHub; e-mail/senha só no emulador. |
 | `@repo/shared` | Utils transversais (`HTTP_STATUS`, `FormattedError`, mappers de data, etc.). |
 | `@repo/analytics` · `@repo/security` · `@repo/seo` · `@repo/next-config` · `@repo/typescript-config` | Integrações e config compartilhadas. |
 

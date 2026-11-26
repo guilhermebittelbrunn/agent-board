@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Firebase is mocked at the Admin SDK, not at `@repo/auth/server`: the credential goes
@@ -68,7 +68,11 @@ const ORIGIN_SECONDS = 1_790_500_000;
 const KEY = String(ORIGIN_SECONDS);
 const MS_PER_SECOND = 1000;
 const USER = { uid: UID, email: "owner@example.com", disabled: false };
-const CLAIMS = { uid: UID, auth_time: ORIGIN_SECONDS };
+const CLAIMS = {
+    uid: UID,
+    auth_time: ORIGIN_SECONDS,
+    firebase: { sign_in_provider: "github.com", identities: {} },
+};
 const BROWSER_UA =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 
@@ -223,7 +227,10 @@ describe("resolveApiActor — sessão ativa", () => {
     });
 
     it("deixa passar a credencial sem chave derivável, sem rastrear", async () => {
-        verifyIdTokenMock.mockResolvedValue({ uid: UID });
+        verifyIdTokenMock.mockResolvedValue({
+            uid: UID,
+            firebase: { sign_in_provider: "github.com", identities: {} },
+        });
 
         await expect(
             resolveApiActor(request({ bearer: "id-token" }))
@@ -246,5 +253,79 @@ describe("resolveApiActor — sessão ativa", () => {
             status: "anonymous",
         });
         expect(findByUidAndKeyMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("resolveApiActor — método de entrada", () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    function outsideEmulator(): void {
+        vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "");
+        vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST", "");
+        vi.stubEnv("FIRESTORE_EMULATOR_HOST", "");
+    }
+
+    function signedInWith(provider: string): void {
+        const claims = {
+            ...CLAIMS,
+            firebase: { sign_in_provider: provider, identities: {} },
+        };
+        verifyIdTokenMock.mockResolvedValue(claims);
+        verifySessionCookieMock.mockResolvedValue(claims);
+        findByUidAndKeyMock.mockResolvedValue(ACTIVE);
+    }
+
+    it("trata como anônimo o bearer de senha fora do emulador", async () => {
+        outsideEmulator();
+        signedInWith("password");
+
+        await expect(
+            resolveApiCredential(request({ bearer: "id-token" }))
+        ).resolves.toEqual({ status: "anonymous" });
+    });
+
+    it("trata como anônimo o cookie de senha fora do emulador", async () => {
+        outsideEmulator();
+        signedInWith("password");
+
+        await expect(
+            resolveApiCredential(request({ cookie: "session-cookie" }))
+        ).resolves.toEqual({ status: "anonymous" });
+    });
+
+    it("trata como anônimo o bearer do Google, mesmo no emulador", async () => {
+        outsideEmulator();
+        vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
+        signedInWith("google.com");
+
+        await expect(
+            resolveApiActor(request({ bearer: "id-token" }))
+        ).resolves.toBeNull();
+    });
+
+    it("aceita o bearer de senha no emulador", async () => {
+        outsideEmulator();
+        vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
+        signedInWith("password");
+
+        await expect(
+            resolveApiActor(request({ bearer: "id-token" }))
+        ).resolves.toEqual(USER);
+    });
+
+    it("aceita o bearer do GitHub e o da sessão adotada fora do emulador", async () => {
+        outsideEmulator();
+
+        signedInWith("github.com");
+        await expect(
+            resolveApiActor(request({ bearer: "id-token" }))
+        ).resolves.toEqual(USER);
+
+        signedInWith("custom");
+        await expect(
+            resolveApiActor(request({ bearer: "id-token" }))
+        ).resolves.toEqual(USER);
     });
 });

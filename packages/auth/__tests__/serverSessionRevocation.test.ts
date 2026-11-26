@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
     verifyIdTokenMock,
@@ -267,6 +267,54 @@ describe("getUserFromSessionCookie", () => {
         ).resolves.toBeNull();
         expect(console.error).not.toHaveBeenCalled();
         expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    describe("método de entrada do cookie", () => {
+        afterEach(() => {
+            vi.unstubAllEnvs();
+        });
+
+        function outsideEmulator(): void {
+            vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "");
+            vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST", "");
+            vi.stubEnv("FIRESTORE_EMULATOR_HOST", "");
+        }
+
+        function givenCookieSignedInWith(provider: string): void {
+            verifySessionCookieMock.mockResolvedValue({
+                uid: UID,
+                firebase: { sign_in_provider: provider, identities: {} },
+            });
+            getUserMock.mockResolvedValue(userRecord());
+        }
+
+        it("devolve null para um cookie de senha fora do emulador", async () => {
+            outsideEmulator();
+            givenCookieSignedInWith("password");
+
+            await expect(
+                getUserFromSessionCookie("session-cookie")
+            ).resolves.toBeNull();
+        });
+
+        it("devolve o usuário de um cookie de senha no emulador", async () => {
+            outsideEmulator();
+            vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
+            givenCookieSignedInWith("password");
+
+            await expect(
+                getUserFromSessionCookie("session-cookie")
+            ).resolves.toMatchObject({ uid: UID });
+        });
+
+        it("devolve o usuário de um cookie do GitHub fora do emulador", async () => {
+            outsideEmulator();
+            givenCookieSignedInWith("github.com");
+
+            await expect(
+                getUserFromSessionCookie("session-cookie")
+            ).resolves.toMatchObject({ uid: UID });
+        });
     });
 });
 

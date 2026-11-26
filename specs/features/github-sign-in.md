@@ -1,7 +1,7 @@
 ---
 id: github-sign-in
 title: Login com GitHub
-status: proposed
+status: in-progress
 value: alto
 effort: M
 audience: confianca
@@ -9,7 +9,7 @@ phase: 1
 area: [packages/auth, apps/app, apps/api, packages/sdk]
 depends_on: []
 contends_on: []
-feature: -
+feature: github-sign-in
 updated: 2026-11-25
 ---
 
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** entrar no board só com a conta do GitHub, guardando `githubId`, `login` e avatar.
 > - **Por quê:** a permissão de cada pessoa nos boards vem do GitHub; e-mail e Google não dizem nada sobre isso.
-> - **Status:** `proposed` · valor alto · esforço M · confianca
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço M · confianca
+> - **Próximo passo:** `/test github-sign-in`. Plano em [`docs/features/github-sign-in/analyze/plan.md`](../../docs/features/github-sign-in/analyze/plan.md); o login por e-mail fica só no emulador.
 
 ## Problema
 
@@ -29,11 +29,21 @@ GitHub de quem entra.
 
 ## O que já existe no repo
 
-- `packages/auth/client.ts:152` — `signInWithGoogle` com `signInWithPopup`; o mesmo padrão serve para
-  `GithubAuthProvider`.
+- `apps/app/shared/lib/googleSignInApi.ts:32` — o login Google que a tela usa hoje: popup do Firebase no
+  cliente, troca do ID token do Google por sessão em `POST /auth/sign-in/google`
+  (`apps/api/app/(routes)/auth/sign-in/google/route.ts:17`, via `identitySignInWithGoogleIdToken` em
+  `apps/api/(shared)/lib/firebase-identity-toolkit.ts:204`) e cookie pela rota de sessão do app. A chamada
+  passa pelo SDK (`packages/sdk/src/actions/auth/action.ts:57`).
+- `packages/auth/client.ts:152` — `signInWithGoogle` com `signInWithPopup` direto no cliente; hoje só o
+  `packages/auth/provider.tsx:396` usa, a tela de login não.
 - `packages/auth/session.ts` e `packages/auth/session-routes.ts` — sessão por cookie já pronta.
 - `apps/api/app/(guards)/common-panel.ts:30` — `requireCommonPanelApi`, guard das rotas autenticadas.
+- `apps/e2e/support/seedAccounts.ts` e `apps/e2e/tests/signIn.spec.ts` — a suíte E2E e o seed do emulador
+  entram com e-mail e senha.
 - **Lacuna:** não há provedor GitHub nem perfil com `githubId`/`login`.
+
+> Nota da auditoria de 2026-11-25: esta seção citava só o `signInWithGoogle` de `packages/auth/client.ts`
+> como padrão; o caminho que a tela usa de fato é o de `googleSignInApi.ts`, acima.
 
 ## Referências
 
@@ -67,6 +77,17 @@ GitHub de quem entra.
 
 - O token OAuth do GitHub devolvido no login não deve ser guardado: o board consulta o GitHub com o
   token do GitHub App, não com o do usuário.
+- Tirar e-mail e senha quebra quem depende deles hoje: o seed do emulador, a suíte E2E (job `e2e` do CI)
+  e a passada do `/test` com `agent-browser`. Sem uma porta de entrada para teste, o próprio pipeline
+  deixa de validar telas autenticadas.
+- O emulador do Firebase Auth atende o GitHub pelo popup (serve uma página de login falsa), mas
+  `signInWithCredential` com token que não é JWT, como o access token do GitHub, não é suportado
+  ([docs do emulador](https://firebase.google.com/docs/emulator-suite/connect_auth), coletado em
+  2026-11-25). O desenho do Google troca o token na API pelo `signInWithIdp`; repetir isso com o access
+  token do GitHub provavelmente esbarra no mesmo limite no emulador. É inferência pela doc, não medição.
+  Se o `login` do GitHub aparece no usuário falso do emulador: não confirmado.
+- Em produção, o OAuth App do GitHub precisa estar ligado ao projeto Firebase; sem ele o botão falha. Isso
+  é pendência de infra, não de código.
 
 ## Sinais de pronto
 
@@ -77,3 +98,5 @@ GitHub de quem entra.
 
 - Restringir o login a membros de uma organização do GitHub? — **recomendação:** não no MVP; o acesso a cada board
   já é limitado pela permissão no repositório.
+- Como fica o login por e-mail e senha? — **recomendação:** sai da UI e do cadastro, mas continua aceito
+  quando o app roda contra o emulador, para o seed, a suíte E2E e o `/test` seguirem entrando.

@@ -1,7 +1,7 @@
 ---
 id: agent-contract
 title: Contrato dos agentes (HTTP + servidor MCP)
-status: proposed
+status: in-progress
 value: alto
 effort: M
 audience: confianca
@@ -9,8 +9,8 @@ phase: 1
 area: [apps/api, packages/kanban-contract]
 depends_on: [orchestrator]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: agent-contract
+updated: 2026-11-26
 ---
 
 # Contrato dos agentes (HTTP + servidor MCP)
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** as ferramentas que os agentes chamam para ler e escrever no card, com token por execução.
 > - **Por quê:** é a única ponte entre a sessão do Claude Code e o board, local ou na nuvem.
-> - **Status:** `proposed` · valor alto · esforço M · confianca
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço M · confianca
+> - **Próximo passo:** `/develop` (plano em `docs/features/agent-contract/analyze/plan.md`)
 
 ## Problema
 

@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createSessionCookie, verifyIdTokenClaims } from "./server";
+import { isAcceptedSignInMethod } from "./sign-in-method";
 
 /**
  * Cross-app session cookie: a Firebase **session cookie** (not a raw ID token),
@@ -142,7 +143,10 @@ export function shouldRefreshSession(issuedAtSeconds: number): boolean {
 
 export type MintSessionResult =
     | { ok: true }
-    | { ok: false; reason: "invalid-token" | "absolute-cap" };
+    | {
+          ok: false;
+          reason: "invalid-token" | "absolute-cap" | "sign-in-method-disabled";
+      };
 
 /** Verify the ID token → mint a session cookie → set it with the shared attributes. */
 export async function mintSessionCookie(
@@ -151,6 +155,9 @@ export async function mintSessionCookie(
     const claims = await verifyIdTokenClaims(idToken);
     if (!claims) {
         return { ok: false, reason: "invalid-token" };
+    }
+    if (!isAcceptedSignInMethod(claims.firebase?.sign_in_provider)) {
+        return { ok: false, reason: "sign-in-method-disabled" };
     }
     if (!isWithinAbsoluteCap(resolveSessionOriginSeconds(claims))) {
         return { ok: false, reason: "absolute-cap" };

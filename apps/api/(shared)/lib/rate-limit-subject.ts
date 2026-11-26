@@ -1,3 +1,6 @@
+import { parseRunToken } from "./agent-contract/run-token-format";
+import { parseRunnerToken } from "./runner/runner-token-format";
+
 const ANONYMOUS_SUBJECT = "anonymous";
 const BEARER_PREFIX = "Bearer ";
 const JWT_SEGMENT_COUNT = 3;
@@ -46,6 +49,15 @@ function readJwtSubject(token: string): string | null {
     }
 }
 
+function machineSubject(bearer: string): string | null {
+    const runToken = parseRunToken(bearer);
+    if (runToken) {
+        return `run:${runToken.runId}`;
+    }
+    const runnerToken = parseRunnerToken(bearer);
+    return runnerToken ? `runner:${runnerToken.runnerId}` : null;
+}
+
 function readBearerToken(request: Request): string {
     const header = request.headers.get("authorization");
     return header?.startsWith(BEARER_PREFIX)
@@ -57,9 +69,14 @@ function readBearerToken(request: Request): string {
  * Picks the rate limit bucket of the caller. The token is decoded, NOT verified: a forged
  * `sub` only buys a fresh bucket for a request the guard then refuses, so the result must
  * never be used to authorize anything. Hashed because it leaves for the rate limit provider.
+ *
+ * An agent's run token gets a bucket per run: cloud sessions of different people leave
+ * from the same addresses and would otherwise share one anonymous bucket. A local runner's
+ * token gets a bucket per runner, for the same reason.
  */
 export async function rateLimitSubject(request: Request): Promise<string> {
-    const subject = readJwtSubject(readBearerToken(request));
+    const bearer = readBearerToken(request);
+    const subject = machineSubject(bearer) ?? readJwtSubject(bearer);
     if (!subject) {
         return ANONYMOUS_SUBJECT;
     }

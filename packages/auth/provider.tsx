@@ -4,7 +4,6 @@ import {
     loginWithCustomToken,
     logout,
     signIn,
-    signInWithGoogle,
     subscribeToIdTokenState,
 } from "@repo/auth/client";
 import useAlert from "@repo/design-system/hooks/useAlert";
@@ -36,7 +35,6 @@ type AuthContextType = {
     accessToken: string | null;
     loading: boolean;
     signIn: UseMutationResult<UserCredential, Error, SignInDTO>;
-    signInWithGoogle: UseMutationResult<UserCredential, Error, void, unknown>;
     signOut: UseMutationResult<void, Error, void, unknown>;
 };
 
@@ -138,6 +136,7 @@ export function AuthProvider({
     const bootstrapAttemptedRef = useRef(false);
     // Concurrent ID-token callbacks would otherwise each alert and each push to sign-in.
     const sessionEndHandledRef = useRef(false);
+    const firebaseUserRef = useRef<User | null>(null);
     const { dictionary, locale } = useDictionary();
 
     const redirectPath = () => getRedirectPath?.() ?? `/${locale}`;
@@ -290,6 +289,12 @@ export function AuthProvider({
                 const outcome = await refreshSessionCookie(token);
                 if (outcome === "no-session") {
                     await syncSessionCookie(token);
+                    // A sign-out that lands while the cookie is being written (a popup
+                    // sign-in the API turned away) sent its DELETE before the cookie
+                    // existed, so the write would outlive it.
+                    if (!firebaseUserRef.current) {
+                        await syncSessionCookie(null);
+                    }
                 } else if (outcome === "expired" || outcome === "revoked") {
                     await sessionEndedRef.current(outcome);
                 } else {
@@ -329,6 +334,7 @@ export function AuthProvider({
 
     useEffect(() => {
         const unsubscribe = subscribeToIdTokenState((u) => {
+            firebaseUserRef.current = u;
             setUser(u);
             const run = async () => {
                 if (u) {
@@ -392,13 +398,6 @@ export function AuthProvider({
         onSuccess: onAuthSuccess,
     });
 
-    const signInWithGoogleMutation = useMutation({
-        mutationFn: signInWithGoogle,
-        onError: (error) =>
-            errorAlert(handleClientError(new FormattedError(error, locale))),
-        onSuccess: onAuthSuccess,
-    });
-
     const signOutMutation = useMutation({
         mutationFn: logout,
         onError: (error) =>
@@ -419,7 +418,6 @@ export function AuthProvider({
                 loading,
                 accessToken,
                 signIn: signInMutation,
-                signInWithGoogle: signInWithGoogleMutation,
                 signOut: signOutMutation,
             }}
         >

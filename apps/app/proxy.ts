@@ -22,6 +22,7 @@ const IDENTITY_TOOLKIT_ORIGIN = "https://identitytoolkit.googleapis.com";
 /** Refreshes the ID token roughly hourly; blocking it kills the session long after sign-in. */
 const SECURE_TOKEN_ORIGIN = "https://securetoken.googleapis.com";
 const GOOGLE_AVATAR_ORIGIN = "https://lh3.googleusercontent.com";
+const GITHUB_AVATAR_ORIGIN = "https://avatars.githubusercontent.com";
 /** Host of the V4 signed URLs Cloud Storage issues (path-style, one fixed host). */
 const STORAGE_ORIGIN = "https://storage.googleapis.com";
 const TAG_MANAGER_ORIGIN = "https://www.googletagmanager.com";
@@ -68,12 +69,13 @@ const securityOptions = buildBrowserAppOptions({
     ],
     imgSrc: [
         GOOGLE_AVATAR_ORIGIN,
+        GITHUB_AVATAR_ORIGIN,
         ...(isStorageConfigured ? [STORAGE_ORIGIN] : []),
         ...(storageEmulatorOrigin ? [storageEmulatorOrigin] : []),
         ...(isAnalyticsEnabled ? [TAG_MANAGER_ORIGIN] : []),
         ...(brandLogoOrigin ? [brandLogoOrigin] : []),
     ],
-    // The Google sign-in flow embeds a relay iframe served by whichever auth backend is
+    // The popup sign-in flow embeds a relay iframe served by whichever auth backend is
     // in use (/emulator/auth/iframe on the emulator), so that origin has to be framable.
     frameSrc: [
         ...(firebaseAuthOrigin ? [firebaseAuthOrigin] : []),

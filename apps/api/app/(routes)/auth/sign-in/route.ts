@@ -1,3 +1,4 @@
+import { isEmulated } from "@repo/auth/emulator";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import {
     IdentityToolkitError,
@@ -12,7 +13,15 @@ import { getMergedUserByUid } from "@/(shared)/lib/user-merge";
 import { toSessionUser } from "@/(shared)/mappers/user.mapper";
 import { parseSignIn } from "@/(shared)/validation/auth.schema";
 
+/** Password accounts exist only for the emulator: seed, E2E suite and local QA. */
 export async function POST(req: Request) {
+    if (!isEmulated()) {
+        return Response.json(
+            { error: { code: "AUTH_SIGN_IN_METHOD_DISABLED" } },
+            { status: HTTP_STATUS.FORBIDDEN }
+        );
+    }
+
     const parsedBody = await parseRequestJson(req);
     if (!parsedBody.ok) {
         return parsedBody.response;

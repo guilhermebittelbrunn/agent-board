@@ -26,16 +26,14 @@ export const authTranslations = {
                         "Erro de conexão. Verifique sua internet.",
                     "auth/popup-closed-by-user": "Login cancelado.",
                     "auth/cancelled-popup-request": "Login cancelado.",
-                    "auth/credential-already-in-use":
-                        "Esta conta Google já está vinculada a outra conta.",
+                    "auth/account-exists-with-different-credential":
+                        "Já existe uma conta com este e-mail usando outro método de entrada.",
                     "auth/provider-already-linked":
                         "Este método de login já está vinculado.",
                     "auth/popup-blocked":
                         "O navegador bloqueou a janela de login. Permita pop-ups e tente de novo.",
-                    "auth/user-mismatch":
-                        "Escolha a mesma conta Google vinculada a esta conta.",
                     "auth/unauthorized-domain":
-                        "Este endereço não está autorizado para login com Google.",
+                        "Este endereço não está autorizado para login com GitHub.",
                 },
             },
         },

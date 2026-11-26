@@ -10,11 +10,15 @@
     "test:emulator": "NODE_ENV=test node scripts/emulator-tests.mjs",
     "create-dev-admin": "node --env-file-if-exists=.env scripts/create-dev-admin.mjs",
     "seed": "node --env-file-if-exists=.env scripts/seed-emulator.mjs",
+    "seed:timeline": "node --env-file-if-exists=.env scripts/seed-card-timeline.mjs",
+    "fake-executor": "node --env-file-if-exists=.env scripts/fake-executor.mjs",
+    "agent-token": "node --env-file-if-exists=.env scripts/agent-token.mjs",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
     "@repo/auth": "workspace:*",
+    "@repo/kanban-contract": "workspace:*",
     "@repo/sdk": "workspace:*",
     "@repo/shared": "workspace:*",
     "@repo/design-system": "workspace:*",

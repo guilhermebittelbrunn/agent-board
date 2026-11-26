@@ -4,8 +4,8 @@ O GitHub é a fonte de identidade e de permissão: todos entram com a conta do G
 
 ## Identidade
 
-- **Login:** Firebase Auth com o provedor GitHub (`GithubAuthProvider`). O `@repo/auth` herdado já é Firebase e hoje oferece e-mail/senha e Google; no board fica só o GitHub (spec `github-sign-in`).
-- **Perfil:** `githubId` (estável, é a chave), `login` (pode mudar), nome e avatar. Sem cadastro por e-mail.
+- **Login:** Firebase Auth com o provedor GitHub (`GithubAuthProvider`). O `@repo/auth` herdado já é Firebase; no board fica só o GitHub (spec `github-sign-in`), com e-mail/senha restrito ao emulador.
+- **Perfil:** campo `github` no documento `user`, no formato `GithubIdentity` de `@repo/kanban-contract`: `id` (estável, é a chave), `login` (pode mudar, reescrito a cada login), `name` e `avatarUrl`. Sem cadastro por e-mail.
 
 ## GitHub App do board
 

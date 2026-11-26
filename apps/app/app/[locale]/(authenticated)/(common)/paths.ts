@@ -16,6 +16,52 @@ export const COMMON_ROUTES = (
             label: dictionary?.apps.app.pages.common.routes.platform.playground,
             url: buildPath("/playground"),
         },
+        boards: {
+            list: {
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .list,
+                url: buildPath("/boards"),
+            },
+            create: {
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .create,
+                url: buildPath("/boards/new"),
+            },
+            createFor: (repository: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .create,
+                url: buildPath(
+                    `/boards/new?repository=${encodeURIComponent(repository)}`
+                ),
+            }),
+            detail: (id: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .board,
+                url: buildPath(`/boards/${encodeURIComponent(id)}`),
+            }),
+            card: (id: string, slug: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .card,
+                url: buildPath(
+                    `/boards/${encodeURIComponent(id)}/cards/${encodeURIComponent(slug)}`
+                ),
+            }),
+            settings: (id: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .settings,
+                url: buildPath(`/boards/${encodeURIComponent(id)}/settings`),
+            }),
+            members: (id: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .members,
+                url: buildPath(`/boards/${encodeURIComponent(id)}/members`),
+            }),
+            credentials: (id: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .credentials,
+                url: buildPath(`/boards/${encodeURIComponent(id)}/credentials`),
+            }),
+        },
         entities: {
             list: {
                 label: dictionary?.apps.app.pages.common.routes.platform

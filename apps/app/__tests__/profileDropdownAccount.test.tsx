@@ -1,6 +1,6 @@
 import { globalTranslations } from "@repo/internationalization/translations/global";
 import { setCookie } from "@repo/shared/utils/helpers/cookies";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { useAuthMock, useMyAccountMock } = vi.hoisted(() => ({
@@ -125,4 +125,48 @@ describe("ProfileDropdown — origem do nome e do avatar", () => {
             }
         }
     );
+});
+
+describe("ProfileDropdown — identidade do GitHub", () => {
+    function openMenu(): void {
+        fireEvent.keyDown(
+            screen.getByRole("button", {
+                name: globalTranslations["pt-br"].apps.app.shared
+                    .profileDropdown.triggerLabel,
+            }),
+            { key: "Enter" }
+        );
+    }
+
+    it("mostra o @login no lugar do e-mail quando a conta tem GitHub", () => {
+        useMyAccountMock.mockReturnValue({
+            data: {
+                displayName: "The Octocat",
+                email: "octocat@example.com",
+                github: {
+                    id: "583231",
+                    login: "octocat",
+                    name: "The Octocat",
+                    avatarUrl: null,
+                },
+            },
+        });
+
+        render(<ProfileDropdown />);
+        openMenu();
+
+        expect(screen.getByText("@octocat")).toBeTruthy();
+        expect(screen.queryByText("octocat@example.com")).toBeNull();
+    });
+
+    it("mostra o e-mail quando a conta não tem GitHub", () => {
+        useMyAccountMock.mockReturnValue({
+            data: { displayName: "Ana da Conta", email: "conta@example.com" },
+        });
+
+        render(<ProfileDropdown />);
+        openMenu();
+
+        expect(screen.getByText("conta@example.com")).toBeTruthy();
+    });
 });

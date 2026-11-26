@@ -132,7 +132,7 @@ preview. Os dois têm mitigação barata se entrarem desde o MVP.
 | O que saiu do core | Landing, preview de e-mail, cobrança e modo de produto, organizações e convites, trilha de auditoria, e-mail transacional, en/es, cadastro, recuperação, verificação, link por e-mail, MFA, tela de sessões, métodos vinculados, troca de e-mail, onboarding, kickoff e `/deliver` |
 | Escopo dos dados | Por pessoa (`userId`) até a spec `board-members`; depois, por board, com guard de papel |
 | Idioma | Só pt-br, mantendo o segmento `[locale]` e a regra "sem string solta" |
-| Identidade | Conta do GitHub (spec `github-sign-in`); até lá, e-mail/senha e Google, herdados |
+| Identidade | Conta do GitHub (spec `github-sign-in`); e-mail/senha só no emulador |
 | Permissão | Papel no board limitado pela permissão no repositório do GitHub |
 | Fonte do backlog | `specs/` + `specs/BACKLOG.md` de cada repositório importado |
 | Com que credencial a etapa roda | A de quem disparou; API key do board como fallback (fase 4) |

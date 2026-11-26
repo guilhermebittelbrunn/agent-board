@@ -77,6 +77,18 @@ describe("ActionsMenu", () => {
         expect(screen.getByText(actionMenuCopy.delete)).toBeTruthy();
     });
 
+    it("names each item by its label, without the icon's name", async () => {
+        render(<ActionsMenu onDelete={vi.fn()} onEdit={vi.fn()} />);
+        openMenu();
+
+        expect(
+            await screen.findByRole("menuitem", { name: actionMenuCopy.edit })
+        ).toBeTruthy();
+        expect(
+            screen.getByRole("menuitem", { name: actionMenuCopy.delete })
+        ).toBeTruthy();
+    });
+
     it("paints the danger item with the theme tokens at rest and on hover", async () => {
         render(
             <AntdAppProvider>

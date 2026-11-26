@@ -4,9 +4,13 @@ import { UserRoleLevel } from "@repo/auth/types";
 import AccountActions from "../actions/account/action";
 import ApplicationActions from "../actions/application/application";
 import AuthActions from "../actions/auth/action";
+import BoardActions from "../actions/board/action";
+import BoardCardActions from "../actions/boardCard/action";
+import BoardMemberActions from "../actions/boardMember/action";
 import EntityActions from "../actions/entity/action";
 import FileActions from "../actions/file/action";
 import NotificationActions from "../actions/notification/action";
+import RunnerActions from "../actions/runner/action";
 import UserActions from "../actions/user/user/action";
 import BaseClient, { type Config } from "./base";
 
@@ -15,9 +19,13 @@ export class Client extends BaseClient {
     authApi!: AuthActions;
     user!: UserActions;
     entity!: EntityActions;
+    board!: BoardActions;
+    boardCard!: BoardCardActions;
+    boardMember!: BoardMemberActions;
     file!: FileActions;
     account!: AccountActions;
     notification!: NotificationActions;
+    runner!: RunnerActions;
 
     constructor(config: Config) {
         super(config);
@@ -26,8 +34,12 @@ export class Client extends BaseClient {
         this.authApi = new AuthActions(this);
         this.user = new UserActions(this);
         this.entity = new EntityActions(this);
+        this.board = new BoardActions(this);
+        this.boardCard = new BoardCardActions(this);
+        this.boardMember = new BoardMemberActions(this);
         this.file = new FileActions(this);
         this.notification = new NotificationActions(this);
+        this.runner = new RunnerActions(this);
     }
 
     get isAdminContext(): boolean {

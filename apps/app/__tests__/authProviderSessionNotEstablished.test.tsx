@@ -14,7 +14,6 @@ const {
     params,
     pushMock,
     signInMock,
-    signInWithGoogleMock,
     successAlertMock,
 } = vi.hoisted(() => ({
     errorAlertMock: vi.fn(),
@@ -22,7 +21,6 @@ const {
     params: { locale: "pt-br" } as Record<string, string>,
     pushMock: vi.fn(),
     signInMock: vi.fn(),
-    signInWithGoogleMock: vi.fn(),
     successAlertMock: vi.fn(),
 }));
 
@@ -30,7 +28,6 @@ vi.mock("@repo/auth/client", () => ({
     loginWithCustomToken: vi.fn(),
     logout: () => logoutMock(),
     signIn: (...args: unknown[]) => signInMock(...args),
-    signInWithGoogle: (...args: unknown[]) => signInWithGoogleMock(...args),
     subscribeToIdTokenState: () => vi.fn(),
 }));
 
@@ -145,8 +142,6 @@ beforeEach(() => {
     logoutMock.mockResolvedValue(undefined);
     signInMock.mockReset();
     signInMock.mockResolvedValue(firebaseCredential());
-    signInWithGoogleMock.mockReset();
-    signInWithGoogleMock.mockResolvedValue(firebaseCredential());
     vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -290,32 +285,5 @@ describe("AuthProvider quando o servidor grava a sessão depois do login", () =>
         );
         expect(errorAlertMock).not.toHaveBeenCalled();
         expect(logoutMock).not.toHaveBeenCalled();
-    });
-});
-
-describe("AuthProvider com a sessão recusada nos outros métodos de login", () => {
-    it("desloga sem navegar quando a sessão do login com Google é recusada", async () => {
-        params.locale = "pt-br";
-        let auth: AuthContextValue | undefined;
-        render(
-            <LocaleProvider>
-                {authTree((value) => {
-                    auth = value;
-                })}
-            </LocaleProvider>
-        );
-
-        refuseForeignOrigin();
-        await act(async () => {
-            await auth?.signInWithGoogle.mutateAsync();
-        });
-
-        expect(logoutMock).toHaveBeenCalledTimes(1);
-        expect(auth?.accessToken).toBeNull();
-        expect(errorAlertMock).toHaveBeenCalledWith(
-            copyFor("pt-br").session.notEstablished
-        );
-        expect(successAlertMock).not.toHaveBeenCalled();
-        expect(pushMock).not.toHaveBeenCalled();
     });
 });

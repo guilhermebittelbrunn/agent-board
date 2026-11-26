@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseBoardConfig, resolveBranchName } from "../src/boardConfig";
+import {
+    DEFAULT_STAGE_TIMEOUT_MINUTES,
+    MAX_STAGE_TIMEOUT_MINUTES,
+    MIN_STAGE_TIMEOUT_MINUTES,
+    parseBoardConfig,
+    resolveBranchName,
+} from "../src/boardConfig";
 
 const minimalConfig = {
     version: 1,
@@ -25,7 +31,25 @@ describe("parseBoardConfig", () => {
         expect(result.data?.branchPattern).toBe("feat/{slug}");
         expect(result.data?.backlog.index).toBe("specs/BACKLOG.md");
         expect(result.data?.limits.maxReworkLoops).toBe(2);
+        expect(result.data?.limits.stageTimeoutMinutes).toBe(
+            DEFAULT_STAGE_TIMEOUT_MINUTES
+        );
         expect(result.data?.stages[0]?.model).toBe("sonnet");
+    });
+
+    it("accepts a stage timeout from the minimum to the maximum minutes, whole", () => {
+        const timeout = (stageTimeoutMinutes: number) =>
+            parseBoardConfig({
+                ...minimalConfig,
+                limits: { stageTimeoutMinutes },
+            }).success;
+
+        expect(timeout(MIN_STAGE_TIMEOUT_MINUTES)).toBe(true);
+        expect(timeout(MAX_STAGE_TIMEOUT_MINUTES)).toBe(true);
+        expect(timeout(MIN_STAGE_TIMEOUT_MINUTES - 1)).toBe(false);
+        expect(timeout(MAX_STAGE_TIMEOUT_MINUTES + 1)).toBe(false);
+        const halfMinute = 0.5;
+        expect(timeout(DEFAULT_STAGE_TIMEOUT_MINUTES + halfMinute)).toBe(false);
     });
 
     it("rejects duplicated stage keys", () => {

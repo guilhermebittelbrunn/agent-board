@@ -45,6 +45,9 @@ de qualidade. Onde esta regra conflitar com um passo interativo de um comando, e
 - Análise: crie a branch a partir da base se ela ainda não existir
   (`git fetch origin && git switch -c <branch> origin/<baseBranch>`). Demais etapas: `git switch <branch>`
   e `git pull --ff-only`.
+- No runner local, a sessão já começa num worktree na branch do card (`git rev-parse --abbrev-ref HEAD`
+  confirma). Não recrie a branch nem troque de branch; quando a branch ainda não existe no remoto, o primeiro push é
+  `git push -u origin <branch>`.
 - **Toda etapa termina com commit e push na branch do card.** Na nuvem cada etapa começa num clone novo;
   o que ficar sem commit se perde.
   - Análise: `docs/features/<slug>/` (plano e `STATE.md`).

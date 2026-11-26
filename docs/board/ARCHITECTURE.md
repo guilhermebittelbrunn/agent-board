@@ -12,7 +12,7 @@ O board decide, os agentes executam e tudo volta para o card. Só uma peça é n
                      dispara etapa (card, slug, etapa, branch)  │ relata (post_update, ask, complete_stage)
                                 ▼                               │
                 ┌────────────── executores (adapters) ─────────┴──────┐
-                │ runner local (Agent SDK) │ nuvem (tarefa agendada) │ GitHub Actions (depois)
+                │ runner local (claude -p) │ nuvem (tarefa agendada) │ GitHub Actions (depois)
                 └──────────────────────────┬───────────────────────────┘
                                            ▼
                          sessão Claude Code no repositório importado
@@ -30,7 +30,7 @@ O board decide, os agentes executam e tudo volta para o card. Só uma peça é n
 | Orquestrador | `apps/api` | Aplica `resolveTransition`, mantém a fila de execuções, limites WIP, retries e a fila dos ciclos |
 | Contrato | `apps/api` | Endpoints HTTP e servidor MCP com as ferramentas de [CONTRACT.md](CONTRACT.md) |
 | Webhooks | `apps/api` | Eventos do GitHub App: PR aberta, review, comentários, checks, merge, mudança de membros |
-| Runner local | `packages/runner` (spec `local-runner`) | CLI na máquina-alvo: busca trabalho no board, cria worktree, roda a etapa com o Agent SDK, transmite o log |
+| Runner local | `apps/runner` (spec `local-runner`) | CLI na máquina de quem desenvolve: registra-se com um código do board, busca trabalho por polling, cria um worktree na branch do card e roda a etapa com `claude -p`. Guarda o log em `~/.agent-board-runner/logs/` |
 | Domínio | `packages/kanban-contract` | `board.yml`, papéis, estados, transições, payloads |
 
 ## Ciclo do card
@@ -65,13 +65,18 @@ Na nuvem, cada etapa começa num clone novo. Por isso, no modo board, a branch d
 
 ## Dados (Firestore)
 
+`board`, `boardMember`, `card`, `cardEvent` e `run` já existem com esses nomes, no singular. As outras coleções ainda não
+foram criadas; o nome final sai da spec que as criar.
+
 | Coleção | Campos principais |
 |---------|-------------------|
-| `boards` | repositório (`owner/name`), instalação do GitHub App, `board.yml` validado (snapshot + sha), runner padrão, agenda de ciclos |
-| `members` | board, usuário (github id e login), papel no board, papel efetivo e data da última checagem, status do convite |
-| `cards` | board, slug, título, spec (caminho + sha), ordem, etapa, estado, branch, PR, voltas de rework, ciclo atual |
-| `runs` | card, etapa, quem disparou, credencial usada, executor, id/URL da sessão, modelo, esforço, início/fim, resultado, turnos, decisões registradas |
-| `events` | card, etapa, autor (agente ou pessoa), tipo (resumo, pergunta, resposta, artefato, log), corpo em markdown |
+| `board` | repositório (`owner/name`), instalação do GitHub App, `board.yml` validado (snapshot + sha), última sincronização do backlog (`backlogSync`), escolhas do board por etapa (`stageSettings`: limite de cards rodando e aprovação antes da etapa seguinte), `runsPumpedAt` (trava da fila); depois: runner padrão, agenda de ciclos |
+| `boardMember` | board, usuário (github id e login), papel no board, papel efetivo e data da última checagem, status do convite. Id `<boardId>__<login>` |
+| `card` | board, slug, título, spec (caminho, sha e status), pronto, órfão, faixa (`tasks`, `stage`, `done`) e etapa, ordem em Tarefas, estado, voltas de rework, branch, perguntas pendentes (`pendingAsk`: evento, etapa e quantidade), execução viva (`activeRunId`, no máximo uma) e resumo da última (`lastRun`: etapa, status, resultado, motivo do fim, quem parou); depois: PR, ciclo atual. Id `<boardId>__<slug>` |
+| `run` | board, card e slug, etapa, comando, agente, modelo, esforço e limite de turnos copiados da etapa no disparo, branch, tipo de disparo (`drag`, `rerun`, `approve`, `answer`, `transition`), quem disparou (id e login), executor (`fake` só no emulador, `local` quando quem disparou tinha um runner online), status (`queued`, `running`, `finished`, `stopped`), `active` (verdadeiro enquanto na fila ou rodando), resultado, motivo do fim (`agent`, `timeout`, `dispatch_failed`, `stopped`, `no_runner`), quem parou, entrada na fila, início, prazo, fim, URL da sessão (vazia), turnos (o runner local informa no heartbeat e no fim), o runner que pegou o `run` (`runnerId`, `claimedAt`) e quando ele avisou o fim (`runnerFinishedAt`, que torna o aviso idempotente), e o token do agente: `tokenHash` (SHA-256 do segredo, nunca o token) e `tokenExpiresAt` (igual ao prazo). Id automático. Só o orquestrador escreve, sempre em transação no documento do card; o token é gravado na transação do `claim` do runner (ou por `issueRunToken`, no emulador), e nunca sai em `RunDTO`; depois: credencial usada |
+| `cardEvent` | board, card, etapa e faixa do card no momento, autor (agente pelo nome, ou pessoa pelo id e login), tipo (`update`, `question`, `answer`, `artifact`, `report`, `comment`), corpo em markdown e os campos de cada tipo (perguntas, respostas com o rótulo copiado, artefato com caminho e sha, resultado da etapa); `runId` aponta o `run` que gerou o evento de agente; comentários e respostas de pessoa ficam sem ele. Id automático. Só o autor edita ou apaga (soft delete) um comentário; eventos de agente não mudam |
+| `runner` | dono (`userId`), nome da máquina, `tokenHash` (SHA-256 do segredo do token `kbl_`), os quatro últimos caracteres do segredo para a tela, último contato (`lastSeenAt`, gravado no máximo a cada 30 s), `run` em andamento (`currentRunId`, um por vez), revogação como soft delete. Id automático |
+| `runnerRegistration` | quem gerou o código, validade (10 minutos), uso (`usedAt`) e o runner que nasceu dele. O id do documento é o SHA-256 do código, que nunca fica no banco em claro |
 | `credentials` | dono (membro ou board), tipo (runner local, tarefa agendada por etapa, API key), referência cifrada, última verificação |
 | `cycles` | board, specs em ordem, opções (até onde vai, quantas ao mesmo tempo, o que fazer se uma falhar), quem iniciou, estado, decisões |
 | `discoveries` | board, quem pediu, parâmetros (fontes, foco, quantidade), propostas com evidência e a decisão sobre cada uma |

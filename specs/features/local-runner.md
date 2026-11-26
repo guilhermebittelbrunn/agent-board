@@ -1,7 +1,7 @@
 ---
 id: local-runner
 title: Runner local com o Claude Agent SDK
-status: proposed
+status: in-progress
 value: alto
 effort: G
 audience: time
@@ -9,8 +9,8 @@ phase: 1
 area: [packages/runner, apps/api, packages/kanban-contract]
 depends_on: [agent-contract]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: local-runner
+updated: 2026-11-26
 ---
 
 # Runner local com o Claude Agent SDK
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** um CLI na máquina-alvo que roda as etapas com o Claude Agent SDK.
 > - **Por quê:** o pipeline depende do ambiente local (emulador, browser, credenciais de dev).
-> - **Status:** `proposed` · valor alto · esforço G · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço G · time
+> - **Próximo passo:** `/develop local-runner` (plano em `docs/features/local-runner/analyze/plan.md`)
 
 ## Problema
 

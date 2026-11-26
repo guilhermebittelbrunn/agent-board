@@ -1,7 +1,12 @@
 "use client";
 
 import { getDictionaryForLocale } from "@repo/internationalization/client";
-import { LayersIcon, Settings2Icon, SquareTerminalIcon } from "lucide-react";
+import {
+    KanbanSquareIcon,
+    LayersIcon,
+    Settings2Icon,
+    SquareTerminalIcon,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import type { NavItem } from "@/shared/components/ui/Sidebar";
@@ -15,6 +20,13 @@ export function useCommonNavRoutes(): NavItem[] {
         const { dictionary } = getDictionaryForLocale(locale);
         const routes = COMMON_ROUTES(dictionary, locale);
         return [
+            {
+                title: dictionary.apps.app.pages.common.routes.platform.boards
+                    .list,
+                url: routes.boards.list.url,
+                icon: KanbanSquareIcon,
+                isActive: true,
+            },
             {
                 title: dictionary.apps.app.pages.common.routes.platform
                     .playground,

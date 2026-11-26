@@ -1,4 +1,5 @@
 import { commonAccountPageTranslations } from "./account";
+import { commonBoardsPageTranslations } from "./boards";
 import { commonEntitiesPageTranslations } from "./entities";
 import { globalErrorPageTranslations } from "./globalError";
 import { commonHomePageTranslations } from "./home";
@@ -13,5 +14,6 @@ export const commonTranslations = {
         home: commonHomePageTranslations["pt-br"],
         entities: commonEntitiesPageTranslations["pt-br"],
         account: commonAccountPageTranslations["pt-br"],
+        boards: commonBoardsPageTranslations["pt-br"],
     },
 };

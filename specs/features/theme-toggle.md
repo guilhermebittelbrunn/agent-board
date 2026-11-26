@@ -1,7 +1,7 @@
 ---
 id: theme-toggle
 title: Tema claro e escuro no board
-status: proposed
+status: in-progress
 value: médio
 effort: P
 audience: time
@@ -9,8 +9,8 @@ phase: 1
 area: [apps/app, packages/design-system]
 depends_on: [card-backlog]
 contends_on: [packages/design-system/components/ui/mode-toggle.tsx]
-feature: -
-updated: 2026-11-25
+feature: theme-toggle
+updated: 2026-11-26
 ---
 
 # Tema claro e escuro no board
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** um botão no cabeçalho do board alterna entre tema claro e escuro; o primeiro acesso segue o tema do sistema.
 > - **Por quê:** o board fica aberto o dia todo ao lado do editor, e quem usa tema escuro no resto do ambiente não quer uma tela clara no meio.
-> - **Status:** `proposed` · valor médio · esforço P · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor médio · esforço P · time
+> - **Próximo passo:** `/develop theme-toggle` (plano em [`docs/features/theme-toggle/analyze/plan.md`](../../docs/features/theme-toggle/analyze/plan.md))
 
 ## Problema
 

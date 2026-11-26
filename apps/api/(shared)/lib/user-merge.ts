@@ -1,4 +1,8 @@
 import { getAuthInstance, getCurrentUser } from "@repo/auth/server";
+import {
+    type GithubIdentity,
+    githubIdentitySchema,
+} from "@repo/kanban-contract";
 import { type UserDTO, UserType } from "@repo/sdk/src/types";
 import { logEvent } from "@repo/shared/utils/helpers/log";
 import type { UserRecord } from "firebase-admin/auth";
@@ -102,4 +106,30 @@ export async function getMergedUserByFirestoreDocId(
         return null;
     }
     return getMergedUserByUid(profile.reference_id);
+}
+
+function isSameGithubIdentity(stored: unknown, next: GithubIdentity): boolean {
+    const parsed = githubIdentitySchema.safeParse(stored);
+    if (!parsed.success) {
+        return false;
+    }
+    const current = parsed.data;
+    return (
+        current.id === next.id &&
+        current.login === next.login &&
+        current.name === next.name &&
+        current.avatarUrl === next.avatarUrl
+    );
+}
+
+/** Writes only on change: `update` stamps `updatedAt`, and most sign-ins change nothing. */
+export async function syncGithubIdentity(
+    profileId: string,
+    stored: unknown,
+    next: GithubIdentity
+): Promise<void> {
+    if (isSameGithubIdentity(stored, next)) {
+        return;
+    }
+    await userRepository.update({ id: profileId, github: next });
 }

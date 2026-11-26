@@ -118,6 +118,12 @@ describe("app security headers", () => {
         );
     });
 
+    it("serves the GitHub avatar in the account menu", async () => {
+        expect((await policyFor("/pt-br/entities")).get("img-src")).toContain(
+            "https://avatars.githubusercontent.com"
+        );
+    });
+
     it("leaves analytics origins out while analytics is unconfigured", async () => {
         expect(
             (await policyFor("/pt-br/entities")).get("script-src")

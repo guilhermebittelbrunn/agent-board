@@ -4,9 +4,13 @@
  */
 export type LogScope =
     | "account"
+    | "agent"
     | "auth"
+    | "github"
     | "notifications"
+    | "orchestrator"
     | "request"
+    | "runner"
     | "security"
     | "storage";
 

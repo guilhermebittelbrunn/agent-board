@@ -10,9 +10,7 @@ import {
 
 const EMAIL_MAX = 320;
 const OOB_CODE_MAX = 2048;
-const GOOGLE_ID_TOKEN_MAX = 4096;
-const REQUEST_URI_MAX = 2048;
-const HTTP_PROTOCOL = /^https?$/;
+const ID_TOKEN_MAX = 4096;
 
 const localeSchema = z.enum(locales);
 const oobCodeSchema = z.string().trim().min(1).max(OOB_CODE_MAX);
@@ -42,12 +40,8 @@ export const signInSchema = z.object({
     password: existingPasswordSchema,
 });
 
-export const googleSignInSchema = z.object({
-    idToken: z.string().min(1).max(GOOGLE_ID_TOKEN_MAX),
-    requestUri: z
-        .url({ protocol: HTTP_PROTOCOL })
-        .max(REQUEST_URI_MAX)
-        .optional(),
+export const githubSignInSchema = z.object({
+    idToken: z.string().min(1).max(ID_TOKEN_MAX),
 });
 
 export const emailVerificationSendSchema = z.object({
@@ -66,7 +60,7 @@ export type EmailLinkSignInRequestInput = z.infer<
 >;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
-export type GoogleSignInInput = z.infer<typeof googleSignInSchema>;
+export type GithubSignInInput = z.infer<typeof githubSignInSchema>;
 export type PasswordResetConfirmInput = z.infer<
     typeof passwordResetConfirmSchema
 >;
@@ -117,8 +111,8 @@ export const parseSignUp = (body: unknown) =>
 
 export const parseSignIn = (body: unknown) => parseWith(signInSchema, body);
 
-export const parseGoogleSignIn = (body: unknown) =>
-    parseWith(googleSignInSchema, body);
+export const parseGithubSignIn = (body: unknown) =>
+    parseWith(githubSignInSchema, body);
 
 export const parsePasswordResetRequest = (body: unknown) =>
     parseWith(passwordResetRequestSchema, body);

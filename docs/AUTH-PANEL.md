@@ -9,7 +9,7 @@ contexto de um usuário comum, e o que a API valida. Visão de sistema em
 
 | Papel | Origem | Onde opera |
 |-------|--------|-----------|
-| **comum** (`UserType.COMMON`) | seed, criação pelo admin ou primeiro login com Google | `/{locale}/…` — área comum |
+| **comum** (`UserType.COMMON`) | seed, criação pelo admin ou primeiro login com GitHub | `/{locale}/…` — área comum |
 | **admin** (`UserType.ADMIN`) | criado por outro admin | `/{locale}/admin/…` — área administrativa |
 
 O papel vive no documento `user` do Firestore (campo `type`), **não** no token. O token só prova

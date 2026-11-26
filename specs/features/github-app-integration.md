@@ -1,7 +1,7 @@
 ---
 id: github-app-integration
 title: Integração com o GitHub App do board
-status: proposed
+status: in-progress
 value: alto
 effort: M
 audience: confianca
@@ -9,7 +9,7 @@ phase: 1
 area: [apps/api, packages/kanban-contract]
 depends_on: []
 contends_on: []
-feature: -
+feature: github-app-integration
 updated: 2026-11-25
 ---
 
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** o board fala com o GitHub por um App próprio: lê repositórios, consulta permissões e recebe webhooks.
 > - **Por quê:** sem isso nenhuma importação, papel ou PR funciona.
-> - **Status:** `proposed` · valor alto · esforço M · confianca
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço M · confianca
+> - **Próximo passo:** `/test github-app-integration` (plano em [`docs/features/github-app-integration/analyze/plan.md`](../../docs/features/github-app-integration/analyze/plan.md)).
 
 ## Problema
 
@@ -67,6 +67,9 @@ consegue começar.
 
 - A chave privada do App é o segredo mais sensível do board: só na API, nunca em log.
 - Limites de taxa da API do GitHub: cache das permissões com expiração curta.
+- Sem o App criado, a assinatura do webhook e o JWT do App se provam com segredo e chave de teste, mas os
+  "Sinais de pronto" contra um repositório real ficam sem verificação até a credencial existir. A
+  `board-import` depende disso para mostrar a lista de repositórios no `/test`.
 
 ## Sinais de pronto
 
@@ -78,3 +81,6 @@ consegue começar.
 
 - Instalar na organização inteira ou repositório a repositório? — **recomendação:** repositório a
   repositório no começo.
+- Ter um cliente GitHub falso quando a API roda contra o emulador, com um repositório de exemplo? —
+  **recomendação:** sim, no mesmo espírito do seed do Firebase; sem ele, `board-import` não tem como ser
+  percorrida no `/test` sem credencial real.

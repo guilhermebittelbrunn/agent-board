@@ -4,12 +4,13 @@ Modelo de segurança do agent-board e como mantê-lo. Leia junto com [`docs/ARCH
 
 ## Autenticação
 
-- **Provider**: Firebase. No cliente (`@repo/auth/client`), o usuário entra com e-mail/senha ou Google e obtém um **ID token**, sincronizado num cookie de sessão. Não há cadastro aberto: as contas vêm do seed do emulador, da criação pelo admin (`POST /users`) ou do primeiro login com Google. O login com GitHub substitui os dois na spec `github-sign-in`.
+- **Provider**: Firebase. Em produção o usuário entra só pelo popup do GitHub (`GithubAuthProvider`) e obtém um **ID token**, sincronizado num cookie de sessão. A app manda à API apenas esse ID token (`POST /auth/sign-in/github`); o access token do GitHub fica no SDK do Firebase. A API confere que o método foi `github.com`, lê `rawId`, `screenName`, nome e foto com `accounts:lookup` usando o próprio ID token, confere o `rawId` com a claim `firebase.identities`, valida o formato com `githubIdentitySchema` (`@repo/kanban-contract`) e grava em `user.github` só quando algo mudou. O `login` nunca vem do corpo da requisição. O primeiro login cria o perfil como `common`.
+- **Métodos aceitos** (`packages/auth/sign-in-method.ts`): `github.com` e `custom` (a adoção da sessão entre apps, que só nasce de um cookie válido) sempre; `password` só com emulador configurado. O filtro roda ao gravar o cookie (`/api/auth/session` → `403 AUTH_SIGN_IN_METHOD_DISABLED`) e ao resolver a credencial na API (método recusado vira anônimo → `401`). `POST /auth/sign-in` responde `403 AUTH_SIGN_IN_METHOD_DISABLED` fora do emulador antes de ler o corpo. O seed, o E2E e o QA local entram com senha no emulador.
 - **Política de senha**: mínimo de 8 e máximo de 1024 caracteres para toda senha **definida** (troca na área de conta e criação pelo admin), sem regra de composição e sem aparar espaços. Quem confere uma senha que já existe (login e senha atual na troca) segue aceitando 6. As três constantes vivem em `packages/shared/utils/helpers/passwordPolicy.ts`; a API responde `400 AUTH_PASSWORD_TOO_SHORT` para senha nova curta.
 - **No servidor** (`@repo/auth/server`), o Firebase **Admin SDK** verifica o token (`verifyIdToken`) a partir do cookie `access-token` ou do header `Authorization: Bearer`. Falhas benignas (token expirado/ inválido) viram "sem sessão", não erro 500.
-- **Identity Toolkit REST** (`FIREBASE_WEB_API_KEY`) é usado no servidor para o login, a conferência da senha atual na troca de senha, o login com Google e a criação de usuário pelo admin (`POST /users`).
+- **Identity Toolkit REST** (`FIREBASE_WEB_API_KEY`) é usado no servidor para a leitura da conta no login com GitHub (`accounts:lookup`), o login por senha no emulador, a conferência da senha atual na troca de senha e a criação de usuário pelo admin (`POST /users`).
 - **`POST /auth/sign-in`** valida o corpo com Zod e responde `400 VALIDATION_FAILED` para corpo ausente, JSON inválido, e-mail inválido ou senha com menos de 6 caracteres, sem chamar o Identity Toolkit. Toda recusa do provedor (senha errada, conta inexistente, conta desativada) vira o mesmo `400 AUTH_INVALID_CREDENTIALS`, que não diz se o e-mail existe nem ecoa a mensagem do provedor; o limite do provedor vira `429 USERS_AUTH_RATE_LIMITED`.
-- **Troca de senha** (`POST /account/password`) confere a senha atual e encerra todas as sessões da conta; se o Firebase recusar a revogação, a senha fica gravada e a rota responde `500 AUTH_SESSIONS_NOT_REVOKED`. Conta que só entra pelo Google não tem senha para trocar (`400 ACCOUNT_PASSWORD_UNSUPPORTED`).
+- **Troca de senha** (`POST /account/password`) confere a senha atual e encerra todas as sessões da conta; se o Firebase recusar a revogação, a senha fica gravada e a rota responde `500 AUTH_SESSIONS_NOT_REVOKED`. Conta que só entra pelo GitHub não tem senha para trocar (`400 ACCOUNT_PASSWORD_UNSUPPORTED`).
 
 ## Autorização (guards da API)
 
@@ -19,7 +20,7 @@ guard, que roda **antes** da lógica; **seis** exportam handler nu (medido com
 
 | grupo | quantas | por que não tem guard |
 |-------|---------|------------------------|
-| `/auth/*` — `me`, `session`, `sign-in`, `sign-in/google` | 4 | é a superfície **anterior à sessão**: um guard que exige sessão recusaria justamente quem vem criar uma. `/auth/me` e `/auth/session` resolvem a credencial por dentro (`resolveApiActor`, `resolveApiCredential`). Sem credencial ativa, ou com conta que não existe mais no Auth, `/auth/me` responde `401 AUTH_INVALID_TOKEN`, o mesmo código dos guards |
+| `/auth/*` — `me`, `session`, `sign-in`, `sign-in/github` | 4 | é a superfície **anterior à sessão**: um guard que exige sessão recusaria justamente quem vem criar uma. `/auth/me` e `/auth/session` resolvem a credencial por dentro (`resolveApiActor`, `resolveApiCredential`). Sem credencial ativa, ou com conta que não existe mais no Auth, `/auth/me` responde `401 AUTH_INVALID_TOKEN`, o mesmo código dos guards |
 | `/health`, `/health/ready` | 2 | sondas de plataforma, precisam responder sem credencial |
 
 As **catorze** rotas de negócio — `account` ×2, `entities` ×3, `files`, `notifications/*` ×4 e `users` ×4 —
@@ -97,9 +98,10 @@ Mesma postura do Firestore — **a API é a única autoridade** — com uma dife
   permissão: bloco desconhecido sai. Arquivo cuja estrutura ela não consegue percorrer recebe
   `415 UPLOAD_FILE_TYPE_NOT_ALLOWED`. Objetos gravados antes dessa regra continuam com o EXIF original.
 - Foto de entidade e avatar aceitam só um objeto do bucket do próprio dono ou
-  uma URL `https://lh3.googleusercontent.com/...`, o único host externo que o `img-src` da CSP do painel
-  deixa aparecer (`EXTERNAL_IMAGE_HOSTS` em `apps/api/(shared)/lib/entity-photo.ts`, espelho de
-  `apps/app/proxy.ts`). URL `http`, com porta, com credencial ou de outro host recebe `400
+  uma URL `https://lh3.googleusercontent.com/...`, o único host externo aceito para foto gravada
+  (`EXTERNAL_IMAGE_HOSTS` em `apps/api/(shared)/lib/entity-photo.ts`, espelho de
+  `apps/app/proxy.ts`). O `img-src` do painel libera também `https://avatars.githubusercontent.com`, só
+  para o avatar do GitHub que o Firebase devolve e o menu de perfil exibe; foto gravada não aceita esse host. URL `http`, com porta, com credencial ou de outro host recebe `400
   ENTITY_PHOTO_INVALID` ou `400 ACCOUNT_AVATAR_INVALID`. O valor que já está gravado e volta sem mudança
   continua aceito, para que um registro antigo com URL externa siga salvável. Nenhum código do servidor busca
   essas URLs. Um CDN próprio exige editar a constante e a CSP juntas.
@@ -128,7 +130,7 @@ Os três controles vivem no `proxy.ts` de cada app e na política genérica de `
 
 | App | Política | Observação |
 |-----|----------|------------|
-| `apps/app` | `Content-Security-Policy` **bloqueante** | Maior superfície: analytics, avatar do Google, popup de login |
+| `apps/app` | `Content-Security-Policy` **bloqueante** | Maior superfície: analytics, avatares do Google e do GitHub, popup de login |
 | `apps/api` | `Content-Security-Policy` **bloqueante**, `default-src 'none'` | Responde JSON; o único HTML é a página de erro do Next |
 
 Os dois apps mandam também `Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(),
@@ -148,7 +150,7 @@ para o login, `/api/auth/*`, recusa de origem, 429 e preflight. Quem liga é a o
 
 Três defaults do nosecone são **deliberadamente afrouxados** no painel, porque derrubam o login:
 
-- `Cross-Origin-Opener-Policy` vai para `same-origin-allow-popups` — `same-origin` corta `window.opener` e o popup do Google nunca devolve a credencial (falha silenciosa: o popup fecha e nada acontece).
+- `Cross-Origin-Opener-Policy` vai para `same-origin-allow-popups` — `same-origin` corta `window.opener` e o popup de login nunca devolve a credencial (falha silenciosa: o popup fecha e nada acontece).
 - `Cross-Origin-Embedder-Policy` fica **desligado** — `require-corp` exigiria CORP no avatar servido pelo Google.
 - `frame-src` lista `https://<NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN>` — o resolver do popup monta um iframe oculto ali.
 
@@ -181,7 +183,7 @@ Refletir a origem **após** conferir a allowlist é a implementação canônica 
 | `POST`, `PUT`, `PATCH` ou `DELETE` em qualquer outro caminho | `standard` | IP + sujeito | 60 / 60 s |
 | `GET`, `HEAD` e `OPTIONS` fora da lista estrita | nenhum | — | — |
 
-A **lista estrita** tem **4 caminhos**, casados por igualdade exata (`STRICT_RATE_LIMITED_PATHS`, `apps/api/proxy.ts`): `/auth/sign-in`, `/auth/sign-in/google`, `/files` e `/account/password`. Cada um gasta cota do Identity Toolkit ou grava no bucket.
+A **lista estrita** tem **4 caminhos**, casados por igualdade exata (`STRICT_RATE_LIMITED_PATHS`, `apps/api/proxy.ts`): `/auth/sign-in`, `/auth/sign-in/github`, `/files` e `/account/password`. Cada um gasta cota do Identity Toolkit ou grava no bucket.
 
 O **orçamento padrão** casa por método, não por caminho: uma rota mutável nova nasce limitada sem ninguém mexer no proxy, e o vizinho de um caminho estrito (`/auth/sign-in/apple`, `/files/x`) cai nele. A chave soma o IP e o **sujeito**, um hash SHA-256 truncado do `sub` do JWT que chega em `Authorization: Bearer` (`apps/api/(shared)/lib/rate-limit-subject.ts`). Sem bearer, ou com um bearer que não é JWT, o sujeito é `"anonymous"` e a chave fica só o IP. O token é decodificado **sem verificação**: um `sub` forjado só compra um balde novo para uma requisição que o guard recusa em seguida, e por isso o valor nunca serve para autorizar. O hash existe porque o valor vai para o Arcjet, e um identificador estável de conta não tem por que sair daqui. Somar o sujeito ao IP evita que um escritório atrás de um NAT divida um orçamento só. Personificando, o sujeito é o admin, porque o bearer é dele.
 
@@ -202,7 +204,7 @@ Para mudar o comportamento, edite a lista em `apps/api/proxy.ts`: endpoint que c
   ([`PRE-PRODUCTION.md`](PRE-PRODUCTION.md)). Em `LIVE`, a recusa sai como `429 AUTH_RATE_LIMITED`,
   pelo mesmo caminho de "recusado" que já existe. O shield só avalia o que passa por `checkRateLimit`
   (escritas e a lista estrita), não os `GET` comuns.
-- ⚠️ **Isto não protege o formulário de login.** O login por e-mail/senha do painel vai do browser direto para `identitytoolkit.googleapis.com` e **nunca toca a `apps/api`**; quem limita esse caminho é a proteção nativa do Firebase (`USERS_AUTH_RATE_LIMITED`). O limite aqui cobre a **superfície da API**.
+- ⚠️ **Isto não protege o formulário de login.** O popup do GitHub e o login por e-mail/senha (este só no emulador) vão do browser direto para o Firebase; quem limita esse trecho é a proteção nativa do Firebase (`USERS_AUTH_RATE_LIMITED`). Só a troca seguinte, `POST /auth/sign-in/github`, passa pela `apps/api` e cai na lista estrita. O limite aqui cobre a **superfície da API**.
 - Bloqueio é registrado pelo helper de log compartilhado, numa linha só (`logEvent("security", "blocked", …)` em `apps/api/proxy.ts:128`, saindo como `[security] blocked reason=… path=… method=… requestId=…`), **sem IP, e-mail, body ou token** — IP é dado pessoal. A assinatura do helper não aceita objeto (`packages/shared/utils/helpers/log.ts:23`), então não há como passar o erro inteiro por descuido.
 
 ### Tamanho do corpo

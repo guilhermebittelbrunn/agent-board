@@ -2,6 +2,10 @@ import { arcjetKeyState } from "@repo/security/keys";
 import { reportRequestError } from "@repo/shared/utils/helpers/requestErrorReporter";
 import type { Instrumentation } from "next";
 import { parseAllowedOrigins } from "@/(shared)/lib/cors";
+import {
+    githubWebhookSecret,
+    resolveGithubClientMode,
+} from "@/(shared)/lib/github/github-app-config";
 
 /**
  * A key without the Arcjet prefix is read as no key, so the limiter stays off rather than
@@ -21,6 +25,35 @@ function warnOnDisabledRateLimit(): void {
     if (state === "malformed") {
         console.error(
             '[security] rate limiting is DISABLED (ARCJET_KEY is set but does not start with "ajkey_"). Mutating routes accept unlimited requests.'
+        );
+    }
+}
+
+/**
+ * The GitHub App is opt-in until production, so its absence is announced, not fatal:
+ * repository reads and the webhook answer `GITHUB_APP_NOT_CONFIGURED` instead.
+ */
+function warnOnGithubAppMode(): void {
+    const variables = {
+        GITHUB_APP_ID: process.env.GITHUB_APP_ID,
+        GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
+        GITHUB_WEBHOOK_SECRET: process.env.GITHUB_WEBHOOK_SECRET,
+    };
+    const mode = resolveGithubClientMode(variables);
+
+    if (mode === "fake") {
+        console.warn(
+            "[github] GitHub App is NOT configured: using the sample repositories of the emulator."
+        );
+    }
+    if (mode === "off") {
+        console.warn(
+            "[github] GitHub App is NOT configured: repository reads answer GITHUB_APP_NOT_CONFIGURED."
+        );
+    }
+    if (!githubWebhookSecret(variables)) {
+        console.warn(
+            "[github] GITHUB_WEBHOOK_SECRET is not set: POST /github/webhook answers GITHUB_APP_NOT_CONFIGURED."
         );
     }
 }
@@ -47,6 +80,7 @@ async function prepareServer(): Promise<void> {
     }
 
     warnOnDisabledRateLimit();
+    warnOnGithubAppMode();
 
     const { getFirestoreAdmin } = await import("@repo/auth/server");
     getFirestoreAdmin();

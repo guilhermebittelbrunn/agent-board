@@ -13,6 +13,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DEMO_PROJECT_ID, isEmulated } from "./emulator";
 import { keys } from "./keys";
+import { isAcceptedSignInMethod } from "./sign-in-method";
 
 /** Clerk-style auth return type for compatibility */
 export type AuthResult = {
@@ -340,11 +341,21 @@ export const getSessionFromCookie = async (
     }
 };
 
-/** Resolve only the user behind a session cookie. */
+/** Resolve only the user behind a session cookie minted from an accepted sign-in method. */
 export const getUserFromSessionCookie = async (
     sessionCookie: string | null
-): Promise<UserRecord | null> =>
-    (await getSessionFromCookie(sessionCookie))?.user ?? null;
+): Promise<UserRecord | null> => {
+    const session = await getSessionFromCookie(sessionCookie);
+    if (
+        !(
+            session &&
+            isAcceptedSignInMethod(session.decoded.firebase?.sign_in_provider)
+        )
+    ) {
+        return null;
+    }
+    return session.user;
+};
 
 /**
  * Revoke all refresh tokens for a user (sign-out propagation across origins:

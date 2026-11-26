@@ -1,7 +1,7 @@
 ---
 id: board-members
 title: Membros, convites e papéis do board
-status: proposed
+status: in-progress
 value: alto
 effort: M
 audience: confianca
@@ -9,8 +9,8 @@ phase: 1
 area: [apps/api, apps/app, packages/sdk, packages/kanban-contract]
 depends_on: [board-import]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: board-members
+updated: 2026-11-26
 ---
 
 # Membros, convites e papéis do board
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** convidar pessoas por login do GitHub, com papéis limitados pela permissão no repositório.
 > - **Por quê:** o board é colaborativo, mas ninguém pode ver ou disparar mais do que pode no GitHub.
-> - **Status:** `proposed` · valor alto · esforço M · confianca
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço M · confianca
+> - **Próximo passo:** `/develop board-members` (plano em `docs/features/board-members/analyze/plan.md`)
 
 ## Problema
 

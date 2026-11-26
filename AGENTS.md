@@ -55,7 +55,7 @@ Para **inputs compostos, `Switch`, `DateInput` e `HookForm*`**, use a secção *
 - **Listagens com foto**: use `ResponsiveImage` de `@repo/design-system/components/ui/responsive-image` para miniaturas em tabelas.
 - **Coluna `enabled` em listas**: renderize um `Switch` controlado que dispara a mutation de toggle (não só texto Sim/Não).
 - **Impersonação admin**: ao mudar o utilizador visualizado em `PanelNavbarControls`, após `setImpersonatedUser` faça `window.location.reload()` para garantir que todos os dados e pedidos em curso usam o novo contexto.
-- **Pós-login (admin vs comum)**: `AppDesignProvider` passa `resolveDefaultPostLoginPath` ao design system; Google/sign-up usam `resolveAppPostLoginPath` para alinhar com a mesma regra (ex.: admin → `/{locale}/admin` quando não há query `redirect`).
+- **Pós-login (admin vs comum)**: `AppDesignProvider` passa `resolveDefaultPostLoginPath` ao design system; o login com GitHub usa `resolveAppPostLoginPath` para alinhar com a mesma regra (ex.: admin → `/{locale}/admin` quando não há query `redirect`).
 - **Campos de formulário complexos**: ver a secção **Design system — inputs e formulários (RHF)** mais abaixo neste ficheiro.
 
 ## Design system — inputs e formulários (RHF)
