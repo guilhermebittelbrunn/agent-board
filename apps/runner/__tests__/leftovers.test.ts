@@ -66,6 +66,7 @@ describe("sweepLeftoverRuns", () => {
             }
         );
         children.push(agent);
+        const agentExited = new Promise((resolve) => agent.on("exit", resolve));
         await addRun("run1", {
             "runner.pid": String(await exitedPid()),
             "agent.pid": String(agent.pid),
@@ -74,7 +75,7 @@ describe("sweepLeftoverRuns", () => {
 
         expect(await sweepLeftoverRuns(paths)).toEqual(["run1"]);
 
-        await new Promise((resolve) => agent.on("exit", resolve));
+        await agentExited;
         expect(isAlive(agent.pid ?? 0)).toBe(false);
         expect(existsSync(path.join(paths.runs, "run1"))).toBe(false);
         expect(existsSync(path.join(paths.worktrees, "run1"))).toBe(false);
