@@ -64,7 +64,7 @@ export const commonAccountPageTranslations = {
             confirmPassword: "Confirmar nova senha",
             save: "Alterar senha",
             passwordUnavailable:
-                "Esta conta entra pelo Google e não tem senha para trocar.",
+                "Esta conta entra pelo GitHub e não tem senha para trocar.",
             validation: {
                 required: "Informe a senha.",
                 min: "A senha deve ter ao menos 6 caracteres.",

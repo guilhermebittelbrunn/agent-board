@@ -16,8 +16,13 @@ export const signInTranslations = {
             passwordMin: "A senha deve ter pelo menos 6 caracteres",
         },
         signIn: "Entrar",
-        enterWithYourAccount: "Entre com sua conta para continuar",
-        orContinueWith: "Ou continue com",
-        googleSignIn: "Continuar com Google",
+        enterWithYourAccount:
+            "Acompanhe e dispare o pipeline de agentes dos seus repositórios: análise, desenvolvimento, revisão, teste e PR.",
+        githubSignIn: "Entrar com GitHub",
+        permissionNote:
+            "Você só vê e dispara o que a sua permissão no repositório permite.",
+        tokenNote:
+            "O board não guarda o seu token do GitHub. Ele lê os repositórios pelo GitHub App instalado.",
+        emulatorAccess: "Acesso de teste (emulador)",
     },
 };
