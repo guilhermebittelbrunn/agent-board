@@ -1,5 +1,6 @@
 import { getIdTokenSession, getSessionFromCookie } from "@repo/auth/server";
 import { SESSION_COOKIE_NAME } from "@repo/auth/session";
+import { isAcceptedSignInMethod } from "@repo/auth/sign-in-method";
 import type { DecodedIdToken, UserRecord } from "firebase-admin/auth";
 import type { NextRequest } from "next/server";
 import { bearerFrom, sessionKeyFromClaims } from "./session-key";
@@ -12,10 +13,19 @@ export type ApiCredential =
     | { status: "revoked" }
     | { status: "anonymous" };
 
+/** A session cookie carries the sign-in method of the ID token it was minted from. */
 function asCredential(
     session: { user: UserRecord; decoded: DecodedIdToken } | null
 ): FirebaseCredential | null {
-    return session ? { user: session.user, claims: session.decoded } : null;
+    if (
+        !(
+            session &&
+            isAcceptedSignInMethod(session.decoded.firebase?.sign_in_provider)
+        )
+    ) {
+        return null;
+    }
+    return { user: session.user, claims: session.decoded };
 }
 
 /**

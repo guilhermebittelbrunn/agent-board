@@ -1,6 +1,6 @@
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { EXISTING_PASSWORD_MIN_LENGTH } from "@repo/shared/utils/helpers/passwordPolicy";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { signInWithPasswordMock, getMergedUserByUidMock } = vi.hoisted(() => ({
     signInWithPasswordMock: vi.fn(),
@@ -70,11 +70,47 @@ function jsonRequest(body: unknown): Request {
     return request(JSON.stringify(body));
 }
 
+function stubEmulator(authHost: string): void {
+    vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", authHost);
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST", "");
+    vi.stubEnv("FIRESTORE_EMULATOR_HOST", "");
+}
+
 beforeEach(() => {
+    stubEmulator("127.0.0.1:9099");
     signInWithPasswordMock.mockReset();
     getMergedUserByUidMock.mockReset();
     signInWithPasswordMock.mockResolvedValue(SESSION);
     getMergedUserByUidMock.mockResolvedValue(USER);
+});
+
+afterEach(() => {
+    vi.unstubAllEnvs();
+});
+
+describe("POST /auth/sign-in — fora do emulador", () => {
+    it("responde 403 AUTH_SIGN_IN_METHOD_DISABLED sem chamar o provedor", async () => {
+        stubEmulator("");
+
+        const response = await POST(
+            jsonRequest({ email: EMAIL, password: PASSWORD })
+        );
+
+        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
+        await expect(response.json()).resolves.toEqual({
+            error: { code: "AUTH_SIGN_IN_METHOD_DISABLED" },
+        });
+        expect(signInWithPasswordMock).not.toHaveBeenCalled();
+        expect(getMergedUserByUidMock).not.toHaveBeenCalled();
+    });
+
+    it("recusa antes de ler o corpo, mesmo inválido", async () => {
+        stubEmulator("");
+
+        const response = await POST(request("{email:"));
+
+        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
+    });
 });
 
 describe("POST /auth/sign-in — corpo", () => {
