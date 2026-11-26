@@ -16,13 +16,15 @@ import FormattedError from "@repo/shared/utils/helpers/formattedError";
 import { handleClientError } from "@repo/shared/utils/helpers/handleClientError";
 import { useMutation } from "@tanstack/react-query";
 import type { UserCredential } from "firebase/auth";
+import { KeyRoundIcon, ShieldIcon } from "lucide-react";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
 import { FullScreenLoader } from "@/shared/components/ui/FullScreenLoader";
 import { useSignedInRedirect } from "@/shared/hooks/useSignedInRedirect";
 import { apiClient } from "@/shared/lib/client";
-import { signInWithGoogleViaApi } from "@/shared/lib/googleSignInApi";
+import { isEmulatorSignInEnabled } from "@/shared/lib/emulatorSignIn";
+import { signInWithGithubViaApi } from "@/shared/lib/githubSignInApi";
 import { resolveAppPostLoginPath } from "@/shared/lib/postLoginNavigation";
 import {
     buildSignInSchema,
@@ -37,18 +39,18 @@ export const SignInForm = () => {
 
     const trackEvent = useAnalyticsEvent();
 
-    const googleSignIn = useMutation({
+    const githubSignIn = useMutation({
         mutationFn: () =>
-            signInWithGoogleViaApi({
+            signInWithGithubViaApi({
                 onAccountCreated: () =>
-                    trackEvent(ANALYTICS_EVENT.signUp, { method: "google" }),
+                    trackEvent(ANALYTICS_EVENT.signUp, { method: "github" }),
             }),
         onError: (error) =>
             errorAlert(handleClientError(new FormattedError(error, locale))),
         onSuccess: async (result) => {
             successAlert(dictionary.packages.auth.provider.onSuccess);
             const path = await resolveAppPostLoginPath({
-                idToken: result.session.idToken,
+                idToken: result.idToken,
                 locale,
                 fallbackPath: `/${locale}`,
             });
@@ -56,7 +58,9 @@ export const SignInForm = () => {
         },
     });
 
-    const isLoading = signIn.isPending || googleSignIn.isPending;
+    const isLoading = signIn.isPending || githubSignIn.isPending;
+    const signInCopy = dictionary.apps.app.pages.signIn;
+    const showEmulatorAccess = isEmulatorSignInEnabled();
 
     const schema = useMemo(() => buildSignInSchema(dictionary), [dictionary]);
 
@@ -82,81 +86,99 @@ export const SignInForm = () => {
 
     return (
         <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center px-4 py-20 sm:px-0">
-            <div className="w-full max-w-md space-y-8 rounded-xl border bg-card p-8 shadow-sm">
-                <div className="space-y-2 text-center">
-                    <h1 className="font-bold text-3xl">
-                        {dictionary.apps.app.pages.signIn.meta.title}
+            <div className="w-full max-w-md space-y-6 rounded-xl border bg-card p-8 shadow-sm">
+                <div className="space-y-2">
+                    <h1 className="font-semibold text-2xl">
+                        {signInCopy.meta.title}
                     </h1>
-                    <p className="text-muted-foreground text-sm">
-                        {dictionary.apps.app.pages.signIn.enterWithYourAccount}
+                    <p className="text-muted-foreground">
+                        {signInCopy.enterWithYourAccount}
                     </p>
-                </div>
-
-                <Form {...form}>
-                    <form
-                        className="space-y-4"
-                        noValidate
-                        onSubmit={form.handleSubmit((data) =>
-                            signIn.mutate(
-                                { ...data },
-                                { onSuccess: handleSuccessSignIn }
-                            )
-                        )}
-                    >
-                        <HookFormInput
-                            label={dictionary.apps.app.pages.signIn.form.email}
-                            name="email"
-                            placeholder={
-                                dictionary.apps.app.pages.signIn.form
-                                    .emailPlaceholder
-                            }
-                            type="email"
-                        />
-
-                        <HookFormInputPassword
-                            label={
-                                dictionary.apps.app.pages.signIn.form.password
-                            }
-                            name="password"
-                            placeholder={
-                                dictionary.apps.app.pages.signIn.form
-                                    .passwordPlaceholder
-                            }
-                        />
-
-                        <Button
-                            className="w-full"
-                            disabled={isLoading}
-                            loading={isLoading}
-                            type="submit"
-                        >
-                            {dictionary.apps.app.pages.signIn.form.submit}
-                        </Button>
-                    </form>
-                </Form>
-
-                <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                            {dictionary.apps.app.pages.signIn.orContinueWith}
-                        </span>
-                    </div>
                 </div>
 
                 <Button
                     className="w-full"
                     disabled={isLoading}
-                    loading={googleSignIn.isPending}
-                    onClick={() => googleSignIn.mutate()}
+                    loading={githubSignIn.isPending}
+                    onClick={() => githubSignIn.mutate()}
+                    size="lg"
                     type="button"
-                    variant="outline"
                 >
-                    <FcGoogle />
-                    {dictionary.apps.app.pages.signIn.googleSignIn}
+                    <FaGithub aria-hidden />
+                    {signInCopy.githubSignIn}
                 </Button>
+
+                <ul className="space-y-3 border-t pt-5 text-muted-foreground text-sm">
+                    <li className="flex items-start gap-2.5">
+                        <ShieldIcon
+                            aria-hidden
+                            className="mt-0.5 size-4 shrink-0 text-primary"
+                        />
+                        <span>{signInCopy.permissionNote}</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                        <KeyRoundIcon
+                            aria-hidden
+                            className="mt-0.5 size-4 shrink-0 text-primary"
+                        />
+                        <span>{signInCopy.tokenNote}</span>
+                    </li>
+                </ul>
+
+                {showEmulatorAccess && (
+                    <>
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-card px-2 text-muted-foreground">
+                                    {signInCopy.emulatorAccess}
+                                </span>
+                            </div>
+                        </div>
+
+                        <Form {...form}>
+                            <form
+                                className="space-y-4"
+                                noValidate
+                                onSubmit={form.handleSubmit((data) =>
+                                    signIn.mutate(
+                                        { ...data },
+                                        { onSuccess: handleSuccessSignIn }
+                                    )
+                                )}
+                            >
+                                <HookFormInput
+                                    label={signInCopy.form.email}
+                                    name="email"
+                                    placeholder={
+                                        signInCopy.form.emailPlaceholder
+                                    }
+                                    type="email"
+                                />
+
+                                <HookFormInputPassword
+                                    label={signInCopy.form.password}
+                                    name="password"
+                                    placeholder={
+                                        signInCopy.form.passwordPlaceholder
+                                    }
+                                />
+
+                                <Button
+                                    className="w-full"
+                                    disabled={isLoading}
+                                    loading={signIn.isPending}
+                                    type="submit"
+                                    variant="outline"
+                                >
+                                    {signInCopy.form.submit}
+                                </Button>
+                            </form>
+                        </Form>
+                    </>
+                )}
             </div>
         </div>
     );

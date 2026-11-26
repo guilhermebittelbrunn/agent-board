@@ -17,7 +17,6 @@ vi.mock("@repo/auth/client", () => ({
     loginWithCustomToken: vi.fn(),
     logout: () => logoutMock(),
     signIn: vi.fn(),
-    signInWithGoogle: vi.fn(),
     subscribeToIdTokenState: (listener: (user: unknown) => void) => {
         subscribers.push(listener);
         return () => {

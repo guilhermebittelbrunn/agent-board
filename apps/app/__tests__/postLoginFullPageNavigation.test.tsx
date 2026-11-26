@@ -30,7 +30,6 @@ vi.mock("@repo/auth/client", () => ({
     loginWithCustomToken: vi.fn(),
     logout: () => logoutMock(),
     signIn: (...args: unknown[]) => signInMock(...args),
-    signInWithGoogle: vi.fn(),
     subscribeToIdTokenState: (listener: IdTokenListener) => {
         idTokenListeners.push(listener);
         queueMicrotask(() => listener(null));
