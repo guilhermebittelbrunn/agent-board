@@ -1,0 +1,119 @@
+{
+  "pendingQuestion": "04",
+  "events": [
+    {
+      "key": "01",
+      "minutesAgo": 95,
+      "stageKey": "analyze",
+      "lane": "stage",
+      "type": "update",
+      "author": { "kind": "agent", "name": "planejador-tarefa" },
+      "markdown": "Branch criada a partir de `main`. Lendo a spec."
+    },
+    {
+      "key": "02",
+      "minutesAgo": 90,
+      "stageKey": "analyze",
+      "lane": "stage",
+      "type": "update",
+      "author": { "kind": "agent", "name": "planejador-tarefa" },
+      "markdown": "Li `specs/BACKLOG.md` e o quadro atual. A busca entra no cabeçalho do board."
+    },
+    {
+      "key": "03",
+      "minutesAgo": 85,
+      "stageKey": "analyze",
+      "lane": "stage",
+      "type": "artifact",
+      "author": { "kind": "agent", "name": "planejador-tarefa" },
+      "artifact": {
+        "path": "docs/features/{slug}/analyze/plan.md",
+        "commitSha": "3f2a9c1e7b4d5a6f8e9c0b1a2d3e4f5a6b7c8d9e"
+      }
+    },
+    {
+      "key": "04",
+      "minutesAgo": 80,
+      "stageKey": "analyze",
+      "lane": "stage",
+      "type": "question",
+      "author": { "kind": "agent", "name": "planejador-tarefa" },
+      "questions": [
+        {
+          "question": "A busca considera o corpo da spec ou só o título?",
+          "header": "Escopo",
+          "options": [
+            {
+              "label": "Só o título",
+              "description": "Mais rápida, cobre o caso comum."
+            },
+            {
+              "label": "Título e corpo",
+              "description": "Lê a spec de cada card."
+            }
+          ],
+          "recommended": 0
+        },
+        {
+          "question": "Qual atalho de teclado abre a busca?",
+          "header": "Atalho",
+          "options": [
+            { "label": "Ctrl+K" },
+            { "label": "/" },
+            { "label": "Nenhum" }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "05",
+      "minutesAgo": 75,
+      "stageKey": "analyze",
+      "lane": "stage",
+      "type": "update",
+      "author": { "kind": "agent", "name": "planejador-tarefa" },
+      "markdown": "Parei para perguntar. O plano já está no commit acima."
+    },
+    {
+      "key": "06",
+      "minutesAgo": 60,
+      "stageKey": "develop",
+      "lane": "stage",
+      "type": "update",
+      "author": { "kind": "agent", "name": "desenvolvedor" },
+      "markdown": "Contrato e API prontos, começando o app."
+    },
+    {
+      "key": "07",
+      "minutesAgo": 50,
+      "stageKey": "develop",
+      "lane": "stage",
+      "type": "report",
+      "author": { "kind": "agent", "name": "desenvolvedor" },
+      "outcome": "needs_rework",
+      "markdown": "### Develop — o teste da busca falhou\n\n**O que foi feito:** rota de busca e campo no cabeçalho.\n**Decisões tomadas sem você:** nenhuma.\n**Commits:** `3f2a9c1` feat(api): search cards by title\n\n| Gate | Resultado |\n|------|-----------|\n| typecheck | ok |\n| testes | 1 falha |\n\n<script>alert('fixture')</script>\n\nVeja [o plano](docs/features/{slug}/analyze/plan.md) e [este link](javascript:alert(1)).\n\n**Pendências:** corrigir a busca com acento."
+    },
+    {
+      "key": "08",
+      "minutesAgo": 40,
+      "stageKey": "legacy",
+      "lane": "stage",
+      "type": "update",
+      "author": { "kind": "agent", "name": "agente-antigo" },
+      "markdown": "Evento de uma etapa que saiu do board.yml."
+    },
+    {
+      "key": "09",
+      "minutesAgo": 30,
+      "stageKey": "analyze",
+      "lane": "stage",
+      "type": "comment",
+      "author": {
+        "kind": "person",
+        "userId": "fixture-maintainer",
+        "login": "qa-maintainer"
+      },
+      "markdown": "Lembrem do caso de busca vazia."
+    }
+  ]
+}
