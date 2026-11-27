@@ -144,6 +144,9 @@ export const commonBoardsPageTranslations = {
                 },
             },
             columns: {
+                drafts: "Rascunhos",
+                draftsHint: "Specs sendo escritas com você",
+                addDraft: "Nova spec",
                 tasks: "Tarefas",
                 tasksHint: "Specs aprovadas, na ordem do board",
                 done: "Concluído",
@@ -153,6 +156,7 @@ export const commonBoardsPageTranslations = {
                 countOne: "1 card",
                 countOther: "{count} cards",
                 empty: {
+                    drafts: "Nenhum rascunho. Use Nova spec para descrever o que você quer construir.",
                     tasks: "As specs aprovadas aparecem aqui, na ordem do backlog.",
                     firstStage: "Arraste um card de Tarefas para cá.",
                     other: "Nenhum card",
@@ -211,6 +215,87 @@ export const commonBoardsPageTranslations = {
                     waiting_input: "Aguardando você",
                     failed: "Falhou",
                 },
+            },
+        },
+        drafts: {
+            status: {
+                writing: "Escrevendo",
+                waiting: "Aguardando você",
+                ready: "Spec pronta",
+                failed: "Falhou",
+                idle: "Parado",
+            },
+            card: {
+                origin: "Escrita a partir de texto",
+                originWithOneAttachment: "Escrita a partir de texto e 1 anexo",
+                originWithAttachments:
+                    "Escrita a partir de texto e {count} anexos",
+                answer: "Responder",
+                approve: "Aprovar spec",
+                read: "Ler",
+            },
+            newSpec: {
+                open: "Nova spec",
+                title: "Nova spec",
+                description:
+                    "Conte o que você quer, do seu jeito. Um agente lê o código, pergunta o que faltar e escreve a spec no formato do repositório.",
+                textLabel: "O que você quer construir?",
+                textPlaceholder:
+                    "Ex.: quero ser avisado quando um card parar esperando resposta.",
+                textRequired: "Descreva o que você quer construir.",
+                textTooLong: "O pedido passa de {max} caracteres.",
+                attachments: "Anexos",
+                attach: "Anexar print, PDF ou texto",
+                attachHint: "Até {count} arquivos de {size} MB cada.",
+                removeAttachment: "Remover {name}",
+                attachmentsOff:
+                    "Anexos estão desligados neste ambiente: o armazenamento de arquivos não está configurado.",
+                tooMany: "No máximo {count} anexos por spec.",
+                tooLarge: "{name} passa de {size} MB.",
+                typeNotAllowed:
+                    "{name} não é imagem (PNG, JPEG, WebP), PDF nem texto (.txt, .md).",
+                uploading: "Enviando…",
+                uploaded: "Enviado",
+                retry: "Tentar de novo",
+                steps: {
+                    read: "O agente lê o pedido, os anexos e o código do repositório.",
+                    ask: "Quando faltar informação, ele pergunta aqui no card, até 4 perguntas por rodada.",
+                    write: "A spec é gravada na branch do card a cada rodada. Você aprova quando estiver pronta.",
+                },
+                runsOn: "Roda no seu runner · {model} · {effort}",
+                runsOnFake: "Executor de teste · o resultado é simulado",
+                cancel: "Cancelar",
+                submit: "Começar a spec",
+                submitting: "Começando…",
+                created: "Rascunho criado. O agente começou a escrever a spec.",
+                createdNotQueued:
+                    "Rascunho criado, mas a escrita não começou. Abra o card e rode de novo.",
+            },
+            detail: {
+                request: "Seu pedido",
+                attachments: "Anexos",
+                inDrafts: "em Rascunhos",
+                round: "{round}ª rodada de perguntas",
+                requestedBy: "pedida por {login} em {date}",
+                draftTitle: "Rascunho da spec",
+                draftMissing:
+                    "O agente ainda não gravou o rascunho na branch {branch}.",
+                approve: "Aprovar spec e mandar para Tarefas",
+                approveHint: "Libera quando não houver perguntas abertas",
+                approveWritingHint: "Libera quando a rodada atual terminar",
+                approveFailedHint:
+                    "A última rodada falhou. Rode de novo antes de aprovar.",
+                approveIdleHint:
+                    "A escrita ainda não terminou uma rodada. Rode de novo para começar.",
+                approved: "Spec aprovada. O card está em Tarefas.",
+                approvedBy: "Aprovada por {login} em {date}",
+                discard: "Descartar rascunho",
+                discardTitle: "Descartar este rascunho?",
+                discardDescription:
+                    "O card sai do quadro. A branch {branch} continua no GitHub com o que o agente já gravou.",
+                discardConfirm: "Descartar",
+                discardCancel: "Manter rascunho",
+                discarded: "Rascunho descartado.",
             },
         },
         trigger: {
@@ -437,6 +522,8 @@ export const commonBoardsPageTranslations = {
             badFormat: "O valor não está no formato esperado.",
             notAllowed: "Valor não permitido. Use um destes: {allowed}.",
             stageKeyDuplicated: "A chave {key} aparece em mais de uma etapa.",
+            stageKeyReserved:
+                "A chave {key} é reservada para a escrita de specs. Use outra chave nesta etapa.",
             reworkTargetInvalid:
                 "A etapa {stageColumn} devolve o card para {target}, que não existe antes dela. Aponte para uma etapa anterior, como {suggestion}.",
             reworkTargetInvalidNoSuggestion:

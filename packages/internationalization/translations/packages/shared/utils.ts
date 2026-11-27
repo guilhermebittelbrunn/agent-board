@@ -136,6 +136,23 @@ export const sharedUtilsTranslations = {
             CARD_RUN_NOT_ACTIVE: "Este card não está rodando nenhuma etapa.",
             CARD_BRANCH_INVALID:
                 "Não foi possível montar uma branch válida para este card. Confira o branchPattern do board.yml.",
+            CARD_DRAFT_NOT_APPROVED:
+                "Este card ainda é um rascunho. Aprove a spec para ele entrar em Tarefas.",
+            CARD_NOT_DRAFT: "Este card não está mais em Rascunhos.",
+            CARD_SPEC_NOT_READY:
+                "A spec ainda não está pronta: espere a rodada terminar e responda às perguntas abertas.",
+            CARD_SPEC_DRAFT_MISSING:
+                "O rascunho da spec não está na branch do card. Rode a escrita de novo.",
+            CARD_SPEC_DRAFT_INVALID:
+                "O rascunho da spec não tem um cabeçalho válido com o id deste card. Rode a escrita de novo.",
+            SPEC_DRAFT_ATTACHMENT_INVALID:
+                "Um dos anexos não foi encontrado ou não é seu. Remova e envie de novo.",
+            SPEC_DRAFT_ATTACHMENT_TYPE_NOT_ALLOWED:
+                "Formato não aceito. Anexe imagem (PNG, JPEG, WebP), PDF ou texto (.txt, .md).",
+            SPEC_DRAFT_ATTACHMENT_TOO_LARGE:
+                "O anexo passa do tamanho máximo de 3 MB.",
+            SPEC_DRAFT_SLUG_UNAVAILABLE:
+                "Já existem specs com nomes parecidos com este pedido. Mude o começo do texto e tente de novo.",
             RUN_EXECUTOR_UNAVAILABLE:
                 "Nenhum runner seu está online. Inicie o runner e tente de novo.",
             RUNNER_TOKEN_INVALID: "Token do runner inválido.",
@@ -150,6 +167,7 @@ export const sharedUtilsTranslations = {
             AGENT_CARD_MISMATCH: "Este token não vale para este card.",
             AGENT_STAGE_MISMATCH: "Este token não vale para esta etapa.",
             AGENT_RUN_CLOSED: "Esta execução já terminou.",
+            AGENT_ATTACHMENT_NOT_FOUND: "Este anexo não pertence a este card.",
             AGENT_TOOL_NOT_AVAILABLE:
                 "Esta ferramenta ainda não está disponível.",
             HEALTH_DEPENDENCY_UNAVAILABLE:
