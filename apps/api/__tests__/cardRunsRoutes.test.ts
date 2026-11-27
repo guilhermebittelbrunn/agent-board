@@ -51,6 +51,11 @@ const {
     cardStore: { current: null as FakeCardRepository | null },
 }));
 
+vi.mock("@/(shared)/lib/storage", () => ({
+    isStorageConfigured: () => false,
+    readObject: vi.fn(),
+}));
+
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));

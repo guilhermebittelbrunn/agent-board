@@ -26,6 +26,10 @@ const UPLOAD_PREFIX = "uploads";
 const STORAGE_OBJECT_PATH_RE =
     /^uploads\/[A-Za-z0-9_-]{1,128}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
 
+/** Attachments of a spec draft also take documents; image fields keep the narrower rule above. */
+const ATTACHMENT_OBJECT_PATH_RE =
+    /^uploads\/[A-Za-z0-9_-]{1,128}\/[0-9a-f-]{36}\.(jpg|png|webp|pdf|txt|md)$/;
+
 /**
  * Emulated Auth or Firestore without the Storage emulator keeps storage off: a bucket
  * name still filled in would be reached with Application Default Credentials, silently,
@@ -49,6 +53,15 @@ export const buildObjectPath = (ownerId: string, extension: string): string =>
 export const isStorageObjectPath = (value: string): boolean =>
     STORAGE_OBJECT_PATH_RE.test(value);
 
+export const isAttachmentObjectPath = (value: string): boolean =>
+    ATTACHMENT_OBJECT_PATH_RE.test(value);
+
+const OBJECT_EXTENSION_RE = /\.[a-z]+$/;
+
+/** The object name without its extension: the UUID an attachment is known by. */
+export const objectIdOf = (path: string): string =>
+    path.slice(path.lastIndexOf("/") + 1).replace(OBJECT_EXTENSION_RE, "");
+
 /**
  * Everything an owner ever uploaded lives under this one prefix, whatever the resource,
  * which is what lets an erasure sweep by prefix instead of gaining a step per feature.
@@ -71,6 +84,27 @@ export async function putObject(
             resumable: false,
             metadata: { cacheControl: "private, max-age=0, no-store" },
         });
+}
+
+export async function readObject(path: string): Promise<Buffer> {
+    const [contents] = await bucket().file(path).download();
+    return contents;
+}
+
+/** `null` when the object does not exist. */
+export async function readObjectMetadata(
+    path: string
+): Promise<{ contentType: string; size: number } | null> {
+    const file = bucket().file(path);
+    const [exists] = await file.exists();
+    if (!exists) {
+        return null;
+    }
+    const [metadata] = await file.getMetadata();
+    return {
+        contentType: String(metadata.contentType ?? ""),
+        size: Number(metadata.size ?? 0),
+    };
 }
 
 /**

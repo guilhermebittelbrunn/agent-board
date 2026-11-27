@@ -24,6 +24,11 @@ const CARD_ID = `${BOARD_ID}__search-cards`;
 const TOKEN = `kbr_run1_${RUN_SECRET}`;
 const config = parseBoardConfig(SAMPLE_BOARD_CONFIGS.valid).data;
 
+vi.mock("@/(shared)/lib/storage", () => ({
+    isStorageConfigured: () => false,
+    readObject: vi.fn(),
+}));
+
 vi.mock("@/(shared)/repositories/run.repository", () => ({
     runRepository: {
         findWithToken: (...args: unknown[]) => findWithTokenMock(...args),

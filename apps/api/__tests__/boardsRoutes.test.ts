@@ -41,6 +41,11 @@ const {
     memberStore: { current: null as FakeBoardMemberRepository | null },
 }));
 
+vi.mock("@/(shared)/lib/storage", () => ({
+    isStorageConfigured: () => false,
+    readObject: vi.fn(),
+}));
+
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));
@@ -249,6 +254,7 @@ describe("GET /boards", () => {
                     ...storedBoard("abc"),
                     access: UNCHECKED_OWNER_ACCESS,
                     executor: null,
+                    storageAvailable: false,
                 },
             ],
         });
@@ -360,6 +366,7 @@ describe("GET /boards/[id]", () => {
                 checkedAt: expect.any(String),
             },
             executor: null,
+            storageAvailable: false,
         });
     });
 });
