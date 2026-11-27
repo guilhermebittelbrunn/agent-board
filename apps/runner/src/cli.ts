@@ -1,23 +1,38 @@
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createRunnerApi, registerRunner } from "./api.ts";
 import {
     defaultHome,
     defaultRunnerName,
-    readConfig,
+    type RunnerConfig,
     runnerPaths,
-    writeConfig,
+    shortRunnerId,
+    tokenEnding,
 } from "./config.ts";
+import {
+    listCredentials,
+    nextRunnerName,
+    pickCredential,
+    removeCredential,
+    saveCredential,
+} from "./credentials.ts";
+import { createInterruptHandler } from "./interrupt.ts";
 import { sweepLeftoverRuns } from "./leftovers.ts";
+import { acquireRunnerLock, runnerHolder } from "./lock.ts";
 import { pollForWork } from "./poll.ts";
 import type { AgentCommand } from "./run-job.ts";
+import { reportLeftovers } from "./run-job.ts";
 import type { AgentPermissions } from "./session.ts";
 import { killAgentsNow } from "./supervisor.ts";
 
 export type StartOptions = {
     command: "start";
     home: string;
+    /** Id, id prefix or name of the runner to start; the oldest free one when absent. */
+    runner: string | null;
+    /** Only runners registered against this API; one machine may serve production and a local board. */
+    apiUrl: string | null;
     pollIntervalMs: number;
     repoBase: string;
     keepWorktrees: boolean;
@@ -29,13 +44,18 @@ export type RegisterOptions = {
     command: "register";
     home: string;
     code: string;
-    apiUrl: string;
-    name: string;
+    /** When absent, the API of the last runner registered here, or the local one. */
+    apiUrl: string | null;
+    name: string | null;
 };
+
+export type ListOptions = { command: "list"; home: string };
 
 export type ParsedArgs =
     | StartOptions
     | RegisterOptions
+    | ListOptions
+    | { command: "version" }
     | { command: "error"; message: string };
 
 const MS_PER_SECOND = 1000;
@@ -43,6 +63,7 @@ const EXIT_USAGE = 2;
 /** The shell convention for a process ended by Ctrl+C: 128 + SIGINT. */
 const EXIT_INTERRUPTED = 130;
 const WHITESPACE = /\s+/;
+const TRAILING_SLASH = /\/+$/;
 const DEFAULT_API_URL = "http://localhost:3002";
 const DEFAULT_POLL_SECONDS = 10;
 const DEFAULT_REPO_BASE = "https://github.com";
@@ -50,9 +71,14 @@ const SKIP_PERMISSIONS_FLAG = "--dangerously-skip-permissions";
 
 export const USAGE = [
     "uso:",
-    "  runner register <código> [--api <url>] [--name <nome>] [--home <dir>]",
-    "  runner start [--home <dir>] [--poll-interval <s>] [--repo-base <url>] [--keep-worktrees]",
-    `               [${SKIP_PERMISSIONS_FLAG}] [--agent-command <cmd>]`,
+    "  agent-board-runner register <código> [--api <url>] [--name <nome>] [--home <dir>]",
+    "  agent-board-runner start [--runner <id|nome>] [--api <url>] [--home <dir>] [--poll-interval <s>]",
+    `                           [--repo-base <url>] [--keep-worktrees] [${SKIP_PERMISSIONS_FLAG}]`,
+    "                           [--agent-command <cmd>]",
+    "  agent-board-runner list [--home <dir>]",
+    "  agent-board-runner version",
+    "",
+    "Cada register adiciona um runner nesta máquina; cada start, num terminal novo, roda o próximo livre.",
 ].join("\n");
 
 const error = (message: string): ParsedArgs => ({ command: "error", message });
@@ -128,6 +154,8 @@ function parseStart(flags: Flags, home: string, cwd: string): ParsedArgs {
     return {
         command: "start",
         home,
+        runner: flags.text("--runner") ?? null,
+        apiUrl: flags.text("--api") ?? null,
         pollIntervalMs: seconds * MS_PER_SECOND,
         repoBase,
         keepWorktrees: flags.has("--keep-worktrees"),
@@ -150,6 +178,12 @@ export function parseArgs(
     if (command === "start") {
         return parseStart(flags, home, cwd);
     }
+    if (command === "list") {
+        return { command: "list", home };
+    }
+    if (command === "version" || command === "--version") {
+        return { command: "version" };
+    }
     if (command !== "register") {
         return error(USAGE);
     }
@@ -161,28 +195,64 @@ export function parseArgs(
         command: "register",
         home,
         code,
-        apiUrl: flags.text("--api") ?? DEFAULT_API_URL,
-        name: flags.text("--name") ?? defaultRunnerName(),
+        apiUrl: flags.text("--api") ?? null,
+        name: flags.text("--name") ?? null,
     };
 }
 
-const say = (line: string) => process.stdout.write(`[runner] ${line}\n`);
+const pad = (value: number) => String(value).padStart(2, "0");
+
+function clock(date = new Date()): string {
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/** Every line carries the runner's short id, so two terminals on one machine read apart. */
+export function createSay(runnerId: string | null) {
+    const tag =
+        runnerId === null ? "runner" : `runner ${shortRunnerId(runnerId)}`;
+    return (line: string) =>
+        process.stdout.write(`[${tag} ${clock()}] ${line}\n`);
+}
+
+const say = createSay(null);
+
+/** Written by install-bin next to the installed copy; a run from the checkout has none. */
+export function runnerVersion(): string {
+    try {
+        return readFileSync(
+            path.join(import.meta.dirname, "..", "VERSION"),
+            "utf8"
+        ).trim();
+    } catch {
+        return "rodando do checkout (pnpm --filter runner cli)";
+    }
+}
+
+const describeRunner = (credential: RunnerConfig) =>
+    `${credential.name} (id ${shortRunnerId(credential.runnerId)} · token terminando em ${tokenEnding(credential.token)})`;
 
 async function register(options: RegisterOptions): Promise<number> {
+    const existing = await listCredentials(options.home);
+    const apiUrl = options.apiUrl ?? existing.at(-1)?.apiUrl ?? DEFAULT_API_URL;
+    const name = options.name ?? nextRunnerName(defaultRunnerName(), existing);
     try {
-        const result = await registerRunner(
-            options.apiUrl,
-            options.code,
-            options.name
-        );
-        const file = await writeConfig(options.home, {
-            apiUrl: options.apiUrl,
+        const result = await registerRunner(apiUrl, options.code, name);
+        const credential: RunnerConfig = {
+            apiUrl,
             runnerId: result.runnerId,
             name: result.name,
             token: result.token,
-        });
+            registeredAt: new Date().toISOString(),
+        };
+        const file = await saveCredential(options.home, credential);
         say(
-            `registrado como ${result.name}; credencial em ${file} (modo 0600)`
+            `registrado ${describeRunner(credential)} em ${apiUrl}; credencial em ${file} (modo 0600)`
+        );
+        const total = existing.length + 1;
+        say(
+            total === 1
+                ? 'rode "agent-board-runner start" para ele buscar trabalho'
+                : `${total} runners nesta máquina; cada "agent-board-runner start", num terminal, roda o próximo livre`
         );
         return 0;
     } catch (failure) {
@@ -191,14 +261,60 @@ async function register(options: RegisterOptions): Promise<number> {
     }
 }
 
-async function start(options: StartOptions): Promise<number> {
-    const config = await readConfig(options.home);
-    if (config === null) {
+async function list(options: ListOptions): Promise<number> {
+    const credentials = await listCredentials(options.home);
+    if (credentials.length === 0) {
+        say(`nenhum runner registrado em ${options.home}`);
+        return 0;
+    }
+    for (const credential of credentials) {
+        const pid = runnerHolder(options.home, credential.runnerId);
         say(
-            `sem registro em ${options.home}; rode "register <código>" primeiro`
+            `${describeRunner(credential)} · ${credential.apiUrl} · ${pid === null ? "parado" : `rodando (pid ${pid})`}`
+        );
+    }
+    return 0;
+}
+
+const PICK_REFUSAL = {
+    none: 'nenhum runner registrado; gere um código no board e rode "agent-board-runner register <código>"',
+    all_busy:
+        'todos os runners desta máquina já estão rodando; para mais um, gere um código no board e rode "agent-board-runner register <código>"',
+    not_found: "nenhum runner registrado com esse id ou nome",
+    ambiguous: "mais de um runner começa com esse id; use mais caracteres",
+} as const;
+
+async function start(options: StartOptions): Promise<number> {
+    const credentials = (await listCredentials(options.home)).filter(
+        (credential) =>
+            options.apiUrl === null ||
+            credential.apiUrl.replace(TRAILING_SLASH, "") ===
+                options.apiUrl.replace(TRAILING_SLASH, "")
+    );
+    const pick = pickCredential(
+        credentials,
+        (runnerId) => runnerHolder(options.home, runnerId) !== null,
+        options.runner
+    );
+    if (!pick.ok) {
+        say(
+            pick.reason === "none" && options.apiUrl !== null
+                ? `nenhum runner registrado para ${options.apiUrl}; registre um com "agent-board-runner register <código> --api ${options.apiUrl}"`
+                : PICK_REFUSAL[pick.reason]
         );
         return 1;
     }
+    const config = pick.credential;
+    const lock = await acquireRunnerLock(options.home, config.runnerId);
+    if (!lock.ok) {
+        say(
+            `${describeRunner(config)} já está rodando em outro terminal (pid ${lock.pid})`
+        );
+        return 1;
+    }
+    const log = createSay(config.runnerId);
+    const runner = { name: config.name, id: config.runnerId };
+    const api = createRunnerApi(config.apiUrl, config.token);
     if (options.permissions.mode === "skip") {
         process.stderr.write(
             [
@@ -210,43 +326,55 @@ async function start(options: StartOptions): Promise<number> {
             ].join("\n")
         );
     }
-    for (const runId of await sweepLeftoverRuns(runnerPaths(options.home))) {
-        say(`limpou o resto da execução interrompida ${runId}`);
-    }
-    const controller = new AbortController();
-    let interrupts = 0;
-    process.on("SIGINT", () => {
-        interrupts += 1;
-        if (interrupts > 1) {
-            killAgentsNow();
-            process.exit(EXIT_INTERRUPTED);
-        }
-        say(
-            "encerrando; uma etapa em andamento vai ser reportada como interrompida (Ctrl+C de novo sai na hora)"
-        );
-        controller.abort();
+    log(`${describeRunner(config)} · pasta ${options.home}`);
+    log(`versão ${runnerVersion()}`);
+    await reportLeftovers(await sweepLeftoverRuns(runnerPaths(options.home)), {
+        api,
+        runner,
+        log,
     });
-    say(
-        `${config.name} buscando trabalho em ${config.apiUrl} a cada ${options.pollIntervalMs / MS_PER_SECOND} s`
+    const controller = new AbortController();
+    process.on(
+        "SIGINT",
+        createInterruptHandler({
+            onFirst: () => {
+                log(
+                    "encerrando; uma etapa em andamento vai ser reportada como interrompida (Ctrl+C de novo sai na hora)"
+                );
+                controller.abort();
+            },
+            onForce: () => {
+                killAgentsNow();
+                process.exit(EXIT_INTERRUPTED);
+            },
+        })
+    );
+    log(
+        `buscando trabalho em ${config.apiUrl} a cada ${options.pollIntervalMs / MS_PER_SECOND} s`
     );
     const end = await pollForWork({
         apiUrl: config.apiUrl,
-        runnerName: config.name,
+        runner,
         home: options.home,
         repoBase: options.repoBase,
         agent: options.agent,
         permissions: options.permissions,
         keepWorktrees: options.keepWorktrees,
-        api: createRunnerApi(config.apiUrl, config.token),
-        log: say,
+        api,
+        log,
         pollIntervalMs: options.pollIntervalMs,
         signal: controller.signal,
     });
+    if (end.reason === "refused" && end.code === "RUNNER_REVOKED") {
+        await removeCredential(options.home, config.runnerId);
+        log(
+            "runner revogado no board; a credencial dele saiu desta máquina. Rode start de novo para usar outro runner registrado"
+        );
+        return 1;
+    }
     if (end.reason === "refused") {
-        say(
-            end.code === "RUNNER_REVOKED"
-                ? "runner revogado no board; registre de novo"
-                : `o board recusou o token do runner (${end.code}); registre de novo`
+        log(
+            `o board recusou o token do runner (${end.code}); confira se ${config.apiUrl} é a API certa ou registre de novo`
         );
         return 1;
     }
@@ -259,7 +387,14 @@ export function main(argv: string[]): Promise<number> {
         process.stderr.write(`${parsed.message}\n`);
         return Promise.resolve(EXIT_USAGE);
     }
-    return parsed.command === "register" ? register(parsed) : start(parsed);
+    if (parsed.command === "version") {
+        process.stdout.write(`${runnerVersion()}\n`);
+        return Promise.resolve(0);
+    }
+    if (parsed.command === "register") {
+        return register(parsed);
+    }
+    return parsed.command === "list" ? list(parsed) : start(parsed);
 }
 
 function isEntryPoint(): boolean {

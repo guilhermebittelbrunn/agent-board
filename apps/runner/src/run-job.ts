@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { RunnerExit, RunnerJob } from "@repo/kanban-contract";
+import { createActivityLog } from "./activity.ts";
 import { ApiError, type RunnerApi } from "./api.ts";
 import { ensurePrivateDir, runnerPaths } from "./config.ts";
 import {
@@ -14,13 +15,17 @@ import {
 } from "./git.ts";
 import { isSafeJob } from "./job.ts";
 import {
+    type Leftover,
     releaseBranchWorktrees,
     sweepLeftoverRuns,
     writeAgentPid,
+    writeRunFile,
     writeRunnerPid,
 } from "./leftovers.ts";
+import { withRepoLock } from "./repo-lock.ts";
 import {
     failureSummary,
+    type RunnerIdentity,
     redactHome,
     runnerClosesStage,
     startNote,
@@ -38,7 +43,7 @@ export type AgentCommand = { command: string; args: string[] };
 
 export type JobContext = {
     apiUrl: string;
-    runnerName: string;
+    runner: RunnerIdentity;
     home: string;
     repoBase: string;
     agent: AgentCommand;
@@ -61,6 +66,9 @@ export type JobResult = {
 const COST_DECIMALS = 4;
 const PRIVATE_FILE_MODE = 0o600;
 const MS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
+const PROGRESS_EVERY_MS = 60_000;
+const LINE_BREAK = /\r?\n/;
 
 class StepFailed extends Error {}
 
@@ -89,17 +97,13 @@ async function git(args: string[], cwd: string): Promise<void> {
     }
 }
 
-async function prepareWorktree(
+async function addWorktree(
     job: RunnerJob,
     ctx: JobContext,
-    worktreeDir: string
-) {
+    worktreeDir: string,
+    repoDir: string
+): Promise<void> {
     const paths = runnerPaths(ctx.home);
-    const repoDir = path.join(
-        paths.repos,
-        job.repository.owner,
-        job.repository.name
-    );
     if (existsSync(path.join(repoDir, ".git"))) {
         await git(["fetch", "origin", "--prune"], repoDir);
     } else {
@@ -149,6 +153,27 @@ async function prepareWorktree(
             `git worktree: ${added.stderr.trim().split("\n").at(-1) ?? ""}`
         );
     }
+}
+
+async function prepareWorktree(
+    job: RunnerJob,
+    ctx: JobContext,
+    worktreeDir: string
+): Promise<string> {
+    const repoDir = path.join(
+        runnerPaths(ctx.home).repos,
+        job.repository.owner,
+        job.repository.name
+    );
+    try {
+        await withRepoLock(`${repoDir}.lock`, () =>
+            addWorktree(job, ctx, worktreeDir, repoDir)
+        );
+    } catch (error) {
+        throw error instanceof StepFailed
+            ? error
+            : new StepFailed((error as Error).message);
+    }
     return repoDir;
 }
 
@@ -162,8 +187,51 @@ type SessionOutcome = {
 
 type RunDirs = { worktreeDir: string; runDir: string; logsDir: string };
 
-const tellBoard = (ctx: JobContext) => (error: Error) =>
+const tellBoard = (ctx: Pick<JobContext, "log">) => (error: Error) =>
     ctx.log(`o board não recebeu o aviso: ${error.message}`);
+
+function elapsed(startedAt: number): string {
+    const seconds = Math.round((Date.now() - startedAt) / MS_PER_SECOND);
+    return seconds < SECONDS_PER_MINUTE
+        ? `${seconds} s`
+        : `${Math.floor(seconds / SECONDS_PER_MINUTE)} min ${seconds % SECONDS_PER_MINUTE} s`;
+}
+
+/**
+ * Closes on the board the stages of runs a runner died in before it could (a duplicated or
+ * second Ctrl+C, `kill -9`, the machine going down). Without this the card stays in "running"
+ * until the stage deadline. The run's own token is used, so it works even after the runner was
+ * registered again; a token already past its deadline is refused and the board's timeout wins.
+ */
+export async function reportLeftovers(
+    leftovers: Leftover[],
+    ctx: Pick<JobContext, "api" | "runner" | "log">
+): Promise<void> {
+    for (const { runId, run } of leftovers) {
+        ctx.log(`limpou o resto da execução interrompida ${runId}`);
+        if (run === null) {
+            continue;
+        }
+        await ctx.api
+            .tool(run.runToken, "complete_stage", {
+                cardId: run.cardId,
+                stage: run.stageKey,
+                outcome: "failed",
+                summary: failureSummary(
+                    run,
+                    run.runner ?? ctx.runner,
+                    "interrupted",
+                    "O runner foi encerrado antes de avisar o board, e a limpeza feita depois nesta máquina fechou a etapa."
+                ),
+            })
+            .then(() =>
+                ctx.log(
+                    `avisou o board: ${run.command} ${run.slug} ficou como falha (interrompida)`
+                )
+            )
+            .catch(tellBoard(ctx));
+    }
+}
 
 async function resolvePermissions(
     ctx: JobContext,
@@ -175,7 +243,7 @@ async function resolvePermissions(
     const allow = await readAllowList(worktreeDir);
     if (allow.length === 0) {
         ctx.log(
-            "aviso: o repositório não tem permissions.allow em .claude/settings.json; comandos fora de edição vão ser recusados"
+            "aviso: o repositório não tem permissions.allow em .claude/settings.json; fora edição, git commit/push e as ferramentas do board, os comandos vão ser recusados"
         );
     }
     return { mode: "acceptEdits", allow };
@@ -191,7 +259,7 @@ async function runSession(
     await ctx.api
         .tool(job.runToken, "post_update", {
             ...ref,
-            markdown: startNote(job, ctx.runnerName),
+            markdown: startNote(job, ctx.runner),
         })
         .catch(tellBoard(ctx));
 
@@ -212,6 +280,12 @@ async function runSession(
         }
     );
     const permissions = await resolvePermissions(ctx, dirs.worktreeDir);
+    const activity = createActivityLog(dirs.worktreeDir);
+    const sessionStartedAt = Date.now();
+    let lastProgressAt = sessionStartedAt;
+    ctx.log(
+        `sessão do claude começou · log completo em ${path.join(dirs.logsDir, `${job.runId}.jsonl`)}`
+    );
 
     let revoked = false;
     const result = await superviseAgent({
@@ -222,6 +296,12 @@ async function runSession(
         maxTurns: job.maxTurns,
         deadlineAt: new Date(job.deadlineAt),
         heartbeat: async (current): Promise<HeartbeatAnswer> => {
+            if (Date.now() - lastProgressAt >= PROGRESS_EVERY_MS) {
+                lastProgressAt = Date.now();
+                ctx.log(
+                    `em andamento: ${job.command} ${job.slug} · ${current}/${job.maxTurns} turnos · ${elapsed(sessionStartedAt)}`
+                );
+            }
             try {
                 return await ctx.api.heartbeat(job.runId, current);
             } catch (error) {
@@ -237,7 +317,18 @@ async function runSession(
         },
         logFile: path.join(dirs.logsDir, `${job.runId}.jsonl`),
         signal: ctx.signal,
-        onTool: (name) => ctx.log(`  · ${name}`),
+        onLine: (line) => {
+            for (const described of activity.describe(line)) {
+                ctx.log(described);
+            }
+        },
+        onStderr: (text) => {
+            for (const line of text.split(LINE_BREAK)) {
+                if (line.trim() !== "") {
+                    ctx.log(`  ! ${line.trim()}`);
+                }
+            }
+        },
         onSpawn: (pid) => {
             writeAgentPid(dirs.runDir, pid).catch(() => null);
         },
@@ -304,12 +395,18 @@ export async function runJob(
                 "O trabalho recebido tem campos fora do formato esperado."
             );
         }
-        for (const runId of await sweepLeftoverRuns(paths)) {
-            ctx.log(`limpou o resto da execução interrompida ${runId}`);
-        }
+        await reportLeftovers(await sweepLeftoverRuns(paths), ctx);
         await ensurePrivateDir(paths.worktrees);
         await ensurePrivateDir(dirs.runDir);
         await writeRunnerPid(dirs.runDir);
+        await writeRunFile(dirs.runDir, {
+            cardId: job.cardId,
+            stageKey: job.stageKey,
+            command: job.command,
+            slug: job.slug,
+            runToken: job.runToken,
+            runner: ctx.runner,
+        });
         await ensurePrivateDir(paths.logs);
         repoDir = await prepareWorktree(job, ctx, dirs.worktreeDir);
         if (ctx.signal.aborted) {
@@ -328,7 +425,7 @@ export async function runJob(
                 outcome: "failed",
                 summary: failureSummary(
                     job,
-                    ctx.runnerName,
+                    ctx.runner,
                     outcome.exit,
                     outcome.detail === null ? null : redactHome(outcome.detail)
                 ),

@@ -1,8 +1,7 @@
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-const PRIVATE_FILE_MODE = 0o600;
 const LOCAL_SUFFIX = /\.local$/;
 const NAME_UNSAFE = /[^A-Za-z0-9._-]/g;
 const MAX_NAME_LENGTH = 40;
@@ -12,6 +11,8 @@ export type RunnerConfig = {
     runnerId: string;
     name: string;
     token: string;
+    /** ISO date; `start` takes the oldest free runner first. */
+    registeredAt: string;
 };
 
 export const HOME_ENV = "AGENT_BOARD_RUNNER_HOME";
@@ -21,7 +22,9 @@ export function defaultHome(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 export const runnerPaths = (home: string) => ({
-    config: path.join(home, "config.json"),
+    /** Where a single runner per folder kept its credential; read once and moved to `runners`. */
+    legacyConfig: path.join(home, "config.json"),
+    credentials: path.join(home, "runners"),
     repos: path.join(home, "repos"),
     worktrees: path.join(home, "worktrees"),
     runs: path.join(home, "runs"),
@@ -32,38 +35,21 @@ export async function ensurePrivateDir(dir: string): Promise<void> {
     await mkdir(dir, { recursive: true, mode: 0o700 });
 }
 
-/** The token is a credential: readable only by this user, never inside a repository. */
-export async function writeConfig(
-    home: string,
-    config: RunnerConfig
-): Promise<string> {
-    await ensurePrivateDir(home);
-    const file = runnerPaths(home).config;
-    await writeFile(file, `${JSON.stringify(config, null, 2)}\n`, {
-        mode: PRIVATE_FILE_MODE,
-    });
-    await chmod(file, PRIVATE_FILE_MODE);
-    return file;
-}
+const RUNNER_SHORT_ID_LENGTH = 6;
+const TOKEN_ENDING_LENGTH = 4;
 
-export async function readConfig(home: string): Promise<RunnerConfig | null> {
-    try {
-        const parsed = JSON.parse(
-            await readFile(runnerPaths(home).config, "utf8")
-        ) as Partial<RunnerConfig>;
-        if (
-            typeof parsed.apiUrl === "string" &&
-            typeof parsed.runnerId === "string" &&
-            typeof parsed.name === "string" &&
-            typeof parsed.token === "string"
-        ) {
-            return parsed as RunnerConfig;
-        }
-        return null;
-    } catch {
-        return null;
-    }
-}
+/**
+ * The same short id the board shows next to the runner's name (`shortRunnerId` in
+ * `@repo/kanban-contract`). This CLI cannot import that package at run time: its modules import
+ * each other without the `.ts` extension, which Node does not resolve, and the copy
+ * `install-bin` makes carries no `node_modules`.
+ */
+export const shortRunnerId = (runnerId: string): string =>
+    runnerId.slice(0, RUNNER_SHORT_ID_LENGTH);
+
+/** The last characters of the token, which the board shows as "token terminando em". */
+export const tokenEnding = (token: string): string =>
+    token.slice(-TOKEN_ENDING_LENGTH);
 
 /** `os.hostname()` reduced to what the board accepts as a runner name. */
 export function defaultRunnerName(hostname = os.hostname()): string {

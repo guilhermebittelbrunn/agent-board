@@ -16,7 +16,7 @@ const options = (api: RunnerApi, signal: AbortSignal) => ({
     api,
     signal,
     apiUrl: "http://x",
-    runnerName: "m",
+    runner: { name: "m", id: "runnerM1" },
     home: "/nowhere",
     repoBase: "file:///nowhere",
     agent: { command: "true", args: [] },
