@@ -1,5 +1,5 @@
-import type { EntityDTO, UserWithAuthDTO } from "@repo/sdk/src/types";
-import { EntityType, UserType } from "@repo/sdk/src/types";
+import type { AllOptional } from "@repo/shared/utils";
+import { normalizeFirestoreInstant } from "@repo/shared/utils";
 import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -322,40 +322,107 @@ const { fakeDb } = vi.hoisted(() => {
     return { fakeDb: db };
 });
 
-const { getUserMock } = vi.hoisted(() => ({ getUserMock: vi.fn() }));
-
 vi.mock("@/(shared)/infra/database", () => ({ default: fakeDb }));
-vi.mock("@repo/auth/server", () => ({
-    getAuthInstance: () => ({ getUser: getUserMock }),
-    getCurrentUser: vi.fn(),
-}));
 
 const { BaseRepository, PaginationCursorError, PurgeNotFinishedError } =
     await import("@/(shared)/repositories/base.repository");
-const { entityMapper } = await import("@/(shared)/mappers/entity.mapper");
-const { entityRepository } = await import(
-    "@/(shared)/repositories/entity.repository"
-);
+const { default: Mapper } = await import("@/(shared)/mappers/Mapper");
 const { userRepository } = await import(
     "@/(shared)/repositories/user.repository"
 );
 
-const repository = new BaseRepository<EntityDTO>(
+/** A collection that exists only here, so the base behavior is tested apart from any resource. */
+type WidgetDTO = {
+    id: string;
+    userId: string;
+    name: string;
+    description: string;
+    size: string;
+    enabled: boolean;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: string | null;
+};
+
+type WidgetRow = Record<string, unknown> & { id: string };
+
+const WIDGET_FIELDS = [
+    "userId",
+    "name",
+    "description",
+    "size",
+    "enabled",
+] as const;
+
+class WidgetMapper extends Mapper<WidgetRow, WidgetDTO> {
+    toDTO({ id, ...record }: WidgetRow): WidgetDTO {
+        return {
+            id,
+            userId: String(record.userId ?? ""),
+            name: String(record.name ?? ""),
+            description: String(record.description ?? ""),
+            size: String(record.size ?? ""),
+            enabled: Boolean(record.enabled ?? true),
+            createdAt: normalizeFirestoreInstant(record.createdAt),
+            updatedAt: normalizeFirestoreInstant(record.updatedAt),
+            deletedAt:
+                record.deletedAt == null
+                    ? null
+                    : normalizeFirestoreInstant(record.deletedAt),
+        };
+    }
+
+    toPersistence(
+        input: AllOptional<WidgetDTO>
+    ): AllOptional<Record<string, unknown>> {
+        const out: Record<string, unknown> = {};
+        for (const key of WIDGET_FIELDS) {
+            if (input[key] !== undefined) {
+                out[key] = input[key];
+            }
+        }
+        return out;
+    }
+}
+
+const widgetMapper = new WidgetMapper();
+
+class WidgetRepository extends BaseRepository<WidgetDTO> {
+    listByUser(
+        userId: string,
+        page: { limit: number; cursorId: string | null }
+    ) {
+        return this.paginate(
+            this.db
+                .collection(this.table)
+                .where("userId", "==", userId)
+                .where("deletedAt", "==", null),
+            page
+        );
+    }
+}
+
+const repository = new BaseRepository<WidgetDTO>(
     fakeDb as never,
-    "entity",
-    entityMapper
+    "widget",
+    widgetMapper
+);
+const widgetRepository = new WidgetRepository(
+    fakeDb as never,
+    "widget",
+    widgetMapper
 );
 
 const CREATED_AT_ISO = "2024-03-01T10:00:00.000Z";
 const DOCUMENT_ID_MAX_BYTES = 1500;
 const TWO_BYTE_CHAR = "é";
 
-function entityRow(overrides: Row = {}): Row {
+function widgetRow(overrides: Row = {}): Row {
     return {
         userId: "profile-1",
         name: "Acme",
-        description: "an entity",
-        type: EntityType.CUSTOMER,
+        description: "a widget",
+        size: "small",
         enabled: true,
         createdAt: new Date(CREATED_AT_ISO),
         updatedAt: new Date(CREATED_AT_ISO),
@@ -373,42 +440,18 @@ function adminTimestamp(iso: string) {
  * Four rows of the same owner sharing one instant — the shape the emulator seed produces,
  * and the case that repeats or skips records when the cursor has no tie-break.
  */
-function seedTiedEntities() {
+function seedTiedWidgets() {
     for (const id of ["doc-a", "doc-b", "doc-c", "doc-d"]) {
         fakeDb.seed(
-            "entity",
+            "widget",
             id,
-            entityRow({ createdAt: adminTimestamp(CREATED_AT_ISO) })
+            widgetRow({ createdAt: adminTimestamp(CREATED_AT_ISO) })
         );
     }
 }
 
-function authRecord(uid: string) {
-    return {
-        uid,
-        email: `${uid}@example.com`,
-        emailVerified: true,
-        displayName: null,
-        photoURL: null,
-        phoneNumber: null,
-        disabled: false,
-        metadata: {
-            creationTime: "Mon, 01 Jan 2024 00:00:00 GMT",
-            lastSignInTime: null,
-            lastRefreshTime: null,
-        },
-        providerData: [],
-        customClaims: null,
-        tokensValidAfterTime: undefined,
-    };
-}
-
 beforeEach(() => {
     fakeDb.reset();
-    getUserMock.mockReset();
-    getUserMock.mockImplementation((uid: string) =>
-        Promise.resolve(authRecord(uid))
-    );
 });
 
 describe("BaseRepository.findById", () => {
@@ -418,9 +461,9 @@ describe("BaseRepository.findById", () => {
 
     it("returns null for a soft-deleted document", async () => {
         fakeDb.seed(
-            "entity",
+            "widget",
             "e1",
-            entityRow({ deletedAt: new Date("2024-04-01T00:00:00.000Z") })
+            widgetRow({ deletedAt: new Date("2024-04-01T00:00:00.000Z") })
         );
 
         await expect(repository.findById("e1")).resolves.toBeNull();
@@ -428,9 +471,9 @@ describe("BaseRepository.findById", () => {
 
     it("normalizes a Timestamp-shaped createdAt to an ISO string", async () => {
         fakeDb.seed(
-            "entity",
+            "widget",
             "e1",
-            entityRow({
+            widgetRow({
                 createdAt: adminTimestamp(CREATED_AT_ISO),
                 updatedAt: adminTimestamp(CREATED_AT_ISO),
             })
@@ -476,7 +519,7 @@ describe("BaseRepository.findById", () => {
                     TWO_BYTE_CHAR.repeat(DOCUMENT_ID_MAX_BYTES / 2)
                 )
             ).resolves.toBeNull();
-            expect(collectionSpy).toHaveBeenCalledWith("entity");
+            expect(collectionSpy).toHaveBeenCalledWith("widget");
         } finally {
             collectionSpy.mockRestore();
         }
@@ -484,9 +527,9 @@ describe("BaseRepository.findById", () => {
 
     it("keeps an already-ISO createdAt untouched", async () => {
         fakeDb.seed(
-            "entity",
+            "widget",
             "e1",
-            entityRow({ createdAt: CREATED_AT_ISO, updatedAt: CREATED_AT_ISO })
+            widgetRow({ createdAt: CREATED_AT_ISO, updatedAt: CREATED_AT_ISO })
         );
 
         const found = await repository.findById("e1");
@@ -498,18 +541,18 @@ describe("BaseRepository.findById", () => {
 
 describe("BaseRepository.findAll", () => {
     it("queries only documents whose deletedAt is null", async () => {
-        fakeDb.seed("entity", "kept", entityRow());
+        fakeDb.seed("widget", "kept", widgetRow());
         fakeDb.seed(
-            "entity",
+            "widget",
             "gone",
-            entityRow({ deletedAt: new Date("2024-04-01T00:00:00.000Z") })
+            widgetRow({ deletedAt: new Date("2024-04-01T00:00:00.000Z") })
         );
 
         const rows = await repository.findAll();
 
         expect(rows.map((row) => row.id)).toEqual(["kept"]);
         expect(fakeDb.queries.at(-1)).toEqual({
-            table: "entity",
+            table: "widget",
             clauses: [["deletedAt", "==", null]],
             orders: [],
             limit: null,
@@ -518,9 +561,9 @@ describe("BaseRepository.findAll", () => {
 
     it("applies the row mapper, like findById does", async () => {
         fakeDb.seed(
-            "entity",
+            "widget",
             "kept",
-            entityRow({ createdAt: adminTimestamp(CREATED_AT_ISO) })
+            widgetRow({ createdAt: adminTimestamp(CREATED_AT_ISO) })
         );
 
         const [row] = await repository.findAll();
@@ -529,11 +572,11 @@ describe("BaseRepository.findAll", () => {
     });
 
     it("falls back to the raw row when the repository has no mapper", async () => {
-        const unmapped = new BaseRepository<EntityDTO>(
+        const unmapped = new BaseRepository<WidgetDTO>(
             fakeDb as never,
-            "entity"
+            "widget"
         );
-        fakeDb.seed("entity", "kept", entityRow({ createdAt: CREATED_AT_ISO }));
+        fakeDb.seed("widget", "kept", widgetRow({ createdAt: CREATED_AT_ISO }));
 
         const [row] = await unmapped.findAll();
 
@@ -546,11 +589,8 @@ describe("BaseRepository.create", () => {
         const created = await repository.create({
             userId: "profile-1",
             name: "Acme",
-            description: "an entity",
-            type: EntityType.CUSTOMER,
-            photo: null,
-            genre: null,
-            birthdate: null,
+            description: "a widget",
+            size: "small",
             enabled: true,
         });
 
@@ -559,7 +599,7 @@ describe("BaseRepository.create", () => {
         expect(new Date(created.createdAt).getTime()).not.toBeNaN();
         expect(created.updatedAt).toBe(created.createdAt);
 
-        const stored = fakeDb.read("entity", "doc-1");
+        const stored = fakeDb.read("widget", "doc-1");
         expect(stored?.deletedAt).toBeNull();
         expect(stored?.createdAt).toBeInstanceOf(Date);
     });
@@ -567,92 +607,92 @@ describe("BaseRepository.create", () => {
 
 describe("BaseRepository.update and delete", () => {
     it("returns the id and refreshes updatedAt", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
+        fakeDb.seed("widget", "e1", widgetRow());
 
         const id = await repository.update({ id: "e1", name: "Renamed" });
 
         expect(id).toBe("e1");
-        const stored = fakeDb.read("entity", "e1");
+        const stored = fakeDb.read("widget", "e1");
         expect(stored?.name).toBe("Renamed");
         expect(stored?.updatedAt).toBeInstanceOf(Date);
     });
 
     it("leaves createdAt in the stored type instead of writing the mapped string back", async () => {
         const storedInstant = adminTimestamp(CREATED_AT_ISO);
-        fakeDb.seed("entity", "e1", entityRow({ createdAt: storedInstant }));
+        fakeDb.seed("widget", "e1", widgetRow({ createdAt: storedInstant }));
 
         await repository.update({ id: "e1", name: "Renamed" });
         await repository.update({ id: "e1", name: "Renamed again" });
 
-        expect(fakeDb.read("entity", "e1")?.createdAt).toBe(storedInstant);
+        expect(fakeDb.read("widget", "e1")?.createdAt).toBe(storedInstant);
     });
 
     it("writes only the fields it was given", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
+        fakeDb.seed("widget", "e1", widgetRow());
 
         await repository.update({ id: "e1", name: "Renamed" });
 
-        const stored = fakeDb.read("entity", "e1");
+        const stored = fakeDb.read("widget", "e1");
         expect(stored?.name).toBe("Renamed");
-        expect(stored?.description).toBe("an entity");
+        expect(stored?.description).toBe("a widget");
     });
 
     it("soft-deletes instead of removing the document", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
+        fakeDb.seed("widget", "e1", widgetRow());
 
         await repository.delete("e1");
 
-        const stored = fakeDb.read("entity", "e1");
+        const stored = fakeDb.read("widget", "e1");
         expect(stored).toBeDefined();
         expect(stored?.deletedAt).toBeInstanceOf(Date);
         await expect(repository.findById("e1")).resolves.toBeNull();
     });
 });
 
-describe("EntityRepository.listByUser", () => {
+describe("BaseRepository.paginate", () => {
     const firstPage = { limit: 20, cursorId: null };
 
     it("scopes by owner, drops soft-deleted rows and sorts by createdAt desc", async () => {
         fakeDb.seed(
-            "entity",
+            "widget",
             "older",
-            entityRow({ createdAt: adminTimestamp("2024-01-01T00:00:00.000Z") })
+            widgetRow({ createdAt: adminTimestamp("2024-01-01T00:00:00.000Z") })
         );
         fakeDb.seed(
-            "entity",
+            "widget",
             "newer",
-            entityRow({ createdAt: adminTimestamp("2024-06-01T00:00:00.000Z") })
+            widgetRow({ createdAt: adminTimestamp("2024-06-01T00:00:00.000Z") })
         );
         fakeDb.seed(
-            "entity",
+            "widget",
             "removed",
-            entityRow({ deletedAt: new Date("2024-07-01T00:00:00.000Z") })
+            widgetRow({ deletedAt: new Date("2024-07-01T00:00:00.000Z") })
         );
         fakeDb.seed(
-            "entity",
+            "widget",
             "someone-else",
-            entityRow({
+            widgetRow({
                 userId: "profile-2",
                 createdAt: adminTimestamp("2024-03-01T00:00:00.000Z"),
             })
         );
 
-        const page = await entityRepository.listByUser("profile-1", firstPage);
+        const page = await widgetRepository.listByUser("profile-1", firstPage);
 
         expect(page.items.map((row) => row.id)).toEqual(["newer", "older"]);
         expect(page.nextCursorId).toBeNull();
     });
 
     it("pushes the soft-delete filter, the ordering and the size into the query", async () => {
-        fakeDb.seed("entity", "kept", entityRow());
+        fakeDb.seed("widget", "kept", widgetRow());
 
-        await entityRepository.listByUser("profile-1", {
+        await widgetRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: null,
         });
 
         expect(fakeDb.queries.at(-1)).toEqual({
-            table: "entity",
+            table: "widget",
             clauses: [
                 ["userId", "==", "profile-1"],
                 ["deletedAt", "==", null],
@@ -668,9 +708,9 @@ describe("EntityRepository.listByUser", () => {
     });
 
     it("hands back the requested size plus a cursor when more rows exist", async () => {
-        seedTiedEntities();
+        seedTiedWidgets();
 
-        const page = await entityRepository.listByUser("profile-1", {
+        const page = await widgetRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: null,
         });
@@ -680,13 +720,13 @@ describe("EntityRepository.listByUser", () => {
     });
 
     it("walks every row exactly once when createdAt is identical across the page break", async () => {
-        seedTiedEntities();
+        seedTiedWidgets();
 
-        const first = await entityRepository.listByUser("profile-1", {
+        const first = await widgetRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: null,
         });
-        const second = await entityRepository.listByUser("profile-1", {
+        const second = await widgetRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: first.nextCursorId,
         });
@@ -701,17 +741,17 @@ describe("EntityRepository.listByUser", () => {
     });
 
     it("keeps anchoring on a row that was soft-deleted after the page was served", async () => {
-        seedTiedEntities();
+        seedTiedWidgets();
         fakeDb.seed(
-            "entity",
+            "widget",
             "doc-c",
-            entityRow({
+            widgetRow({
                 createdAt: adminTimestamp(CREATED_AT_ISO),
                 deletedAt: new Date("2024-07-01T00:00:00.000Z"),
             })
         );
 
-        const page = await entityRepository.listByUser("profile-1", {
+        const page = await widgetRepository.listByUser("profile-1", {
             limit: 2,
             cursorId: "doc-c",
         });
@@ -720,10 +760,10 @@ describe("EntityRepository.listByUser", () => {
     });
 
     it("refuses a cursor whose anchor is not there", async () => {
-        seedTiedEntities();
+        seedTiedWidgets();
 
         await expect(
-            entityRepository.listByUser("profile-1", {
+            widgetRepository.listByUser("profile-1", {
                 limit: 2,
                 cursorId: "never-existed",
             })
@@ -731,17 +771,17 @@ describe("EntityRepository.listByUser", () => {
     });
 
     it("never returns someone else's rows when the cursor points at their document", async () => {
-        seedTiedEntities();
+        seedTiedWidgets();
         fakeDb.seed(
-            "entity",
+            "widget",
             "doc-intruder",
-            entityRow({
+            widgetRow({
                 createdAt: adminTimestamp(CREATED_AT_ISO),
                 userId: "profile-2",
             })
         );
 
-        const page = await entityRepository.listByUser("profile-1", {
+        const page = await widgetRepository.listByUser("profile-1", {
             limit: 20,
             cursorId: "doc-intruder",
         });
@@ -787,75 +827,10 @@ describe("UserRepository.findByReferenceId", () => {
     });
 });
 
-describe("UserRepository.list over the Firestore driver", () => {
-    function seedProfile(id: string, referenceId: string, type: UserType) {
-        fakeDb.seed("user", id, {
-            reference_id: referenceId,
-            type,
-            createdAt: Timestamp.fromDate(new Date(CREATED_AT_ISO)),
-            updatedAt: Timestamp.fromDate(new Date(CREATED_AT_ISO)),
-            deletedAt: null,
-        });
-    }
-
-    it("serializes the stored timestamps and merges the auth account", async () => {
-        seedProfile("p1", "auth-1", UserType.COMMON);
-
-        const [user] = (await userRepository.list()) as UserWithAuthDTO[];
-
-        expect(user.id).toBe("p1");
-        expect(user.email).toBe("auth-1@example.com");
-        expect(user.createdAt).toBe(CREATED_AT_ISO);
-        expect(JSON.stringify(user)).not.toContain("_seconds");
-    });
-
-    it("leaves out soft-deleted profiles", async () => {
-        seedProfile("p1", "auth-1", UserType.COMMON);
-        fakeDb.seed("user", "p2", {
-            reference_id: "auth-2",
-            type: UserType.COMMON,
-            deletedAt: Timestamp.fromDate(new Date("2024-04-01T00:00:00.000Z")),
-        });
-
-        const users = await userRepository.list();
-
-        expect(users.map((user) => user.id)).toEqual(["p1"]);
-    });
-
-    it("keeps only the requested type", async () => {
-        seedProfile("p1", "auth-1", UserType.COMMON);
-        seedProfile("p2", "auth-2", UserType.ADMIN);
-
-        const users = await userRepository.list({ type: UserType.ADMIN });
-
-        expect(users.map((user) => user.id)).toEqual(["p2"]);
-        expect(getUserMock).toHaveBeenCalledTimes(1);
-    });
-
-    it("drops a profile whose auth account was deleted outside the app", async () => {
-        seedProfile("p1", "auth-1", UserType.COMMON);
-        seedProfile("p2", "auth-ghost", UserType.COMMON);
-        getUserMock.mockImplementation((uid: string) =>
-            uid === "auth-ghost"
-                ? Promise.reject(
-                      Object.assign(new Error("no user"), {
-                          code: "auth/user-not-found",
-                      })
-                  )
-                : Promise.resolve(authRecord(uid))
-        );
-
-        const users = await userRepository.list();
-
-        expect(users.map((user) => user.id)).toEqual(["p1"]);
-    });
-});
-
 describe("UserRepository.update and delete", () => {
     function seedProfile() {
         fakeDb.seed("user", "p1", {
             reference_id: "auth-1",
-            type: UserType.COMMON,
             createdAt: Timestamp.fromDate(new Date(CREATED_AT_ISO)),
             updatedAt: Timestamp.fromDate(new Date(CREATED_AT_ISO)),
             deletedAt: null,
@@ -865,10 +840,10 @@ describe("UserRepository.update and delete", () => {
     it("keeps createdAt a Timestamp, since the repository has no mapper", async () => {
         seedProfile();
 
-        await userRepository.update({ id: "p1", type: UserType.ADMIN });
+        await userRepository.update({ id: "p1", phone: "+5511999990000" });
 
         const stored = fakeDb.read("user", "p1");
-        expect(stored?.type).toBe(UserType.ADMIN);
+        expect(stored?.phone).toBe("+5511999990000");
         expect(stored?.createdAt).toBeInstanceOf(Timestamp);
         expect(stored?.updatedAt).toBeInstanceOf(Date);
     });
@@ -886,205 +861,8 @@ describe("UserRepository.update and delete", () => {
     });
 });
 
-describe("UserRepository.touchLastAccess", () => {
-    const ACCESS_AT_ISO = "2026-09-17T14:45:00.000Z";
-
-    function seedProfile() {
-        fakeDb.seed("user", "p1", {
-            reference_id: "auth-1",
-            type: UserType.COMMON,
-            createdAt: Timestamp.fromDate(new Date(CREATED_AT_ISO)),
-            updatedAt: Timestamp.fromDate(new Date(CREATED_AT_ISO)),
-            deletedAt: null,
-        });
-    }
-
-    it("writes the stamp on the profile document", async () => {
-        seedProfile();
-
-        await userRepository.touchLastAccess("p1", new Date(ACCESS_AT_ISO));
-
-        const stored = fakeDb.read("user", "p1");
-        expect((stored?.lastAccessAt as Date).toISOString()).toBe(
-            ACCESS_AT_ISO
-        );
-    });
-
-    /**
-     * An access is not an edit of the profile: `updatedAt` has to stay on the instant of
-     * the last real change, which is what the screens that show it mean by the word.
-     */
-    it("leaves updatedAt on the instant of the last real edit", async () => {
-        seedProfile();
-
-        await userRepository.touchLastAccess("p1", new Date(ACCESS_AT_ISO));
-
-        const stored = fakeDb.read("user", "p1");
-        expect(stored?.updatedAt).toBeInstanceOf(Timestamp);
-        expect((stored?.updatedAt as Timestamp).toDate().toISOString()).toBe(
-            CREATED_AT_ISO
-        );
-    });
-
-    it("touches no other field of the profile", async () => {
-        seedProfile();
-
-        await userRepository.touchLastAccess("p1", new Date(ACCESS_AT_ISO));
-
-        const stored = fakeDb.read("user", "p1");
-        expect(stored?.type).toBe(UserType.COMMON);
-        expect(stored?.reference_id).toBe("auth-1");
-        expect(stored?.deletedAt).toBeNull();
-    });
-});
-
-describe("EntityRepository.summaryByUser", () => {
-    const LIVE_OWNED_ENTITIES = 3;
-    const AGGREGATIONS_PER_SUMMARY = 5;
-
-    function seedSummaryFixture() {
-        fakeDb.seed(
-            "entity",
-            "own-franchise",
-            entityRow({ type: EntityType.FRANCHISE })
-        );
-        fakeDb.seed(
-            "entity",
-            "own-customer",
-            entityRow({ type: EntityType.CUSTOMER })
-        );
-        fakeDb.seed(
-            "entity",
-            "own-collaborator-off",
-            entityRow({ type: EntityType.COLLABORATOR, enabled: false })
-        );
-        fakeDb.seed(
-            "entity",
-            "own-deleted",
-            entityRow({ type: EntityType.CUSTOMER, deletedAt: new Date() })
-        );
-        fakeDb.seed(
-            "entity",
-            "someone-else",
-            entityRow({ userId: "profile-2", type: EntityType.CUSTOMER })
-        );
-    }
-
-    it("counts only the owner's live records", async () => {
-        seedSummaryFixture();
-
-        const summary = await entityRepository.summaryByUser("profile-1");
-
-        expect(summary.total).toBe(LIVE_OWNED_ENTITIES);
-        expect(summary.enabled).toBe(2);
-        expect(summary.byType).toEqual({
-            franchise: 1,
-            customer: 1,
-            collaborator: 1,
-        });
-    });
-
-    it("scopes every count by owner and soft delete", async () => {
-        seedSummaryFixture();
-
-        await entityRepository.summaryByUser("profile-1");
-
-        expect(fakeDb.queries).toHaveLength(AGGREGATIONS_PER_SUMMARY);
-        for (const query of fakeDb.queries) {
-            expect(query.table).toBe("entity");
-            expect(query.clauses).toEqual(
-                expect.arrayContaining([
-                    ["userId", "==", "profile-1"],
-                    ["deletedAt", "==", null],
-                ])
-            );
-        }
-    });
-
-    it("takes the total from its own count, not from the sum of the types", async () => {
-        fakeDb.seed(
-            "entity",
-            "typed",
-            entityRow({ type: EntityType.CUSTOMER })
-        );
-        // Written outside the API, so it carries no `type` and falls out of all three
-        // per-type counts. The total is what must not lose it.
-        fakeDb.seed("entity", "untyped", {
-            userId: "profile-1",
-            name: "No type",
-            enabled: true,
-            createdAt: new Date(CREATED_AT_ISO),
-            updatedAt: new Date(CREATED_AT_ISO),
-            deletedAt: null,
-        });
-
-        const summary = await entityRepository.summaryByUser("profile-1");
-
-        expect(summary.total).toBe(2);
-        expect(
-            summary.byType.franchise +
-                summary.byType.customer +
-                summary.byType.collaborator
-        ).toBe(1);
-    });
-
-    it("never reads the documents it is counting", async () => {
-        seedSummaryFixture();
-
-        await entityRepository.summaryByUser("profile-1");
-
-        expect(fakeDb.queries.every((query) => query.limit === null)).toBe(
-            true
-        );
-        expect(fakeDb.queries.every((query) => query.orders.length === 0)).toBe(
-            true
-        );
-    });
-});
-
-describe("UserRepository.summary", () => {
-    const LIVE_PROFILES = 3;
-
-    function profileRow(overrides: Row = {}): Row {
-        return {
-            reference_id: "auth-1",
-            type: UserType.COMMON,
-            createdAt: new Date(CREATED_AT_ISO),
-            updatedAt: new Date(CREATED_AT_ISO),
-            deletedAt: null,
-            ...overrides,
-        };
-    }
-
-    it("counts live profiles by type", async () => {
-        fakeDb.seed("user", "p1", profileRow({ type: UserType.ADMIN }));
-        fakeDb.seed("user", "p2", profileRow());
-        fakeDb.seed("user", "p3", profileRow());
-        fakeDb.seed("user", "p4", profileRow({ deletedAt: new Date() }));
-
-        const summary = await userRepository.summary();
-
-        expect(summary.total).toBe(LIVE_PROFILES);
-        expect(summary.byType).toEqual({ admin: 1, common: 2 });
-    });
-
-    it("counts a profile whose Firebase Auth account is gone, unlike the listing", async () => {
-        fakeDb.seed("user", "p1", profileRow());
-        getUserMock.mockRejectedValue(
-            Object.assign(new Error("no such user"), {
-                code: "auth/user-not-found",
-            })
-        );
-
-        await expect(userRepository.list()).resolves.toHaveLength(0);
-        await expect(userRepository.summary()).resolves.toMatchObject({
-            total: 1,
-        });
-    });
-});
-
 /** Exposes the protected sweep so the bounded loop can be exercised directly. */
-class PurgeableRepository extends BaseRepository<EntityDTO> {
+class PurgeableRepository extends BaseRepository<WidgetDTO> {
     purgeEverything(): Promise<number> {
         return this.purgeAll(
             this.db.collection(this.table) as unknown as Parameters<
@@ -1142,27 +920,27 @@ describe("purge vs. delete", () => {
     const BATCH_LIMIT = 500;
 
     it("keeps `delete` a soft delete, stamping instead of removing", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
+        fakeDb.seed("widget", "e1", widgetRow());
 
         await repository.delete("e1");
 
-        expect(fakeDb.read("entity", "e1")).toBeDefined();
-        expect(fakeDb.read("entity", "e1")?.deletedAt).toBeInstanceOf(Date);
+        expect(fakeDb.read("widget", "e1")).toBeDefined();
+        expect(fakeDb.read("widget", "e1")?.deletedAt).toBeInstanceOf(Date);
     });
 
     it("drains the collection in batches of 500", async () => {
         for (let index = 0; index < BATCH_LIMIT + 1; index++) {
-            fakeDb.seed("entity", `e${index}`, entityRow());
+            fakeDb.seed("widget", `e${index}`, widgetRow());
         }
 
         const removed = await new PurgeableRepository(
             fakeDb as never,
-            "entity"
+            "widget"
         ).purgeEverything();
 
         expect(removed).toBe(BATCH_LIMIT + 1);
         expect(fakeDb.batches).toEqual([BATCH_LIMIT, 1]);
-        expect(fakeDb.count("entity")).toBe(0);
+        expect(fakeDb.count("widget")).toBe(0);
     });
 
     it("stops and reports instead of looping when the query never drains", async () => {
@@ -1170,40 +948,12 @@ describe("purge vs. delete", () => {
         const undrainable = undrainableDb();
         const repositoryOverUndrainable = new PurgeableRepository(
             undrainable.db as never,
-            "entity"
+            "widget"
         );
 
         await expect(
             repositoryOverUndrainable.purgeEverything()
         ).rejects.toBeInstanceOf(PurgeNotFinishedError);
         expect(undrainable.committedBatches).toBe(MAX_PASSES);
-    });
-});
-
-describe("EntityRepository.findOwnedBy", () => {
-    it("hands back a record of the owner", async () => {
-        fakeDb.seed("entity", "e1", entityRow());
-
-        const row = await entityRepository.findOwnedBy("e1", "profile-1");
-
-        expect(row?.id).toBe("e1");
-        expect(row?.userId).toBe("profile-1");
-    });
-
-    it.each([
-        ["of someone else", entityRow({ userId: "profile-2" })],
-        ["soft-deleted", entityRow({ deletedAt: new Date(CREATED_AT_ISO) })],
-    ])("answers null for a record %s", async (_label, row) => {
-        fakeDb.seed("entity", "e1", row);
-
-        expect(
-            await entityRepository.findOwnedBy("e1", "profile-1")
-        ).toBeNull();
-    });
-
-    it("answers null for an empty owner id", async () => {
-        fakeDb.seed("entity", "e1", entityRow({ userId: "" }));
-
-        expect(await entityRepository.findOwnedBy("e1", "")).toBeNull();
     });
 });
