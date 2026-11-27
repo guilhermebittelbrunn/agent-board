@@ -12,6 +12,8 @@ import {
 } from "@/(shared)/lib/github/github-sample-repositories";
 
 const client = createGithubFakeClient(createGithubPermissionCache());
+
+const MAX_FAKE_NUMBER = 9999;
 const repo = (name: string) => ({
     installationId: 1,
     owner: "agent-board-demo",
@@ -193,5 +195,68 @@ describe("sample board.yml text", () => {
         expect(invalidResult.ok ? null : invalidResult.raw).toEqual(
             SAMPLE_BOARD_CONFIGS.invalid
         );
+    });
+});
+
+describe("githubFakeClient pull requests", () => {
+    const input = (head: string) => ({
+        head,
+        base: "main",
+        title: "Login",
+        body: "",
+        draft: true,
+    });
+
+    it("answers the same pull request for the same branch", async () => {
+        const first = await client.createPullRequest(
+            repo("sample-app"),
+            input("feat/login")
+        );
+        const again = await client.findOpenPullRequest(
+            repo("sample-app"),
+            "feat/login"
+        );
+
+        expect(first).toMatchObject({
+            title: "Login",
+            draft: true,
+            headRef: "feat/login",
+            baseRef: "main",
+            commits: 3,
+        });
+        expect(first.number).toBeGreaterThanOrEqual(1);
+        expect(first.number).toBeLessThanOrEqual(MAX_FAKE_NUMBER);
+        expect(first.url).toBe(
+            `https://github.com/agent-board-demo/sample-app/pull/${first.number}`
+        );
+        expect(again?.number).toBe(first.number);
+        expect(again?.headSha).toBe(first.headSha);
+    });
+
+    it("refuses the reserved branches like a real App would", async () => {
+        await expect(
+            client.createPullRequest(
+                repo("sample-app"),
+                input("feat/qa-pr-permission")
+            )
+        ).rejects.toMatchObject({ kind: "permission_denied" });
+        await expect(
+            client.createPullRequest(
+                repo("sample-app"),
+                input("feat/qa-pr-rejected")
+            )
+        ).rejects.toMatchObject({ kind: "unprocessable" });
+        expect(
+            await client.findOpenPullRequest(
+                repo("sample-app"),
+                "feat/qa-pr-rejected"
+            )
+        ).toBeNull();
+    });
+
+    it("does not reach a repository outside the samples", async () => {
+        await expect(
+            client.createPullRequest(repo("other"), input("feat/x"))
+        ).rejects.toMatchObject({ kind: "not_found" });
     });
 });

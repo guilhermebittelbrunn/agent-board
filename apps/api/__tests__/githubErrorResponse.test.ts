@@ -21,6 +21,16 @@ describe("githubErrorResponse", () => {
         ],
         ["credentials_rejected", HTTP_STATUS.BAD_GATEWAY, "GITHUB_UNAVAILABLE"],
         ["unavailable", HTTP_STATUS.BAD_GATEWAY, "GITHUB_UNAVAILABLE"],
+        [
+            "permission_denied",
+            HTTP_STATUS.SERVICE_UNAVAILABLE,
+            "GITHUB_APP_PERMISSION_MISSING",
+        ],
+        [
+            "unprocessable",
+            HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            "GITHUB_PULL_REQUEST_REJECTED",
+        ],
     ])("answers %s with %i %s", async (kind, status, code) => {
         const response = githubErrorResponse(
             new GithubApiError(kind, HTTP_STATUS.INTERNAL_SERVER_ERROR)

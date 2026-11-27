@@ -89,6 +89,8 @@ let lookups: number;
 const client: GithubClient = {
     listInstallationRepositories: () => Promise.resolve([]),
     readFile: () => Promise.resolve(null),
+    createPullRequest: () => Promise.reject(new Error("unused")),
+    findOpenPullRequest: () => Promise.resolve(null),
     getCollaboratorRole: (_repo, username) => {
         lookups += 1;
         return Promise.resolve(roles[username] ?? "none");

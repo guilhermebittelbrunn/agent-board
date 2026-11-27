@@ -7,6 +7,7 @@ import { createAppJwt } from "./github-app-jwt";
 import type {
     GithubClient,
     GithubFile,
+    GithubPullRequest,
     GithubRepository,
     GithubRepositoryRef,
 } from "./github-client";
@@ -64,6 +65,29 @@ const collaboratorPermissionSchema = z.object({
     role_name: z.string().optional(),
 });
 
+const pullRequestSchema = z.object({
+    number: z.number().int(),
+    html_url: z.string(),
+    title: z.string(),
+    draft: z.boolean().optional(),
+    head: z.object({ ref: z.string(), sha: z.string() }),
+    base: z.object({ ref: z.string() }),
+    commits: z.number().int().optional(),
+});
+
+const toPullRequest = (
+    body: z.infer<typeof pullRequestSchema>
+): GithubPullRequest => ({
+    number: body.number,
+    url: body.html_url,
+    title: body.title,
+    draft: body.draft ?? false,
+    headRef: body.head.ref,
+    baseRef: body.base.ref,
+    headSha: body.head.sha,
+    commits: body.commits ?? null,
+});
+
 type Auth = { scheme: "Bearer" | "token"; credential: string };
 
 function isRateLimited(response: Response): boolean {
@@ -95,6 +119,20 @@ function classify(response: Response): GithubApiError {
         return new GithubApiError("not_found", response.status);
     }
     return new GithubApiError("unavailable", response.status);
+}
+
+/**
+ * On a write, a 403 that is not a quota means the installation lacks the permission (it can
+ * read the repository, or the write would be a 404), and a 422 is GitHub refusing the content.
+ */
+function classifyWrite(response: Response): GithubApiError {
+    if (response.status === HTTP_STATUS.FORBIDDEN && !isRateLimited(response)) {
+        return new GithubApiError("permission_denied", response.status);
+    }
+    if (response.status === HTTP_STATUS.UNPROCESSABLE_ENTITY) {
+        return new GithubApiError("unprocessable", response.status);
+    }
+    return classify(response);
 }
 
 function nextPageUrl(response: Response): string | null {
@@ -142,7 +180,8 @@ export function createGithubRestClient(
     async function send(
         url: string,
         auth: Auth,
-        method: "GET" | "POST" = "GET"
+        method: "GET" | "POST" = "GET",
+        body?: unknown
     ): Promise<Response> {
         let response: Response;
         try {
@@ -153,7 +192,11 @@ export function createGithubRestClient(
                     Authorization: `${auth.scheme} ${auth.credential}`,
                     "User-Agent": "agent-board",
                     "X-GitHub-Api-Version": GITHUB_API_VERSION,
+                    ...(body === undefined
+                        ? {}
+                        : { "Content-Type": "application/json" }),
                 },
+                ...(body === undefined ? {} : { body: JSON.stringify(body) }),
                 signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             });
         } catch {
@@ -318,6 +361,39 @@ export function createGithubRestClient(
 
             permissionCache.set(fullName, username, role);
             return role;
+        },
+
+        async createPullRequest(repo, input) {
+            const response = await send(
+                `${GITHUB_API_ORIGIN}${repositoryPath(repo)}/pulls`,
+                await installationAuth(repo.installationId),
+                "POST",
+                input
+            );
+            if (!response.ok) {
+                throw classifyWrite(response);
+            }
+            return toPullRequest(await readJson(response, pullRequestSchema));
+        },
+
+        async findOpenPullRequest(repo, head) {
+            const query = new URLSearchParams({
+                head: `${repo.owner}:${head}`,
+                state: "open",
+                per_page: "1",
+            });
+            const response = await send(
+                `${GITHUB_API_ORIGIN}${repositoryPath(repo)}/pulls?${query.toString()}`,
+                await installationAuth(repo.installationId)
+            );
+            if (!response.ok) {
+                throw classify(response);
+            }
+            const [first] = await readJson(
+                response,
+                z.array(pullRequestSchema)
+            );
+            return first === undefined ? null : toPullRequest(first);
         },
     };
 }

@@ -59,10 +59,20 @@ stages:
     model: sonnet
     effort: medium
     onRework: develop
+  - key: pr
+    column: Aguardando PR
+    command: /observe
+    agent: observador-tarefa
+    model: haiku
+    effort: low
+    onPrComment: /mediate
+    pullRequest:
+      draft: true
 
 limits:
   maxReworkLoops: 2
   maxTurnsPerStage: 200
+  maxPrCommentRunsPerHour: 3
 `;
 
 const INVALID_BOARD_YML = `version: 1
@@ -271,8 +281,22 @@ export const SAMPLE_BOARD_CONFIGS = {
                 effort: "medium",
                 onRework: "develop",
             },
+            {
+                key: "pr",
+                column: "Aguardando PR",
+                command: "/observe",
+                agent: "observador-tarefa",
+                model: "haiku",
+                effort: "low",
+                onPrComment: "/mediate",
+                pullRequest: { draft: true },
+            },
         ],
-        limits: { maxReworkLoops: 2, maxTurnsPerStage: 200 },
+        limits: {
+            maxReworkLoops: 2,
+            maxTurnsPerStage: 200,
+            maxPrCommentRunsPerHour: 3,
+        },
     },
     invalid: {
         version: 1,

@@ -4,7 +4,9 @@ export type GithubApiErrorKind =
     | "not_found"
     | "rate_limited"
     | "credentials_rejected"
-    | "unavailable";
+    | "unavailable"
+    | "permission_denied"
+    | "unprocessable";
 
 export class GithubApiError extends Error {
     readonly kind: GithubApiErrorKind;
@@ -41,7 +43,23 @@ const RESPONSES: Record<GithubApiErrorKind, { code: string; status: number }> =
             code: "GITHUB_UNAVAILABLE",
             status: HTTP_STATUS.BAD_GATEWAY,
         },
+        // The installation lacks a write permission; whoever owns the App has to grant it.
+        permission_denied: {
+            code: "GITHUB_APP_PERMISSION_MISSING",
+            status: HTTP_STATUS.SERVICE_UNAVAILABLE,
+        },
+        unprocessable: {
+            code: "GITHUB_PULL_REQUEST_REJECTED",
+            status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        },
     };
+
+export function githubErrorCode(error: GithubApiError): {
+    code: string;
+    status: number;
+} {
+    return RESPONSES[error.kind];
+}
 
 export function githubErrorResponse(error: unknown): Response | null {
     if (!(error instanceof GithubApiError)) {
