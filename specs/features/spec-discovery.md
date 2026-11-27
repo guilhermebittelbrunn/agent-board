@@ -9,7 +9,7 @@ phase: 3
 area: [packages/kanban-contract, packages/sdk, apps/api, apps/app, kit]
 depends_on: [spec-authoring]
 contends_on: [packages/kanban-contract/src/agentContract.ts]
-feature: -
+feature: null
 updated: 2026-11-27
 ---
 

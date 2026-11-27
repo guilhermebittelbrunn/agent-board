@@ -8,7 +8,7 @@ audience: dx
 phase: 1
 area: [apps/app, apps/api, apps/e2e, packages/sdk, packages/internationalization, docs, .claude]
 depends_on: []
-contends_on: [apps/app/app/[locale]/(authenticated)/(common)/layout.tsx, apps/api/app/(guards)/session.ts, apps/app/shared/components/ui/Navbar.tsx]
+contends_on: ["apps/app/app/[locale]/(authenticated)/(common)/layout.tsx", "apps/api/app/(guards)/session.ts", "apps/app/shared/components/ui/Navbar.tsx"]
 feature: app-cleanup
 updated: 2026-11-27
 ---

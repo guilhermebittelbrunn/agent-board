@@ -36,10 +36,20 @@ phase: 1                  # fase do roadmap (docs/board/ROADMAP.md)
 area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: []            # ordem: specs que precisam vir antes
 contends_on: []           # arquivos compartilhados existentes que a spec altera
-feature: -
+feature: null             # slug em docs/features/ depois do /analyze; null até lá
 updated: 2026-11-25
 ---
 ```
+
+O board lê esse bloco como YAML estrito. Se o bloco não abre, o arquivo inteiro fica de fora e o sync
+avisa "frontmatter sem id ou status", mesmo com os dois campos lá. Dois erros já tiraram specs do board:
+
+- `-` sozinho como valor vira o começo de uma lista. Para "nenhum", escreva `null`.
+- Caminho com `[`, `(` ou `{` dentro de uma lista entre colchetes abre outra lista. Ponha o caminho entre
+  aspas: `contends_on: ["apps/app/app/[locale]/layout.tsx"]`.
+
+O teste `specFrontmatter.test.ts` do `@repo/kanban-contract` lê todas as specs deste repositório com o
+parser do board e reprova a que não abrir.
 
 - **`audience: time`** — valor direto para quem usa o board (ver, disparar, acompanhar).
 - **`audience: dx`** — valor para quem desenvolve o board (limpeza, testes, CI).

@@ -9,7 +9,7 @@ phase: <0-4>
 area: [<apps/api>, <apps/app>, <packages/...>]
 depends_on: []      # ordem: ids de specs que precisam vir ANTES desta
 contends_on: []     # contenção: arquivos compartilhados EXISTENTES que esta spec ALTERA (0–3)
-feature: -
+feature: null       # slug em docs/features/ depois do /analyze; null até lá
 updated: <YYYY-MM-DD>
 ---
 

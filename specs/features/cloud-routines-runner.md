@@ -8,8 +8,8 @@ audience: time
 phase: 2
 area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: [agent-contract, execution-credentials]
-contends_on: [apps/api/app/(routes)/boards/[id]/credentials/scheduled-tasks/[stageKey]/route.ts]
-feature: -
+contends_on: ["apps/api/app/(routes)/boards/[id]/credentials/scheduled-tasks/[stageKey]/route.ts"]
+feature: null
 updated: 2026-11-27
 ---
 
