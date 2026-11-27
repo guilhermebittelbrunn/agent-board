@@ -373,6 +373,38 @@ token e o modo de permissão `acceptEdits` se comportam como o runner espera.
 
 **Como verificar:** o card chega a Concluído e a branch tem um commit por etapa.
 
+### Chave das credenciais da nuvem (spec `execution-credentials`, 2026-11-27)
+
+**O que fazer:** gerar a chave e gravá-la no ambiente da API de produção, no gerenciador de segredos do provedor,
+nunca em arquivo versionado.
+
+```bash
+openssl rand -base64 32
+```
+
+O valor vai em `CREDENTIALS_ENCRYPTION_KEY`. Guarde uma cópia fora do provedor (num cofre de senhas, por exemplo):
+perder a chave equivale a apagar todas as tarefas agendadas cadastradas.
+
+**Por quê:** a Fire URL e o token de cada tarefa agendada ficam cifrados no Firestore com AES-256-GCM. A chave fica no
+ambiente da API, separada do banco, para que um vazamento do Firestore sozinho não entregue os tokens. Fora do
+emulador não há chave padrão.
+
+**O que acontece sem ela:** a API sobe e o build passa. O boot imprime
+`[credentials] CREDENTIALS_ENCRYPTION_KEY is not set: saving scheduled tasks is switched off.` (ou a versão de erro,
+quando o valor não decodifica para 32 bytes). Em "Minhas credenciais", a seção da nuvem mostra "O cadastro na nuvem
+está desligado neste ambiente." com as ações desabilitadas, e `PUT /boards/<id>/credentials/scheduled-tasks/<etapa>`
+responde `503 CREDENTIALS_ENCRYPTION_NOT_CONFIGURED`. Runners locais e disparos funcionam como antes. Hoje nada roda
+pela nuvem ainda (isso chega com a spec `cloud-routines-runner`), então a falta da chave não bloqueia nenhum fluxo.
+
+**Trocar a chave:** tudo o que foi cifrado com a anterior deixa de abrir. O prefixo `v1` do valor guardado reserva
+espaço para rotação com duas chaves, que ainda não existe; até lá, trocar a chave significa pedir a cada membro que
+cadastre as tarefas de novo.
+
+**Como verificar:** com a API publicada, `GET /boards/<id>/credentials` devolve `"cloudCredentialsEnabled": true`, e
+cadastrar uma tarefa na tela muda a linha da etapa para "Cadastrada", com os quatro últimos caracteres do id e do
+token. Na resposta do `PUT` e no documento `credential/<boardId>__<userId>__<etapa>` do Firestore, nem a URL nem o token
+aparecem em claro.
+
 ---
 
 ## Ordem na primeira ida a produção

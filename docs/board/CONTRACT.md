@@ -124,9 +124,12 @@ Regras que o board aplica:
 
 - Um runner só recebe `run` disparado por quem o registrou, e um de cada vez; as duas checagens rodam dentro da
   transação do `claim`.
-- O executor de cada `run` é escolhido no momento em que ele sai da fila: `local` se quem disparou tem um runner com
-  contato no último minuto, o executor de teste no emulador, ou nenhum. Sem executor, o `run` termina com
-  `no_runner`. Um `run` local que nenhum runner pegou em 2 minutos também termina com `no_runner`.
+- O executor de cada `run` é escolhido no momento em que ele sai da fila, entre os que a etapa aceita no `runners` do
+  `board.yml`: `local` se a etapa aceita o runner local e quem disparou tem um runner com contato no último minuto, o
+  executor de teste no emulador (que faz as vezes do local e da nuvem), ou nenhum. Sem executor, o `run` termina com
+  `no_credential` quando a etapa não aceita o runner local e com `no_runner` quando um runner online serviria. Um
+  `run` local que nenhum runner pegou em 2 minutos também termina com `no_runner`. O disparo faz a mesma escolha antes
+  de entrar na fila e recusa com `409 RUN_NO_CREDENTIAL_FOR_STAGE` ou `503 RUN_EXECUTOR_UNAVAILABLE`.
 - "Parar" chega à máquina pelo heartbeat, a cada 15 segundos.
 
 O que o runner faz por `run`: clona ou atualiza o repositório, cria um worktree na branch do card, avisa o início com

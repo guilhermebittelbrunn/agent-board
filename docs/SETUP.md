@@ -104,6 +104,20 @@ Sem `GITHUB_WEBHOOK_SECRET`, `POST /github/webhook` responde `503 GITHUB_APP_NOT
 imprime uma linha `[github] …` para cada caso. Criar e instalar o App:
 [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md).
 
+### Chave das credenciais da nuvem · `apps/api/env.ts`
+Só na `apps/api`. Opcional, e string vazia conta como ausente.
+
+| Var | Para quê |
+|-----|----------|
+| `CREDENTIALS_ENCRYPTION_KEY` | 32 bytes aleatórios em base64 (`openssl rand -base64 32`). Cifra a Fire URL e o token das tarefas agendadas que cada membro cadastra em "Minhas credenciais". |
+
+Com `FIRESTORE_EMULATOR_HOST` preenchido e a variável vazia, a API usa uma chave fixa de desenvolvimento, que só
+serve para o projeto `demo-*`. Só o host do emulador de Auth não basta: os documentos cifrados moram no Firestore.
+Fora do emulador e sem a variável, ou com um valor que não decodifica para 32 bytes (em qualquer ambiente), o cadastro da nuvem fica desligado: `PUT /boards/<id>/credentials/scheduled-tasks/<etapa>` responde
+`503 CREDENTIALS_ENCRYPTION_NOT_CONFIGURED` e a tela mostra o aviso. Runners locais e disparos não mudam. O boot
+imprime uma linha `[credentials] …` em cada caso, sem o valor. Ida a produção:
+[`PRE-PRODUCTION.md`](PRE-PRODUCTION.md).
+
 ### Sessão · `@repo/auth/session`
 | Var | App | Para quê |
 |-----|-----|----------|
