@@ -2,6 +2,7 @@ import { arcjetKeyState } from "@repo/security/keys";
 import { reportRequestError } from "@repo/shared/utils/helpers/requestErrorReporter";
 import type { Instrumentation } from "next";
 import { parseAllowedOrigins } from "@/(shared)/lib/cors";
+import { credentialsKeyState } from "@/(shared)/lib/credentials/credentials-key";
 import {
     githubWebhookSecret,
     resolveGithubClientMode,
@@ -59,6 +60,33 @@ function warnOnGithubAppMode(): void {
 }
 
 /**
+ * Without a usable key the scheduled task credentials cannot be sealed, so saving one answers
+ * `CREDENTIALS_ENCRYPTION_NOT_CONFIGURED`; local runners and triggering stay as they are.
+ * The value is never logged.
+ */
+function warnOnCredentialsKey(): void {
+    const { status } = credentialsKeyState({
+        CREDENTIALS_ENCRYPTION_KEY: process.env.CREDENTIALS_ENCRYPTION_KEY,
+    });
+
+    if (status === "emulator") {
+        console.warn(
+            "[credentials] CREDENTIALS_ENCRYPTION_KEY is not set: sealing scheduled tasks with the emulator-only key."
+        );
+    }
+    if (status === "absent") {
+        console.warn(
+            "[credentials] CREDENTIALS_ENCRYPTION_KEY is not set: saving scheduled tasks is switched off."
+        );
+    }
+    if (status === "invalid") {
+        console.error(
+            "[credentials] CREDENTIALS_ENCRYPTION_KEY is not 32 bytes in base64: saving scheduled tasks is switched off."
+        );
+    }
+}
+
+/**
  * Firestore is this API's database and it is reached with a service account, so a missing
  * credential is a configuration error, not a runtime state to degrade into. `env.ts` cannot
  * cover this: it skips validation in development and is only evaluated by the modules that
@@ -81,6 +109,7 @@ async function prepareServer(): Promise<void> {
 
     warnOnDisabledRateLimit();
     warnOnGithubAppMode();
+    warnOnCredentialsKey();
 
     const { getFirestoreAdmin } = await import("@repo/auth/server");
     getFirestoreAdmin();
