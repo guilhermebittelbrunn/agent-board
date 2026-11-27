@@ -36,6 +36,8 @@ export type RunRecord = {
     branch: string;
     trigger: RunTrigger;
     triggeredBy: RunPerson;
+    /** The cycle the run belongs to, copied from the card when the run is queued. */
+    cycleId: string | null;
     executor: StageExecutorKind | null;
     status: RunStatus;
     /** `true` while queued or running; equality on it is how a board finds its live runs. */
@@ -74,6 +76,7 @@ export type NewRun = Pick<
     | "branch"
     | "trigger"
     | "triggeredBy"
+    | "cycleId"
 >;
 
 export function newRunDocument(run: NewRun, now: Date) {
@@ -161,6 +164,7 @@ class RunMapper extends Mapper<RunFirestoreRow, RunRecord> {
                 userId: "",
                 login: "",
             },
+            cycleId: textOrNull(record.cycleId),
             executor: oneOf(STAGE_EXECUTOR_KINDS, record.executor, null),
             status,
             active: record.active === true,
@@ -222,6 +226,7 @@ export function toRunDTO(run: RunRecord): RunDTO {
         branch: run.branch,
         trigger: run.trigger,
         triggeredByLogin: run.triggeredBy.login,
+        cycleId: run.cycleId,
         executor: run.executor,
         status: run.status,
         outcome: run.outcome,

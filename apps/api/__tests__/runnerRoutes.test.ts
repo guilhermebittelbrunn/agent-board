@@ -26,6 +26,7 @@ const {
     finishRunMock,
     findBoardMock,
     appendAgentEventMock,
+    tickMock,
 } = vi.hoisted(() => ({
     findWithTokenMock: vi.fn(),
     touchMock: vi.fn(),
@@ -35,6 +36,11 @@ const {
     finishRunMock: vi.fn(),
     findBoardMock: vi.fn(),
     appendAgentEventMock: vi.fn(),
+    tickMock: vi.fn(),
+}));
+
+vi.mock("@/(shared)/lib/orchestrator/tick-safely", () => ({
+    tickSafely: (...args: unknown[]) => tickMock(...args),
 }));
 
 vi.mock("@/(shared)/repositories/run.repository", () => ({
@@ -115,6 +121,7 @@ beforeEach(() => {
         finishRunMock,
         findBoardMock,
         appendAgentEventMock,
+        tickMock,
     ]) {
         mock.mockReset();
     }
@@ -329,6 +336,27 @@ describe("POST /runner/runs/[runId]/finish", () => {
         expect(write.type).toBe("update");
         expect(write.runId).toBe("run1");
         expect(write.markdown).toContain("terminou em 12 min · 84 turnos");
+    });
+
+    it("closes a cycle run that hit its deadline, and only that", async () => {
+        const cycleRun = runFixture({ runnerId: "runnerA", cycleId: "c1" });
+        finishRunMock.mockResolvedValue({
+            ok: true,
+            run: cycleRun,
+            recorded: true,
+        });
+
+        await FINISH(request({ ...finish, exit: "deadline" }), runParams());
+        expect(tickMock).toHaveBeenCalledTimes(1);
+
+        await FINISH(request(finish), runParams());
+        finishRunMock.mockResolvedValue({
+            ok: true,
+            run: runFixture({ runnerId: "runnerA" }),
+            recorded: true,
+        });
+        await FINISH(request({ ...finish, exit: "deadline" }), runParams());
+        expect(tickMock).toHaveBeenCalledTimes(1);
     });
 
     it("refuses a run this runner did not claim", async () => {

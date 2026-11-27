@@ -56,6 +56,7 @@ export function getStageExecutor(
                     },
                     markdown,
                     runId: input.runId,
+                    cycleId: input.cycleId,
                 }
             );
         },

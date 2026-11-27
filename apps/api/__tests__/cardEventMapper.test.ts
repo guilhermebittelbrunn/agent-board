@@ -42,6 +42,7 @@ describe("cardEventMapper", () => {
             author: { kind: "agent", name: "desenvolvedor" },
             markdown: "### Develop",
             outcome: "success",
+            decisions: [],
             runId: null,
             createdAt: AT,
             updatedAt: AT,

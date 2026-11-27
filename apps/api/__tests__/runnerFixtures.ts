@@ -33,6 +33,7 @@ export const runFixture = (overrides: Partial<RunRecord> = {}): RunRecord => ({
     branch: "feat/search-cards",
     trigger: "drag",
     triggeredBy: { userId: "u1", login: "octo" },
+    cycleId: null,
     executor: "local",
     status: "running",
     active: true,

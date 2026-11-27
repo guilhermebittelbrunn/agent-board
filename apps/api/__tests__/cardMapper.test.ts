@@ -62,8 +62,19 @@ describe("cardMapper", () => {
             branch: null,
             activeRunId: null,
             lastRun: null,
+            cycleId: null,
             movedAt: null,
             movedByUserId: null,
+        });
+    });
+
+    it("reads the cycle a card runs in and persists it", () => {
+        expect(
+            cardMapper.toDTO({ id: "b__x", boardId: "b", cycleId: "c1" })
+                .cycleId
+        ).toBe("c1");
+        expect(cardMapper.toPersistence({ cycleId: null })).toEqual({
+            cycleId: null,
         });
     });
 

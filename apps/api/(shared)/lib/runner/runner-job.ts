@@ -27,5 +27,6 @@ export function toRunnerJob(
         install: board.config.environment.install ?? null,
         deadlineAt: run.deadlineAt ?? "",
         runToken,
+        cycleId: run.cycleId,
     };
 }

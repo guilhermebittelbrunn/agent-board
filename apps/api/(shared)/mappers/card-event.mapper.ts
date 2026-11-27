@@ -7,7 +7,9 @@ import {
     type Question,
     type ResolvedAnswer,
     STAGE_OUTCOMES,
+    type StageDecision,
     type StageOutcome,
+    stageDecisionSchema,
 } from "@repo/kanban-contract";
 import type { CardEventDTO, CardEventViewDTO } from "@repo/sdk/src/types";
 import type { AllOptional } from "@repo/shared/utils";
@@ -36,7 +38,10 @@ export type CardEventDocument = {
     answeredByEventId: string | null;
     artifact: { path: string; commitSha: string } | null;
     outcome: StageOutcome | null;
+    decisions: StageDecision[] | null;
     runId: string | null;
+    /** Copied from the run, so a cycle reads its activity in one query. */
+    cycleId: string | null;
     editedAt: Date | null;
 };
 
@@ -54,7 +59,9 @@ export type CardEventWrite = Pick<
             | "questionEventId"
             | "artifact"
             | "outcome"
+            | "decisions"
             | "runId"
+            | "cycleId"
         >
     >;
 
@@ -73,7 +80,9 @@ export function cardEventDocument(write: CardEventWrite): CardEventDocument {
         answeredByEventId: null,
         artifact: write.artifact ?? null,
         outcome: write.outcome ?? null,
+        decisions: write.decisions ?? null,
         runId: write.runId ?? null,
+        cycleId: write.cycleId ?? null,
         editedAt: null,
     };
 }
@@ -104,6 +113,13 @@ const asOutcome = (value: unknown): StageOutcome =>
 
 const asList = <T>(value: unknown): T[] =>
     Array.isArray(value) ? (value as T[]) : [];
+
+/** Stored decisions are read back through the contract schema, so a bad one is dropped. */
+const asDecisions = (value: unknown): StageDecision[] =>
+    asList<unknown>(value).flatMap((item) => {
+        const parsed = stageDecisionSchema.safeParse(item);
+        return parsed.success ? [parsed.data] : [];
+    });
 
 function toAuthor(value: unknown): CardEventAuthor {
     const author = asRecord(value);
@@ -163,6 +179,7 @@ class CardEventMapper extends Mapper<CardEventFirestoreRow, CardEventDTO> {
                     type: "report",
                     markdown: text(row.markdown),
                     outcome: asOutcome(row.outcome),
+                    decisions: asDecisions(row.decisions),
                 };
             case "comment":
                 return {

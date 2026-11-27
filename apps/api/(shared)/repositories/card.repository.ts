@@ -204,6 +204,22 @@ class CardRepository extends BaseRepository<CardRecord> {
             : { ok: false, code: "CARD_NOT_FOUND" };
     }
 
+    /** Unlinks the cards still pointing at a cycle that ended; a card moved on is left alone. */
+    async detachCycle(cardIds: string[], cycleId: string): Promise<void> {
+        for (const id of cardIds.filter(isUsableDocumentId)) {
+            const ref = this.db.collection(this.table).doc(id);
+            await this.db.runTransaction(async (transaction) => {
+                const snapshot = await transaction.get(ref);
+                if (snapshot.data()?.cycleId === cycleId) {
+                    transaction.update(ref, {
+                        cycleId: null,
+                        updatedAt: new Date(),
+                    });
+                }
+            });
+        }
+    }
+
     /** A discarded draft keeps its document, so its id (and its branch) stay taken. */
     async isIdTaken(id: string): Promise<boolean> {
         if (!isUsableDocumentId(id)) {

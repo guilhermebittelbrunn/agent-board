@@ -124,6 +124,7 @@ export async function buildAgentCardView(input: {
             reworkLoops: card.reworkLoops,
             branch: card.branch,
             origin: card.origin,
+            cycleId: run.cycleId,
         },
         run: {
             id: run.id,

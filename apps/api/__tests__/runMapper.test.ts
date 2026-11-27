@@ -27,6 +27,7 @@ const NEW_RUN = {
     branch: "feat/search-cards",
     trigger: "drag" as const,
     triggeredBy: { userId: "p1", login: "octo" },
+    cycleId: null,
 };
 
 describe("runMapper", () => {
@@ -82,6 +83,25 @@ describe("runMapper", () => {
             deadlineAt: AT,
             finishedAt: AT,
         });
+    });
+
+    it("reads a run stored before cycles existed as outside any cycle", () => {
+        const { cycleId: _cycleId, ...old } = newRunDocument(
+            NEW_RUN,
+            new Date(AT)
+        );
+        expect(runMapper.toDTO({ id: "r1", ...old }).cycleId).toBeNull();
+        expect(
+            toRunDTO(
+                runMapper.toDTO({
+                    id: "r2",
+                    ...newRunDocument(
+                        { ...NEW_RUN, cycleId: "c1" },
+                        new Date(AT)
+                    ),
+                })
+            ).cycleId
+        ).toBe("c1");
     });
 
     it("keeps who triggered and who stopped out of the public run, except the login", () => {

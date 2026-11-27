@@ -109,6 +109,7 @@ export function agentEventFromTool(
                     type: "report",
                     markdown: event.input.summary,
                     outcome: event.input.outcome,
+                    decisions: event.input.decisions ?? [],
                 },
             };
     }

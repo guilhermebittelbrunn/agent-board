@@ -93,6 +93,15 @@ export function createFakeCardRepository() {
                 });
                 return Promise.resolve();
             },
+            detachCycle(cardIds: string[], cycleId: string): Promise<void> {
+                for (const id of cardIds) {
+                    const document = documents.get(id);
+                    if (document?.cycleId === cycleId) {
+                        documents.set(id, { ...document, cycleId: null });
+                    }
+                }
+                return Promise.resolve();
+            },
             move(id: string, patch: CardMovePatch): Promise<CardMoveResult> {
                 const current = read(id);
                 if (current === null) {
