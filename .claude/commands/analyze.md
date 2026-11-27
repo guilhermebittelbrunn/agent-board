@@ -22,6 +22,8 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
   `complete_stage(needs_input)`. As de detalhe técnico seguem a recomendação default e entram em
   "Decisões tomadas sem você".
 - Crie a branch do card a partir da base e termine com commit de `docs/features/<slug>/` e push.
+- Card que veio de Rascunhos (`get_card` com `card.origin: "board"`) já teve a spec aprovada no board:
+  trate o `status: proposed` do arquivo como `approved` e grave `in-progress` como de costume.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)

@@ -52,6 +52,16 @@ stages:
     effort: low
     onPrComment: /mediate
 
+# Escrita de specs no board (coluna Rascunhos). Tudo opcional; estes são os padrões.
+# A chave de etapa "spec" é reservada para ela.
+# specAuthoring:
+#   command: /spec
+#   agent: estrategista-produto
+#   model: opus
+#   effort: high
+#   runners: [local, cloud]
+#   path: specs/features/{slug}.md
+
 limits:
   maxReworkLoops: 2
   maxTurnsPerStage: 200
