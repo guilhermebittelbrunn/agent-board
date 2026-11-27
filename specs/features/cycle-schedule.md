@@ -10,7 +10,7 @@ area: [apps/api, apps/app]
 depends_on: [cycle-runs, execution-credentials]
 contends_on: []
 feature: -
-updated: 2026-11-25
+updated: 2026-11-27
 ---
 
 # Agenda de ciclos
@@ -19,7 +19,7 @@ updated: 2026-11-25
 > - **O quê:** o board inicia um ciclo sozinho, em dias e horário definidos, com as primeiras specs de Tarefas.
 > - **Por quê:** features prontas para revisar de manhã, sem alguém precisar iniciar o ciclo à noite.
 > - **Status:** `proposed` · valor médio · esforço P · time
-> - **Próximo passo:** aguardando triagem
+> - **Próximo passo:** aprovar; depende da `cycle-runs` (fatia 2 pendente) e da `execution-credentials`, ainda sem merge
 
 ## Problema
 

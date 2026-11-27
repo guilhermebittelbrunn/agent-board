@@ -1,7 +1,7 @@
 ---
 id: spec-authoring
 title: Escrever spec com um agente, a partir de texto e anexos
-status: approved
+status: in-progress
 value: alto
 effort: G
 audience: time
@@ -9,7 +9,7 @@ phase: 2
 area: [packages/kanban-contract, packages/sdk, apps/api, apps/app, kit]
 depends_on: [orchestrator, agent-contract, card-timeline]
 contends_on: [packages/kanban-contract/src/boardConfig.ts]
-feature: -
+feature: spec-authoring
 updated: 2026-11-27
 ---
 
@@ -18,8 +18,8 @@ updated: 2026-11-27
 > **Resumo**
 > - **O quê:** descrever uma tarefa em texto livre, com anexos, e um agente transforma o pedido numa spec pronta para o pipeline, perguntando o que faltar.
 > - **Por quê:** hoje uma ideia só vira card depois que alguém escreve a spec no repositório; com isso o backlog passa a nascer dentro do board.
-> - **Status:** `approved` · valor alto · esforço G · time
-> - **Próximo passo:** `/analyze spec-authoring` (primeira da fila de 2026-11-27, por pedido do usuário)
+> - **Status:** `in-progress` · valor alto · esforço G · time · implementada na branch, aguardando PR
+> - **Próximo passo:** abrir a PR da branch da noite e mergear com o CI verde; depois o `/spec --sync` arquiva
 
 ## Problema
 
@@ -112,3 +112,11 @@ A spec `app-cleanup` vem logo depois desta e mantém o upload e o Storage justam
 - A coluna Rascunhos é fixa ou é uma etapa do `board.yml`? — **recomendação:** fixa no board, com comando e
   modelo configuráveis no `board.yml`.
 - Quem pode aprovar uma spec? — **recomendação:** `operator` ou acima; não precisa ser quem pediu.
+
+## Nota de andamento (2026-11-27)
+
+Implementada em 2026-11-27 na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (rodada autônoma do `/cycle`), com analyze, develop, review e test em `docs/features/spec-authoring/`. A branch não tem PR, push nem CI; por isso a spec continua `in-progress` e não foi arquivada.
+
+Conferido no código: coluna Rascunhos (faixa `drafts`, etapa reservada `spec`), bloco `specAuthoring` no `board.yml` (`packages/kanban-contract/src/specAuthoring.ts`), rotas `boards/[id]/drafts`, `boards/[id]/attachments` e `cards/[slug]/spec/{approve,discard}`, ferramenta `get_attachment` no contrato e `/spec` com modo board em `kit/commands/spec.md`. O `/test` fechou 18 de 19 critérios; a leitura de PDF pelo MCP depende de runner real.
+
+Diferenças em relação ao texto acima: o slug é gerado pela API; os anexos (imagem, PDF ou texto, até 3 MB) chegam ao agente pela ferramenta `get_attachment`, não embutidos no card; `needs_rework` na escrita deixa o card `failed`, de onde "Rodar de novo" sai.

@@ -1,7 +1,7 @@
 ---
 id: cycle-runs
 title: Ciclo — levar uma ou várias specs de ponta a ponta
-status: proposed
+status: in-progress
 value: alto
 effort: G
 audience: time
@@ -9,8 +9,8 @@ phase: 2
 area: [packages/kanban-contract, packages/sdk, apps/api, apps/app, kit]
 depends_on: [orchestrator, agent-contract, pr-flow]
 contends_on: [packages/kanban-contract/src/cardState.ts, packages/kanban-contract/src/agentContract.ts]
-feature: -
-updated: 2026-11-25
+feature: cycle-runs
+updated: 2026-11-27
 ---
 
 # Ciclo — levar uma ou várias specs de ponta a ponta
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** escolher uma ou mais specs em Tarefas, e o board leva cada uma da Análise até a PR sem parar para perguntar, decidindo pela política do repositório e registrando cada decisão.
 > - **Por quê:** é o `/cycle` dentro do board, para várias specs: dá para deixar o backlog andando e revisar as decisões depois.
-> - **Status:** `proposed` · valor alto · esforço G · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço G · time · implementada na branch, aguardando PR (fatia 1 de 2)
+> - **Próximo passo:** decidir a aprovação (a fatia 1 rodou sem ela, a pedido do usuário); mergear a fatia 1 e depois `/analyze cycle-runs` para a fatia 2
 
 ## Problema
 
@@ -107,3 +107,11 @@ specs, com commit na branch de cada card e um relatório do que foi decidido sem
   MVP.
 - O que conta como decisão de produto marcada para revisão? — **recomendação:** o que o modo board hoje
   mandaria como `ask`.
+
+## Nota de andamento (2026-11-27)
+
+A fatia 1 de 2 foi implementada em 2026-11-27 na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (rodada autônoma do `/cycle`), com analyze, develop, review e test em `docs/features/cycle-runs/`. A spec estava `proposed` e entrou na rodada sem aprovação formal, porque o usuário pediu para executar o máximo de specs possível naquela noite. Aprovar continua sendo decisão dele. A branch não tem PR, push nem CI.
+
+Fatia 1, conferida no código: domínio do ciclo no contrato (`packages/kanban-contract/src/cycle.ts`), `decisions` no `complete_stage` (`agentContract.ts:80`), recusa de `ask` dentro do ciclo (`AGENT_ASK_IN_CYCLE`), `--cycle` no prompt do runner (`apps/runner/src/session.ts:24`), rotas `boards/[id]/cycles`, `cycles/[cycleId]` e `cycles/[cycleId]/stop`, telas Ciclos, Novo ciclo e Ciclo, e o selo no quadro. O `/test` fechou 17 de 18 critérios.
+
+Fatia 2, ainda não feita: pausar e retomar, "Mudar" e "Concordo" nas decisões, pendências de infraestrutura na tela do ciclo e o aviso de spec dependente (`depends_on`). Pendências da fatia 1: o card pendente de um ciclo `running` fica em Tarefas sem o selo "Ciclo" até a etapa dele disparar, e ninguém mediu o que o ciclo faz se a pessoa arrastar esse card para fora; com `onFailure: stop` e duas specs ao mesmo tempo, o próximo ciclo da fila começa antes de a spec viva terminar a etapa (decisão Q6 do plano).

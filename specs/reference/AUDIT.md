@@ -5,17 +5,44 @@ fila, para decidir, fica no [`BACKLOG.md`](../BACKLOG.md).
 
 ## Última rodada
 
-**2026-11-27**, na branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, sobre `main` em `dac8f60` (merge
-da PR #11). Desde a auditoria anterior (2026-11-25, sobre `53fea15`) mergearam a PR #8 (`a19ece1`, as dez specs
-da fase 1), a #9 (deploy em produção registrado no `PRE-PRODUCTION.md`), a #10 (Vercel sem build de preview) e a
-#11 (`pr-flow` aprovada).
+**2026-11-27, fim da rodada noturna**, na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` em `f60277a`,
+81 commits à frente de `main` (`dac8f60`, merge da PR #11). Nada mergeou em `main` desde a auditoria anterior,
+feita no começo da mesma noite. A branch não tem PR, push nem CI.
 
-Verificadas 19 specs: 10 `in-progress`, 1 `approved`, 5 `proposed`, 2 `deferred`, 1 `superseded`. Transições
-aplicadas: 10 `in-progress` → `done`, todas arquivadas; `spec-authoring` `proposed` → `approved` por pedido
-direto do usuário. Spec nova: `app-cleanup`, `approved` por pedido direto do usuário. Links corrigidos:
-`docs/board/ROADMAP.md` (10).
+Verificadas 11 specs: 3 `approved`, 5 `proposed`, 2 `deferred`, 1 `superseded`. Transições aplicadas:
+`spec-authoring`, `app-cleanup` e `pr-flow` `approved` → `in-progress`; `execution-credentials` e `cycle-runs`
+`proposed` → `in-progress`. Nenhuma foi arquivada: o critério de entregue pede PR mergeada e CI verde, e as cinco
+só existem na branch. Cada uma ganhou `feature: <slug>` e uma "Nota de andamento". `execution-credentials` e
+`cycle-runs` rodaram sem aprovação formal, porque o usuário pediu para executar o máximo possível naquela noite;
+aprovar as duas continua com ele.
 
-## Entregas conferidas
+Outras mudanças: `cloud-routines-runner` passou a registrar que o cadastro de URL e token por etapa já existe
+(entregue pela `execution-credentials`) e ganhou `contends_on`; a `app-cleanup` trocou no `contends_on` o
+`common-panel.ts`, que não existe mais, pelo `session.ts`; o próximo passo de `spec-discovery` e `cycle-schedule`
+agora diz o que as bloqueia.
+
+## Rodada noturna: implementadas, aguardando PR
+
+Cada item do corte de MVP foi procurado no código da branch. Nenhum dos itens do corte das quatro specs completas
+está ausente; a `cycle-runs` tem quatro itens deixados de propósito para a fatia 2.
+
+| spec | itens do corte | evidência principal | `/test` |
+|------|----------------|---------------------|---------|
+| `spec-authoring` | 8 de 8 | `packages/kanban-contract/src/specAuthoring.ts`, `agentContract.ts:101` (`get_attachment`), `apps/api/app/(routes)/boards/[id]/drafts/route.ts`, `boards/[id]/attachments/route.ts`, `cards/[slug]/spec/approve/route.ts`, `cards/[slug]/spec/discard/route.ts`, `SpecDraftDetail.tsx`, `kit/commands/spec.md` | 18 ✅, 1 🔒 (PDF via MCP) |
+| `app-cleanup` | 8 de 8 | `apps/app/app/[locale]/(authenticated)/(common)/(pages)/` só com `account` e `boards`; `apps/app/app/[locale]/(landing)/`; `apps/app/public/landing/`; `apps/api/app/(guards)/` só com `session.ts` e `board.ts`; nenhum `isImpersonating`, `requireAdminApi` ou `requireCommonPanelApi` em `apps/` e `packages/` | 20 ✅ |
+| `pr-flow` | 4 de 4 | `apps/api/(shared)/lib/pull-request/pull-request-open.ts`, `pull-request-webhook.ts:74-77`, `:258`, `orchestrator.ts:235` (`onPrComment`), `CardPullRequest.tsx` | aprovado na rodada 2; GitHub real 🔒 |
+| `execution-credentials` | 5 de 5 | `apps/api/(shared)/lib/credentials/secret-box.ts`, `credentials-key.ts`, `boards/[id]/credentials/route.ts`, `credentials/scheduled-tasks/[stageKey]/route.ts`, `packages/kanban-contract/src/run.ts:21` (`no_credential`), `roles.ts:48` | 17 ✅ |
+| `cycle-runs` (fatia 1) | 5 de 9 | `packages/kanban-contract/src/cycle.ts`, `agentContract.ts:80` (`decisions`), `AGENT_ASK_IN_CYCLE` em `agent-tools.ts`, `apps/runner/src/session.ts:24`, `boards/[id]/cycles/**`, `CycleProgressTable.tsx`, `CycleDecisions.tsx`, `StopCycleDialog.tsx` | 17 ✅, 1 🟡 |
+
+Itens da `cycle-runs` que faltam (fatia 2): pausar depois da etapa atual (só parar existe), "Mudar" uma decisão,
+pendências de infraestrutura na tela do ciclo e o aviso de spec dependente. `cycle.ts` não tem estado de pausa.
+
+Cruzamento com o pipeline: os cinco `docs/features/<slug>/STATE.md` trazem `spec: <id>` e `analyze`, `develop`,
+`review` e `test` em `done`. O campo `branch` está `-` em quatro deles e com a branch da noite na
+`spec-authoring`. O `/test` da `cycle-runs` apontou mensagens de commit deslocadas em um; a branch atual já tem os
+commits refeitos (`aef2c4e` leva o domínio do ciclo no contrato, `eb1b3e8` é o `docs(board)`).
+
+## Entregas conferidas da fase 1
 
 Cada item do corte de MVP das dez specs foi procurado no código. Nenhum item está ausente. Os itens que
 ficaram diferentes do texto estão em "Deriva"; nenhum deles deixa de entregar o que o item pedia.
@@ -27,7 +54,7 @@ ficaram diferentes do texto estão em "Deriva"; nenhum deles deixa de entregar o
 | `board-import` | 5 de 5 | `apps/api/(shared)/lib/board-import.ts:136-212`, `packages/kanban-contract/src/boardConfigIssues.ts:27-94`, `apps/api/app/(routes)/boards/[id]/reload/route.ts:36-116` |
 | `board-members` | 6 de 6 | `apps/api/app/(guards)/board.ts:25-55`, `apps/api/(shared)/lib/board-access.ts:139-214`, `packages/kanban-contract/src/roles.ts:65-106`, `boards/[id]/members/**` |
 | `card-backlog` | 7 de 7 | `apps/api/(shared)/lib/card-sync.ts:97-337`, `boards/[id]/cards/order/route.ts:13-40`, `boards/[id]/cards/[slug]/spec/route.ts:38-47`, `BoardColumns.tsx:250-324` |
-| `theme-toggle` | 3 de 3 | `packages/design-system/components/ui/mode-toggle.tsx:23-34`, `apps/app/shared/components/ui/Navbar.tsx:29`, `apps/app/__tests__/boardThemeTokens.test.ts:31` |
+| `theme-toggle` | 3 de 3 | `packages/design-system/components/ui/mode-toggle.tsx:23-34`, `apps/app/shared/components/ui/Navbar.tsx:43`, `apps/app/__tests__/boardThemeTokens.test.ts:31` |
 | `card-timeline` | 6 de 6 | `packages/kanban-contract/src/cardEvent.ts:5-116`, `boards/[id]/cards/[slug]/answers/route.ts:26-50`, `CardQuestions.tsx:74-135`, `CardArtifacts.tsx:52-83` |
 | `orchestrator` | 8 de 8 | `apps/api/(shared)/lib/orchestrator/decide.ts:44-310`, `orchestrator.ts:86-332`, `run.repository.ts:145-225`, `CardRunControls.tsx:35-64` |
 | `agent-contract` | 6 de 6 | `apps/api/app/(routes)/agent/tools/[tool]/route.ts:9`, `apps/api/app/(routes)/mcp/route.ts:11`, `agent-card-view.ts:83-128`, `agent-tools.ts:99-136`, `apps/api/__tests__/agentToolsRoutes.test.ts:280-304` |
@@ -41,72 +68,94 @@ As 2 `deferred` (`clickup-import`, `github-actions-runner`) não foram entregues
 (`schedules-and-budgets`) aponta para `cycle-schedule`, que existe e está `proposed`. `fork-cleanup`
 (arquivada) sem regressão.
 
+
 ## Gates
 
-Gates locais não rodados nesta rodada; a medição vem do CI.
+Gates locais não rodados nesta auditoria. Os números da rodada noturna vêm do `/test` de cada feature, no working
+tree da branch, e não do CI.
 
 | Gate | Resultado |
 |------|-----------|
-| CI da PR #8 | `verify`, `e2e`, `coverage`, `audit`, `secrets` e `changes` verdes. |
-| CI de `main` no push do merge `a19ece1` (run 45865765915) | Vermelho: `e2e` falhou em `apps/e2e/tests/focusNotObscured.spec.ts:188` (timeout de 120 s no `locator.click`). Os outros cinco jobs verdes. |
-| CI de `main` em `a80dd70` (run 45888331957) | Vermelho no mesmo teste. |
+| CI da branch da noite | Nunca rodou: sem push nem PR. |
+| `/test` da `cycle-runs` (último da noite) | `pnpm test` 14/14 tarefas, `pnpm e2e` 20/20. |
+| `/test` da `execution-credentials` | `pnpm test` duas vezes verde (api 1150, app 701, emulador 135), `pnpm e2e` 20/20. |
+| `/test` da `app-cleanup` | `pnpm test` 14/14, `pnpm e2e` 20/20, `next build` de app e api verdes. |
 | CI de `main` em `dac8f60` (run 45892697078) | Os seis jobs verdes. |
-
-O teste que oscila mede o formulário de edição de `entity`, que a `app-cleanup` remove (achado A6).
+| CI de `main` em `a19ece1` e `a80dd70` | Vermelho em `apps/e2e/tests/focusNotObscured.spec.ts:188`. O arquivo saiu na `app-cleanup` (A6). |
 
 ## Lotes paralelos
 
-Elegíveis: `approved`/`proposed` com `depends_on` entregue. Passam quatro specs: `spec-authoring`, `app-cleanup`,
-`pr-flow` e `execution-credentials`. As outras quatro dependem de spec ainda não entregue (`cycle-runs` de
-`pr-flow`; `cloud-routines-runner` de `execution-credentials`; `spec-discovery` de `spec-authoring`;
-`cycle-schedule` de `cycle-runs` e `execution-credentials`).
+**Nenhuma spec é elegível hoje.** As três `proposed` dependem de spec que só existe na branch da noite, e spec
+implementada mas não mergeada conta como `in-progress`: quem depender dela ramificaria de uma base sem o código.
+
+| spec | `depends_on` não satisfeito |
+|------|-----------------------------|
+| `cloud-routines-runner` | `execution-credentials` |
+| `spec-discovery` | `spec-authoring` |
+| `cycle-schedule` | `cycle-runs` (fatia 2 pendente) e `execution-credentials` |
+
+Projeção para depois do merge da PR da noite, pela ordem recomendada e lendo o `contends_on` do disco:
 
 | Lote | Specs | O que cada uma toca (`contends_on`) | Por que não colidem |
 |------|-------|-------------------------------------|---------------------|
-| 1 | `spec-authoring`, `app-cleanup`, `pr-flow` | `boardConfig.ts` · layout comum do app, `common-panel.ts` e `Navbar.tsx` · nenhum | Conjuntos disjuntos |
-| 2 | `execution-credentials` | nenhum | Sozinha |
+| 1 | `cloud-routines-runner`, `spec-discovery` | `boards/[id]/credentials/scheduled-tasks/[stageKey]/route.ts` · `packages/kanban-contract/src/agentContract.ts` | Conjuntos disjuntos |
 
-`execution-credentials` ficou fora do lote 1 só pelo teto de 3, sem colisão.
-
-Ressalva forte para esta rodada: a `app-cleanup` declara três arquivos, mas tira o `isImpersonating` de 12
-arquivos de `boards/` no app e de 6 da API, e mexe nos códigos de erro de
-`packages/internationalization/translations/packages/shared/utils.ts`, que a `spec-authoring` e a `pr-flow`
-também vão alterar. O lote disjunto em `contends_on` não reflete o risco real. O usuário definiu execução em
-sequência (1º `spec-authoring`, 2º `app-cleanup`, 3º `pr-flow`), e é o que se recomenda: a `app-cleanup` roda
-sozinha.
+`cycle-schedule` fica fora do lote 1 por dependência, não por colisão: precisa da `cycle-runs` inteira. A fatia 2
+da `cycle-runs` é continuação de spec `in-progress` e não entra no cálculo; se rodar em paralelo, colide com a
+`spec-discovery` em `packages/kanban-contract/src/agentContract.ts`, que as duas declaram. Rodar a fatia 2 junto com
+a `cloud-routines-runner` não colide no `contends_on`.
 
 Nota de processo: só um workspace roda a auditoria (`--audit-only`); os demais usam `--no-audit`. Sem isso, o
 `BACKLOG.md` é reescrito por mais de um agente ao mesmo tempo.
 
-Ressalva geral: `contends_on` disjunto reduz conflito, não elimina.
+Ressalva: `contends_on` disjunto reduz conflito, não elimina. Na noite, as cinco specs mexeram em
+`packages/internationalization/translations/packages/shared/utils.ts` (os `apiErrors`), arquivo que nenhuma
+declarou. Rodaram em sequência, então não houve conflito.
 
-## Pré-condições das specs aprovadas
+## Pré-condições depois do merge
 
-- **`spec-authoring`.** Dependências (`orchestrator`, `agent-contract`, `card-timeline`) entregues em `main`.
-  Roda contra o emulador sem infra externa. O upload existente (`apps/api/app/(routes)/files/route.ts`) aceita só
-  imagem JPEG, PNG ou WebP até 4 MiB, então PDF e texto pedem ampliar a validação. Em produção, anexos exigem o
-  Cloud Storage no plano Blaze (item 12 do `docs/PRE-PRODUCTION.md`); sem ele, a rota responde
-  `503 STORAGE_NOT_CONFIGURED`, e o pedido em texto precisa funcionar sozinho. O `kit/commands/` não tem
-  `spec.md` e o `/spec` deste repo não tem modo board: os dois estão dentro do corte.
-- **`app-cleanup`.** Sem dependência. Roda inteira no emulador. Mantém upload e Storage por causa da
-  `spec-authoring`.
-- **`pr-flow`.** Dependências (`github-app-integration`, `orchestrator`) entregues. Abrir PR de verdade exige o
-  GitHub App criado com permissão de escrita em pull requests; no emulador vale o cliente GitHub falso.
+- **Infra em produção.** Publicar `firestore.indexes.json` (item 10 do `docs/PRE-PRODUCTION.md`, da
+  `app-cleanup`); definir `CREDENTIALS_ENCRYPTION_KEY` na API (sem ela o cadastro da nuvem fica desligado e o resto
+  funciona); conferir `Pull requests: Read and write` no GitHub App e assinar os eventos `Pull request`,
+  `Pull request review`, `Issue comment` e `Check suite` (item 5). Os três já estão no `PRE-PRODUCTION.md`.
+- **Repositórios importados.** Precisam da seção nova do kit (§2.1 da regra do modo board, decisões dentro do
+  ciclo). Sem ela, a API recusa o `ask` e a spec sai do ciclo.
+- **`cloud-routines-runner`.** O cadastro por etapa já existe; o corte que resta é o adapter de disparo, o guia de
+  criação da tarefa e a linha para a etapa `spec`.
 
 ## Dependências
 
 | spec | `depends_on` | situação |
 |------|--------------|----------|
-| `spec-authoring` | `orchestrator`, `agent-contract`, `card-timeline` | satisfeito |
-| `app-cleanup` | — | satisfeito |
-| `pr-flow` | `github-app-integration`, `orchestrator` | satisfeito |
-| `execution-credentials` | `board-members`, `local-runner` | satisfeito |
-| `cycle-runs` | `orchestrator`, `agent-contract`, `pr-flow` | espera `pr-flow` |
-| `cloud-routines-runner` | `agent-contract`, `execution-credentials` | espera `execution-credentials` |
-| `spec-discovery` | `spec-authoring` | espera `spec-authoring` |
+| `spec-authoring` | `orchestrator`, `agent-contract`, `card-timeline` | satisfeito; spec `in-progress` |
+| `app-cleanup` | — | satisfeito; spec `in-progress` |
+| `pr-flow` | `github-app-integration`, `orchestrator` | satisfeito; spec `in-progress` |
+| `execution-credentials` | `board-members`, `local-runner` | satisfeito; spec `in-progress` |
+| `cycle-runs` | `orchestrator`, `agent-contract`, `pr-flow` | `pr-flow` só na branch; spec `in-progress` |
+| `cloud-routines-runner` | `agent-contract`, `execution-credentials` | espera o merge da `execution-credentials` |
+| `spec-discovery` | `spec-authoring` | espera o merge da `spec-authoring` |
 | `cycle-schedule` | `cycle-runs`, `execution-credentials` | espera as duas |
 
 ## Deriva
+
+### Rodada noturna
+
+Detalhe na "Nota de andamento" de cada spec e nas "Perguntas em aberto" de cada `analyze/plan.md`.
+
+| spec | especificado | implementado | leitura |
+|------|--------------|--------------|---------|
+| `spec-authoring` | Anexos como dados do card | Ferramenta `get_attachment`; imagem, PDF ou texto até 3 MB; slug gerado pela API | Spec imprecisa |
+| `spec-authoring` | Perguntas da escrita no bloco do card | `needs_rework` na etapa `spec` deixa o card `failed` | Decisão de implementação, coerente com "Rodar de novo" |
+| `app-cleanup` | Guard de sessão deixa de ler `x-role` | Guard novo `session.ts` (`requireSessionApi`); `common-panel.ts` saiu | Spec imprecisa; `contends_on` corrigido |
+| `pr-flow` | `/mediate` a cada comentário | Com limite por hora | Implementação acrescentou limite; aceitável |
+| `pr-flow` | Linha do tempo traduzida | Textos em pt-br gravados pela API (decisão 5 do plano) | Implementação desviou, com motivo registrado no `review.md` |
+| `execution-credentials` | `run` registra a credencial usada | Registra `triggeredBy`, tipo de executor e `runnerId`; o id da credencial da nuvem fica para o adapter | Spec imprecisa |
+| `execution-credentials` | Sem nenhuma credencial, recusa | `no_runner` quando a etapa aceita runner local, `no_credential` quando não aceita | Implementação refinou o texto; melhor que o especificado |
+| `cloud-routines-runner` | Pergunta aberta recomendava uma tarefa única por repositório | `execution-credentials` gravou uma credencial por etapa | Recomendação da spec atualizada para "por etapa" |
+| `cycle-runs` | Selo do ciclo nos cards do ciclo | Selo só aparece quando a etapa do card dispara | Implementação desviou (A16) |
+| `cycle-runs` | Ciclo para na falha | Com duas specs, o próximo ciclo da fila começa antes de a spec viva terminar | Decisão Q6 do plano; com o usuário |
+
+### Fase 1
 
 Cada spec arquivada ganhou uma seção "Nota de entrega" com o detalhe. Resumo:
 
@@ -126,31 +175,55 @@ Cada spec arquivada ganhou uma seção "Nota de entrega" com o detalhe. Resumo:
 ## Achados e pendências
 
 - **A1 — resolvido.** O login por e-mail e senha ficou só no emulador; seed, E2E e `/test` seguem funcionando.
-- **A2 — CI vermelho nos PRs do Dependabot.** #3 (`verify`, `e2e`), #4 (`verify`, TypeScript 7.0.2), #6
-  (`verify`, `coverage`) e #7 (`verify`) continuam abertos e vermelhos. Causa não medida. Sem dono.
+- **A2 — CI vermelho nos PRs do Dependabot.** #3, #4 (TypeScript 7.0.2), #6 e #7 continuam abertos. Causa não
+  medida. Sem dono. A `app-cleanup` tirou dependências (`zustand`), então os PRs podem precisar de rebase.
 - **A3 — `fork-cleanup` não tem `STATE.md`.** Entregue fora do pipeline, por decisão registrada na spec.
 - **A4 — Credenciais de produção.** GitHub App e OAuth App no Firebase seguem no `docs/PRE-PRODUCTION.md`; os
   sinais de pronto contra repositório real continuam sem medida.
 - **A5 — resolvido.** O parser `yaml` entrou como dependência de `@repo/kanban-contract`.
-- **A6 — E2E intermitente em `main`.** `focusNotObscured.spec.ts:188` falhou nos pushes de `a19ece1` e `a80dd70`
-  e passou em `dac8f60`. Mede o formulário de `entity`; sai com a `app-cleanup`.
+- **A6 — resolvido na branch, aguardando merge.** O `focusNotObscured.spec.ts`, que oscilava em `main`, saiu com a
+  `app-cleanup`.
 - **A7 — Cache de permissão em memória.** `github-permission-cache.ts:54`. Em serverless, o webhook `member` só
-  invalida a instância que o recebeu; as outras esperam o TTL de 5 minutos. Aceitável no MVP; vira risco com
-  mais de uma pessoa no board.
-- **A8 — `operator` dispara antes da fase 2.** `roles.ts:47-49` e o guard `"trigger"` liberam disparo a partir de
-  `operator`; o `ROADMAP.md` diz que, antes da fase 2, só o dono dispara. Decisão do usuário.
-- **A9 — Cards de Tarefas sem selo nem branch.** `BoardCardItem.tsx:81`, `:97`. Pequeno; sem dono.
+  invalida a instância que o recebeu; as outras esperam o TTL de 5 minutos. Aceitável no MVP.
+- **A8 — absorvido pela `execution-credentials`.** O corte dela diz "`operator` passa a disparar", o que já era o
+  código (`roles.ts:48`). Aprovar a spec fecha a decisão; o roadmap coloca `operator` na fase 2, como a spec.
+- **A9 — Cards de Tarefas sem selo nem branch.** `BoardCardItem.tsx`. Pequeno; sem dono. Ver também A16.
 - **A10 — Código morto.** `issueRunToken` (`apps/api/(shared)/lib/agent-contract/run-token.ts:51`) e
-  `runRepository.setToken` (`run.repository.ts:101`) só aparecem em testes; `isEmptyStagesDiff`
-  (`packages/kanban-contract/src/boardConfigDiff.ts:32`) também. Herdados do core: `reloadCurrentUser`
-  (`packages/auth/client.ts:208`) e `apps/app/shared/hooks/useHealthCheck.ts`, sem chamador.
+  `runRepository.setToken` (`run.repository.ts:173`) só aparecem em testes; `isEmptyStagesDiff`
+  (`packages/kanban-contract/src/boardConfigDiff.ts:43`) também. Herdados do core: `reloadCurrentUser`
+  (`packages/auth/client.ts:208`) e `apps/app/shared/hooks/useHealthCheck.ts`, sem chamador. Somam-se as props
+  `canRevoke` e `canGenerate` de `RunnerList` e `RunnerRegistrationPanel`, que a `app-cleanup` deixou sem função.
 - **A11 — Doc diverge do código.** `docs/board/DECISIONS.md:139`, `docs/board/README.md:37` e a tabela da fase 1
-  do `ROADMAP.md` dizem que o runner usa o Agent SDK; o código chama `claude -p` (`apps/runner/src/session.ts`).
+  do `ROADMAP.md` ainda dizem que o runner usa o Agent SDK; o código chama `claude -p` (`apps/runner/src/session.ts`).
 - **A12 — `STATE.md` desatualizados.** As dez features da fase 1 mostram `review: in-progress`, mas os commits
-  estão em `main` desde a PR #8. A auditoria só acrescentaria `spec:`, que já existe; o ajuste da etapa é do
-  pipeline.
-- **A13 — G2 não medido.** As dez specs entraram pelo `/cycle` no terminal, não por cards do board. O G2 pede
-  três features de Análise a Concluído **no board**. Continua aberto.
+  estão em `main` desde a PR #8. O ajuste da etapa é do pipeline.
+- **A13 — G2 não medido.** As dez specs da fase 1 e as cinco da noite entraram pelo `/cycle` no terminal, não por
+  cards do board. O G2 pede três features de Análise a Concluído no board. Com `pr-flow` e `cycle-runs` mergeadas,
+  o board passa a ter o que falta para medir.
+- **A14 — Branch da noite sem PR e fora do padrão.** `guilhermebittelbrunn/chore-overnight-cycle-specs`, 81
+  commits, não bate com `<project>/<type>/<title>`; o usuário pediu para manter tudo nela durante a noite. O CI
+  nunca rodou sobre esses commits. Os cinco `review.md` recomendam abrir a PR a partir de uma branch no padrão.
+- **A15 — Infra pendente das specs da noite.** `firestore.indexes.json` a publicar (`app-cleanup`), permissão
+  `Pull requests: Read and write` e quatro eventos no GitHub App (`pr-flow`), `CREDENTIALS_ENCRYPTION_KEY`
+  (`execution-credentials`). Tudo registrado no `docs/PRE-PRODUCTION.md`, itens 5 e 10 e "Chave das credenciais da
+  nuvem".
+- **A16 — Card pendente de ciclo sem selo.** `BoardCardItem.tsx:88` só mostra o selo quando `card.cycleId` existe,
+  e o `cycleId` entra no card quando a etapa dispara. Com `concurrency: 1`, a segunda spec fica em Tarefas sem
+  indicação, e ninguém mediu o que o ciclo faz se a pessoa arrastar esse card para fora. 🟡 do `/test` da
+  `cycle-runs`.
+- **A17 — Contraste do ponto de checks no escuro.** O ponto verde de CI passando mede 2,82:1 no tema escuro. 🟢
+  aceito no `/test` da `pr-flow`, sem correção.
+- **A18 — `DELETE` de credencial exige `trigger`.** `credentials/scheduled-tasks/[stageKey]/route.ts:68`. Quem
+  cadastrou como `operator` e virou `viewer` vê a própria linha e não consegue apagar o segredo. Decisão de produto,
+  com o usuário.
+- **A19 — Ajustes de produto da `spec-authoring` não feitos.** O assistente de criação do quadro não mostra
+  Rascunhos, clicar fora do diálogo Nova spec descarta o texto e arquivos pequenos aparecem como "1 kB". O
+  `review.md` deixou para decisão de produto.
+- **A20 — Pendências 🔒 que só um ambiente real mede.** PDF lido pelo modelo via MCP (`spec-authoring`); PR real
+  com autor `[bot]`, 403 e 422 do GitHub e entrega real dos eventos (`pr-flow`); oferta do Chrome para salvar o
+  token (`execution-credentials`); tick no `deadline` com runner real (`cycle-runs`).
+- **A21 — Atividade do ciclo com crases literais.** `CycleActivity` mostra a primeira linha do markdown como texto
+  ("Executor de teste: \`/develop dark-theme\` iniciado…"). 🟢 do `/test` da `cycle-runs`.
 
 ## Entregues
 

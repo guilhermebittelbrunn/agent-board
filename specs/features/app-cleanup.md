@@ -1,15 +1,15 @@
 ---
 id: app-cleanup
 title: App só com o board, área do usuário no cabeçalho e landing simples
-status: approved
+status: in-progress
 value: médio
 effort: M
 audience: dx
 phase: 1
 area: [apps/app, apps/api, apps/e2e, packages/sdk, packages/internationalization, docs, .claude]
 depends_on: []
-contends_on: [apps/app/app/[locale]/(authenticated)/(common)/layout.tsx, apps/api/app/(guards)/common-panel.ts, apps/app/shared/components/ui/Navbar.tsx]
-feature: -
+contends_on: [apps/app/app/[locale]/(authenticated)/(common)/layout.tsx, apps/api/app/(guards)/session.ts, apps/app/shared/components/ui/Navbar.tsx]
+feature: app-cleanup
 updated: 2026-11-27
 ---
 
@@ -18,14 +18,14 @@ updated: 2026-11-27
 > **Resumo**
 > - **O quê:** tirar do app e da API o que veio do next-boilerplate e o board não usa (admin, impersonação, playground, CRUD `entity`, notificações, sidebar genérica), deixar o app autenticado só com as telas de board, levar conta e preferências para o menu do usuário no cabeçalho e trocar o redirecionamento da raiz por uma landing que mostra a animação do board.
 > - **Por quê:** hoje um usuário com `type: admin` não usa o board sem impersonar alguém, o E2E de `main` falha de forma intermitente num formulário de `entity` que ninguém usa, e cada spec nova passa por código e docs que descrevem outro produto.
-> - **Status:** `approved` · valor médio · esforço M · dx
-> - **Próximo passo:** `/analyze app-cleanup`, segunda da fila de 2026-11-27, depois da `spec-authoring`
+> - **Status:** `in-progress` · valor médio · esforço M · dx · implementada na branch, aguardando PR
+> - **Próximo passo:** abrir a PR da branch da noite e mergear com o CI verde; depois o `/spec --sync` arquiva e publica `firestore.indexes.json` (item 10 do `docs/PRE-PRODUCTION.md`)
 
 ## Problema
 
 O `fork-cleanup` (PR #1) tirou organizações, cobrança, e-mail e trilha de auditoria, mas manteve de propósito o admin com impersonação, as notificações e o CRUD de exemplo. Com a fase 1 entregue, esse resto atrapalha de três jeitos:
 
-- **Bloqueia uso real.** Toda rota de board passa por `requireCommonPanelApi`, que recusa quem tem `type` diferente de `common` (`apps/api/app/(guards)/common-panel.ts:74`). O layout comum manda admin sem impersonação para `/admin` (`apps/app/app/[locale]/(authenticated)/(common)/layout.tsx:47-52`).
+- **Bloqueia uso real.** Toda rota de board passa por `requireCommonPanelApi`, que recusa quem tem `type` diferente de `common` (`apps/api/app/(guards)/session.ts:74`). O layout comum manda admin sem impersonação para `/admin` (`apps/app/app/[locale]/(authenticated)/(common)/layout.tsx:47-52`).
 - **Quebra o CI.** Em `main`, o job `e2e` falhou nos pushes de `a19ece1` (run 45865765915) e `a80dd70` (run 45888331957) no mesmo teste, `apps/e2e/tests/focusNotObscured.spec.ts:188`, que mede o formulário de edição de `entity`. O push seguinte, `dac8f60`, passou: é intermitente, e num teste de uma tela que o board não usa.
 - **Ensina o padrão errado.** `CLAUDE.md`, `AGENTS.md`, as skills `new-crud` e `new-api-route` e o `docs/feature-analysis-guide.md` apontam o CRUD `entity` como referência viva. Os agentes copiam dali um guard de painel com impersonação que o board não tem.
 
@@ -144,3 +144,11 @@ Inventário de 2026-11-27, com o uso conferido por `grep`.
 - O avatar continua com upload ou passa a ser sempre o do GitHub? — **recomendação:** manter o upload nesta spec e decidir depois da `spec-authoring`, que também usa o Storage.
 - O consentimento de cookies e o `@repo/analytics` saem? — **recomendação:** fora desta spec. Abrir uma spec pequena depois, se o usuário quiser.
 - A landing fica no mesmo app (`apps/app`) ou num app separado? — **recomendação:** no mesmo app, como rota pública; um app novo traria outro deploy na Vercel para uma página só.
+
+## Nota de andamento (2026-11-27)
+
+Implementada em 2026-11-27 na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (rodada autônoma do `/cycle`), com analyze, develop, review e test em `docs/features/app-cleanup/`. A branch não tem PR, push nem CI; por isso a spec continua `in-progress` e não foi arquivada.
+
+Conferido no código: o app autenticado só tem `account` e `boards`; a landing está em `apps/app/app/[locale]/(landing)/` com `apps/app/public/landing/agent-board.{mp4,webm}` e o poster; a API ficou com os guards `session.ts` e `board.ts`; nenhum arquivo de `apps/` ou `packages/` lê `isImpersonating`, `x-role` (fora do teste que prova que o cabeçalho é ignorado), `requireAdminApi` ou `requireCommonPanelApi`; o `focusNotObscured.spec.ts` saiu do E2E. O `/test` fechou 20 critérios e `pnpm e2e` 20/20.
+
+Diferenças em relação ao texto acima: o guard de sessão virou `apps/api/app/(guards)/session.ts` (`requireSessionApi`), que substituiu o `common-panel.ts` (o `contends_on` acima já aponta para ele); o `docs/AUTH-PANEL.md` ficou como página curta sobre sessão. Pendente sem bloqueio: as props `canRevoke` e `canGenerate` de `RunnerList` e `RunnerRegistrationPanel` ficaram sem função.

@@ -1,7 +1,7 @@
 ---
 id: execution-credentials
 title: Credenciais de execução por membro
-status: proposed
+status: in-progress
 value: alto
 effort: M
 audience: confianca
@@ -9,8 +9,8 @@ phase: 2
 area: [apps/api, apps/app, packages/sdk, packages/kanban-contract]
 depends_on: [board-members, local-runner]
 contends_on: []
-feature: -
-updated: 2026-11-25
+feature: execution-credentials
+updated: 2026-11-27
 ---
 
 # Credenciais de execução por membro
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** cada membro dispara etapas com a própria credencial do Claude.
 > - **Por quê:** sem isso o papel de operador não serve e tudo roda na conta de uma pessoa só.
-> - **Status:** `proposed` · valor alto · esforço M · confianca
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `in-progress` · valor alto · esforço M · confianca · implementada na branch, aguardando PR
+> - **Próximo passo:** decidir a aprovação (rodou sem ela, a pedido do usuário); depois abrir a PR da branch da noite e mergear com o CI verde
 
 ## Problema
 
@@ -75,3 +75,11 @@ de uma pessoa só.
 ## Perguntas em aberto
 
 - Cifragem com chave própria no env ou KMS do Google Cloud? — **recomendação:** chave no env no MVP.
+
+## Nota de andamento (2026-11-27)
+
+Implementada em 2026-11-27 na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (rodada autônoma do `/cycle`), com analyze, develop, review e test em `docs/features/execution-credentials/`. A spec estava `proposed` e entrou na rodada sem aprovação formal, porque o usuário pediu para executar o máximo de specs possível naquela noite. Aprovar continua sendo decisão dele. A branch não tem PR, push nem CI; por isso a spec está `in-progress` e não foi arquivada.
+
+Conferido no código: coleção `credential` cifrada com AES-256-GCM (`apps/api/(shared)/lib/credentials/secret-box.ts`, chave em `credentials-key.ts`), rotas `boards/[id]/credentials` e `credentials/scheduled-tasks/[stageKey]`, seção da nuvem em Minhas credenciais, escolha do executor por `stage.runners` e o motivo `no_credential` no contrato (`packages/kanban-contract/src/run.ts:21`). `operator` já disparava antes (`roles.ts:48`). O `/test` fechou 17 de 17 critérios.
+
+Diferenças em relação ao texto acima: o `run` grava quem disparou (`triggeredBy`), o tipo de executor e o `runnerId` do claim, mas não o id da credencial da nuvem, que só passa a ser usada com o adapter da `cloud-routines-runner`. O cadastro da etapa `spec` foi para o corte da `cloud-routines-runner`. Em aberto com o usuário: o `DELETE` da própria credencial exige `trigger`, então quem virou `viewer` não consegue apagar o segredo que cadastrou. Infra: `CREDENTIALS_ENCRYPTION_KEY` no env de produção da API (`docs/PRE-PRODUCTION.md`).

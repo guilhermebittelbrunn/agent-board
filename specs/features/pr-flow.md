@@ -1,7 +1,7 @@
 ---
 id: pr-flow
 title: Coluna Aguardando PR (abrir, acompanhar e concluir)
-status: approved
+status: in-progress
 value: alto
 effort: M
 audience: time
@@ -9,8 +9,8 @@ phase: 2
 area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: [github-app-integration, orchestrator]
 contends_on: []
-feature: -
-updated: 2026-11-26
+feature: pr-flow
+updated: 2026-11-27
 ---
 
 # Coluna Aguardando PR (abrir, acompanhar e concluir)
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** abrir a PR do card, acompanhar reviews e CI e concluir no merge.
 > - **Por quê:** o fim da tarefa acontece no GitHub e hoje fica fora do card.
-> - **Status:** `approved` · valor alto · esforço M · time
-> - **Próximo passo:** `/analyze pr-flow`, pelo card do board
+> - **Status:** `in-progress` · valor alto · esforço M · time · implementada na branch, aguardando PR
+> - **Próximo passo:** abrir a PR da branch da noite e mergear com o CI verde; conferir o GitHub App (item 5 do `docs/PRE-PRODUCTION.md`) antes de usar num repositório real
 
 ## Problema
 
@@ -68,3 +68,11 @@ pedem ajustes, CI falhando e o merge que conclui a tarefa. Hoje isso é manual e
 ## Perguntas em aberto
 
 - PR como draft por padrão? — **recomendação:** sim.
+
+## Nota de andamento (2026-11-27)
+
+Implementada em 2026-11-27 na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (rodada autônoma do `/cycle`), com analyze, develop, review e test em `docs/features/pr-flow/`. A branch não tem PR, push nem CI; por isso a spec continua `in-progress` e não foi arquivada.
+
+Conferido no código: abertura da PR pelo App (`apps/api/(shared)/lib/pull-request/pull-request-open.ts`), webhooks de PR, review, comentário e checks aplicados ao card (`pull-request-webhook.ts`), `onPrComment` disparado pelo orquestrador com limite por hora (`orchestrator.ts:235`) e o bloco da PR no card (`CardPullRequest.tsx`). Merge leva a Concluído e fechamento volta a Tarefas. O `/test` aprovou na rodada 2.
+
+Para usar num repositório real falta infra: `Pull requests: Read and write` no GitHub App e a assinatura dos eventos `Pull request`, `Pull request review`, `Issue comment` e `Check suite` (item 5 do `docs/PRE-PRODUCTION.md`). Ficou aceito, sem correção, o contraste de 2,82:1 do ponto verde de checks no tema escuro.

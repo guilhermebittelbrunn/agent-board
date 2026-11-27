@@ -7,31 +7,37 @@ a fonte do conteúdo. Contrato e frontmatter: [`README.md`](README.md). Que tela
 
 ## Ordem recomendada
 
-A fase 1 está entregue no código (PR #8); falta provar o G2 rodando três features pelo board (ver o
-[roadmap](../docs/board/ROADMAP.md)). A ordem das três primeiras é a que o usuário definiu para a rodada de
-2026-11-27.
+Nenhuma spec pode começar agora. As cinco da noite de 2026-11-27 estão implementadas na branch
+`guilhermebittelbrunn/chore-overnight-cycle-specs`, sem PR, push nem CI, e as três `proposed` restantes dependem
+de alguma delas. O primeiro passo é a tarefa direta 1 (abrir e mergear a PR da noite). Depois do merge, a ordem é
+esta:
 
 | # | spec | o quê | status | valor · esforço | próximo comando |
 |---|------|-------|--------|-----------------|-----------------|
-| 1 | [`spec-authoring`](features/spec-authoring.md) | Escrever spec no board, com as perguntas no card | `approved` | alto · G | `/analyze spec-authoring` |
-| 2 | [`app-cleanup`](features/app-cleanup.md) | App só com o board, conta no menu do usuário e landing simples | `approved` | médio · M | `/analyze app-cleanup`, depois da #1 e sozinha |
-| 3 | [`pr-flow`](features/pr-flow.md) | Abrir, acompanhar e concluir a PR | `approved` | alto · M | `/analyze pr-flow` |
+| 1 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | `proposed` | médio · M | aprovar → `/analyze cloud-routines-runner`, depois do merge |
+| 2 | [`cycle-runs`](features/cycle-runs.md) (fatia 2) | Pausar e retomar, "Mudar"/"Concordo", infra na tela, aviso de `depends_on` | `in-progress` | alto · G | aprovar → `/analyze cycle-runs`, depois do merge |
+| 3 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | `proposed` | médio · M | aprovar → `/analyze spec-discovery`, depois do merge |
+| 4 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | `proposed` | médio · P | depois da fatia 2 da `cycle-runs` |
 
 ## Em andamento
 
-Nenhuma.
+Todas implementadas na branch da noite e aguardando PR. Nenhuma está em `main`.
+
+| spec | o quê | situação |
+|------|-------|----------|
+| [`spec-authoring`](features/spec-authoring.md) | Escrever spec no board, com as perguntas no card | Completa; `/test` 18 de 19 (PDF via MCP só com runner real) |
+| [`app-cleanup`](features/app-cleanup.md) | App só com o board, conta no menu do usuário e landing simples | Completa; `/test` 20 de 20 |
+| [`pr-flow`](features/pr-flow.md) | Abrir, acompanhar e concluir a PR | Completa; falta a permissão no GitHub App para uso real |
+| [`execution-credentials`](features/execution-credentials.md) | Cada membro dispara com a própria credencial | Completa; rodou sem aprovação formal, a pedido do usuário |
+| [`cycle-runs`](features/cycle-runs.md) | Várias specs da Análise à PR sem parar | Fatia 1 de 2; rodou sem aprovação formal, a pedido do usuário |
 
 ## Aguardando triagem
 
-Todas `proposed`, na ordem sugerida.
-
-| # | spec | o quê | fase | valor · esforço | próximo comando |
-|---|------|-------|------|-----------------|-----------------|
-| 4 | [`execution-credentials`](features/execution-credentials.md) | Cada membro dispara com a própria credencial | 2 | alto · M | aprovar → `/analyze execution-credentials` |
-| 5 | [`cycle-runs`](features/cycle-runs.md) | Várias specs da Análise à PR sem parar | 2 | alto · G | depois de `pr-flow` |
-| 6 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | 2 | médio · M | depois de #4 |
-| 7 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | 3 | médio · M | depois de `spec-authoring` |
-| 8 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | 3 | médio · P | depois de #4 e #5 |
+| spec | o quê | fase | valor · esforço | bloqueada por |
+|------|-------|------|-----------------|---------------|
+| [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | 2 | médio · M | merge da `execution-credentials` |
+| [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | 3 | médio · M | merge da `spec-authoring` |
+| [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | 3 | médio · P | `cycle-runs` inteira e merge da `execution-credentials` |
 
 ## Adiadas e substituídas
 
@@ -43,19 +49,33 @@ Todas `proposed`, na ordem sugerida.
 
 ## Tarefas diretas
 
-- Marcar `review` como `done` no `STATE.md` das dez features da fase 1: os commits entraram pela PR #8. Ver
-  [achado A12](reference/AUDIT.md#achados-e-pendências).
-- PRs do Dependabot #3, #4, #6 e #7 seguem com o CI vermelho. Ver [achado A2](reference/AUDIT.md#achados-e-pendências).
-- Corrigir `docs/board/DECISIONS.md`, `docs/board/README.md` e `docs/board/ROADMAP.md`, que ainda dizem que o
-  runner usa o Agent SDK. Ver [achado A11](reference/AUDIT.md#achados-e-pendências).
+1. Abrir a PR da noite a partir de uma branch com nome no padrão e mergear com o CI verde; o CI nunca rodou
+   sobre esses 81 commits. Ver [achado A14](reference/AUDIT.md#achados-e-pendências).
+2. Depois do merge: publicar `firestore.indexes.json` (item 10 do `docs/PRE-PRODUCTION.md`), definir
+   `CREDENTIALS_ENCRYPTION_KEY` e conferir o GitHub App (item 5). Ver [A15](reference/AUDIT.md#achados-e-pendências).
+3. Selo "Ciclo" no card pendente de um ciclo em andamento. Ver [A16](reference/AUDIT.md#achados-e-pendências).
+4. Marcar `review` como `done` no `STATE.md` das dez features da fase 1. Ver [A12](reference/AUDIT.md#achados-e-pendências).
+5. Corrigir `docs/board/DECISIONS.md:139`, `docs/board/README.md:37` e a tabela da fase 1 do `ROADMAP.md`, que
+   ainda dizem que o runner usa o Agent SDK. Ver [A11](reference/AUDIT.md#achados-e-pendências).
+6. PRs do Dependabot #3, #4, #6 e #7 seguem abertas e vermelhas. Ver [A2](reference/AUDIT.md#achados-e-pendências).
 
 ## Precisam de decisão
 
-- `operator` já dispara etapas no código; o roadmap deixava isso para a fase 2. Manter? **Recomendação:**
-  manter e corrigir o roadmap.
-- Aprovar `execution-credentials`? **Recomendação:** sim, depois da `pr-flow`; é o que destrava a nuvem.
-- As perguntas em aberto da `app-cleanup` (aba Segurança, slice de referência, avatar, analytics).
-  **Recomendação:** as da própria spec.
+- Aprovar `execution-credentials`, que já rodou? **Recomendação:** aprovar; o código está pronto e é o que destrava
+  a nuvem.
+- Aprovar `cycle-runs` e a fatia 2? **Recomendação:** aprovar a spec e seguir com a fatia 2 depois da
+  `cloud-routines-runner`.
+- Quem virou `viewer` pode apagar a própria credencial? Hoje o `DELETE` exige `trigger`. **Recomendação:** liberar
+  o `DELETE` da própria linha para qualquer membro; apagar segredo próprio não gasta nada.
+- Nome da branch da noite fora do padrão `<project>/<type>/<title>`. **Recomendação:** abrir a PR a partir de uma
+  branch nova no padrão (por exemplo `feat/overnight-board-specs`), sem reescrever os commits.
+- Ciclo parado por falha: com `onFailure: stop` e duas specs ao mesmo tempo, o próximo ciclo da fila começa antes de a spec viva terminar
+  a etapa. **Recomendação:** manter na fatia 1 e rever na fatia 2.
+- Contraste de 2,82:1 do ponto verde de checks no tema escuro, aceito no `/test` da `pr-flow`. **Recomendação:**
+  corrigir junto com a tarefa direta 3, já que mexe no mesmo quadro.
+- Três ajustes de produto vistos na `spec-authoring` e não feitos: o assistente de criação do quadro não mostra
+  Rascunhos, clicar fora do diálogo Nova spec descarta o texto e arquivos pequenos aparecem como "1 kB".
+  **Recomendação:** corrigir o segundo como tarefa direta; os outros dois podem esperar.
 
 ## Entregues
 
@@ -75,5 +95,5 @@ Todas `proposed`, na ordem sugerida.
 
 ## Contadores
 
-`proposed` 5 · `approved` 3 · `in-progress` 0 · `deferred` 2 · `superseded` 1 · entregues 11. Última
-auditoria: 2026-11-27 ([`AUDIT.md`](reference/AUDIT.md)).
+`proposed` 3 · `approved` 0 · `in-progress` 5 · `deferred` 2 · `superseded` 1 · entregues 11. Última
+auditoria: 2026-11-27, fim da rodada noturna ([`AUDIT.md`](reference/AUDIT.md)).
