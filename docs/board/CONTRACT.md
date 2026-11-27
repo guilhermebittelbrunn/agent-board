@@ -119,7 +119,7 @@ fala com a API em HTTP; os tipos das respostas estão em `packages/kanban-contra
 
 O token do runner tem o formato `kbl_<runnerId>_<segredo>`, igual ao de execução com outro prefixo, para que um nunca
 sirva no lugar do outro. O board guarda só o hash, e revogar o runner na tela faz a próxima chamada responder
-`401 RUNNER_REVOKED`. O runner guarda o token em `~/.agent-board-runner/config.json`, com permissão `0600`.
+`401 RUNNER_REVOKED`. O runner guarda o token em `~/.agent-board-runner/runners/<runnerId>.json`, com permissão `0600`; vários runners da mesma máquina dividem a pasta.
 
 Regras que o board aplica:
 
@@ -142,8 +142,17 @@ fechados pelo próprio board. Por último, `finish`, e o worktree é apagado. Um
 `run` de ciclo faz o board aplicar o prazo na hora, para o ciclo seguir sem ninguém abrir a tela.
 
 Permissões da sessão: o padrão é `--permission-mode acceptEdits` com a lista `permissions.allow` do
-`.claude/settings.json` do repositório. O que estiver fora da lista é recusado, e a etapa tende a falhar. A opção
-`--dangerously-skip-permissions` do runner desliga todas as checagens e imprime um aviso ao iniciar.
+`.claude/settings.json` do repositório. O runner soma a essa lista o que o modo board exige em qualquer repositório:
+as ferramentas do servidor `kanban` (`mcp__kanban`), `git add`, `git commit` e o push da branch do card (`git push`,
+`git push origin <branch>` e `git push -u origin <branch>`). Sem essas regras, o `claude -p` nega a ferramenta e a
+sessão segue sem conseguir ler o card nem fechar a etapa. Qualquer outro comando fora da lista é recusado, e a etapa
+tende a falhar. A opção `--dangerously-skip-permissions` do runner desliga todas as checagens e imprime um aviso ao
+iniciar.
+
+Um runner encerrado no meio de uma etapa (processo morto, máquina desligada) deixa a pasta da execução para trás.
+Quando ele volta, a limpeza mata o que sobrou do agente, apaga o worktree e fecha a etapa no board com
+`complete_stage` `failed`, usando o token da própria execução. Se o prazo da etapa já passou, o board recusa o token
+e a etapa fecha pelo tempo limite.
 
 ## Garantias do lado do board
 

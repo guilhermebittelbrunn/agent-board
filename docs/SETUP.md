@@ -542,7 +542,38 @@ encerrá-lo.
 
 Duas travas impedem o modo de teste de tocar um repositório real: o runner recusa `--agent-command` sem
 `--repo-base file://…`, e o agente de teste recusa push para remoto que não comece com `file://`. O token do runner
-fica em `<home>/config.json` (`0600`); não copie para relatório, cite `kbl_<runnerId>_***`.
+fica em `<home>/runners/<runnerId>.json` (`0600`); não copie para relatório, cite `kbl_<runnerId>_***`.
+
+Fora do modo de teste, instale o comando uma vez por máquina, num clone do agent-board, com
+`pnpm --filter runner install-bin`. Ele copia o runner para `~/.agent-board-runner/app` e cria o link
+`agent-board-runner` em `~/.local/bin` (ou `~/bin`, ou `$PNPM_HOME`, o primeiro que estiver no `PATH`; `--dir`
+escolhe outro). O comando passa a rodar de qualquer pasta, e trocar de branch no clone não mexe nos runners. Para
+atualizar, rode `git pull` e o `install-bin` de novo; terminais já abertos seguem na versão anterior até serem
+reiniciados, e `agent-board-runner version` mostra o commit instalado. A tela "Minhas credenciais" de qualquer board
+mostra esse mesmo passo a passo, com o comando de registro já preenchido.
+
+O runner é da pessoa, não do board: ele roda o que ela dispara em qualquer board, e cada board tem o seu clone em
+`~/.agent-board-runner/repos/<dono>/<repositório>`. Boards em paralelo pedem mais runners, não mais instalações.
+
+```bash
+agent-board-runner register <código> --api https://<api>   # o --api fica guardado para os próximos registros
+agent-board-runner start                                    # em cada terminal, roda o próximo runner livre
+agent-board-runner list                                     # runners desta máquina e quais estão rodando
+agent-board-runner start --api http://localhost:3002        # só os runners registrados nessa API
+```
+
+Todos os runners de uma máquina ficam na mesma pasta (`--home`, padrão `~/.agent-board-runner`), com uma credencial
+por runner em `runners/`. Cada `register` adiciona um runner, e o nome ganha um número quando o da máquina já está
+em uso (`macbook-2`). Para rodar duas etapas ao mesmo tempo, registre dois runners e abra um `start`
+em cada terminal: o segundo pega o runner que o primeiro não está usando, e um terceiro avisa que todos estão
+ocupados. `--runner <id ou nome>` escolhe um runner específico. Clones, worktrees e logs são compartilhados, e uma
+trava por repositório faz o clone e o `git fetch` rodarem um runner por vez. Um runner revogado no board tem a
+credencial apagada da máquina no próximo `start`. A pasta antiga, com um único `config.json`, é convertida sozinha.
+
+Cada linha do terminal leva o id curto do runner, o mesmo que o board mostra ao lado do nome em "Minhas
+credenciais". A etapa em andamento aparece ferramenta a ferramenta: os subagentes vêm recuados, as negações de
+permissão são marcadas com `✗` e há uma linha de progresso por minuto. O stream completo da sessão fica em
+`<home>/logs/<runId>.jsonl`.
 
 | e-mail | para quê |
 |--------|----------|
