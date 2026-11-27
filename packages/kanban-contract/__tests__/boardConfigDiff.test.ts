@@ -76,3 +76,25 @@ describe("diffBoardStages", () => {
         expect(isEmptyStagesDiff(diff)).toBe(false);
     });
 });
+
+describe("diffBoardStages with a pull request stage", () => {
+    it("reports a changed draft setting", () => {
+        const diff = diffBoardStages(
+            [stage("pr", { pullRequest: { draft: true } })],
+            [stage("pr", { pullRequest: { draft: false } })]
+        );
+
+        expect(diff.changed).toEqual([
+            { key: "pr", column: "PR", fields: ["pullRequest"] },
+        ]);
+    });
+
+    it("reports nothing for the same draft setting", () => {
+        const diff = diffBoardStages(
+            [stage("pr", { pullRequest: { draft: true } })],
+            [stage("pr", { pullRequest: { draft: true } })]
+        );
+
+        expect(isEmptyStagesDiff(diff)).toBe(true);
+    });
+});

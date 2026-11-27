@@ -11,6 +11,8 @@ export const BOARD_CONFIG_ISSUE_RULES = [
     "stage_key_reserved",
     "rework_target_invalid",
     "base_branch_unprotected",
+    "pull_request_stage_duplicated",
+    "pull_request_stage_not_last",
     "yaml_syntax",
     "root_not_mapping",
     "other",
@@ -36,6 +38,8 @@ const RULES_FROM_REFINEMENTS = new Set<BoardConfigIssueRule>([
     "stage_key_reserved",
     "rework_target_invalid",
     "base_branch_unprotected",
+    "pull_request_stage_duplicated",
+    "pull_request_stage_not_last",
 ]);
 
 export function formatIssuePath(path: readonly PropertyKey[]): string {

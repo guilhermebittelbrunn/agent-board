@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { DEFAULT_PR_COMMENT_RUNS_PER_HOUR } from "../src/boardConfig";
 import { parseBoardConfigYaml } from "../src/boardConfigYaml";
 
 const KIT_BOARD_YML = readFileSync(
@@ -24,7 +25,24 @@ describe("parseBoardConfigYaml", () => {
             "pr",
         ]);
         expect(result.config.stages[4]?.onPrComment).toBe("/mediate");
+        expect(result.config.stages[4]?.pullRequest).toEqual({ draft: true });
+        expect(result.config.limits.maxPrCommentRunsPerHour).toBe(
+            DEFAULT_PR_COMMENT_RUNS_PER_HOUR
+        );
         expect(result.config.environment.setupScript).toBe(".kanban/setup.sh");
+    });
+
+    it("reads this repository's own board.yml into a valid config", () => {
+        const result = parseBoardConfigYaml(
+            readFileSync(
+                fileURLToPath(
+                    new URL("../../../.kanban/board.yml", import.meta.url)
+                ),
+                "utf8"
+            )
+        );
+
+        expect(result.ok).toBe(true);
     });
 
     it("reports broken syntax with line and column", () => {

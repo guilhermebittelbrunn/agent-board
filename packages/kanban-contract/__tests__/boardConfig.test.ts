@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+    DEFAULT_PR_COMMENT_RUNS_PER_HOUR,
     DEFAULT_STAGE_TIMEOUT_MINUTES,
+    MAX_PR_COMMENT_RUNS_PER_HOUR,
     MAX_STAGE_TIMEOUT_MINUTES,
     MIN_STAGE_TIMEOUT_MINUTES,
     parseBoardConfig,
@@ -160,5 +162,94 @@ describe("resolveBranchName", () => {
         const unsafe = { ...config.data, branchPattern: "{slug}" };
 
         expect(() => resolveBranchName(unsafe, "main")).toThrow();
+    });
+});
+
+describe("pull request stage", () => {
+    const withPr = (stages: Record<string, unknown>[]) => ({
+        ...minimalConfig,
+        stages: [...minimalConfig.stages, ...stages],
+    });
+    const issueRules = (input: unknown) => {
+        const result = parseBoardConfig(input);
+        return result.success
+            ? []
+            : toBoardConfigIssues(result.error, input).map(
+                  (issue) => issue.rule
+              );
+    };
+
+    it("opens drafts by default and caps the comment runs at 3 per hour", () => {
+        const result = parseBoardConfig(
+            withPr([
+                {
+                    key: "pr",
+                    column: "Aguardando PR",
+                    command: "/observe",
+                    pullRequest: {},
+                },
+            ])
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.data?.stages.at(-1)?.pullRequest).toEqual({
+            draft: true,
+        });
+        expect(result.data?.stages[0]?.pullRequest).toBeUndefined();
+        expect(result.data?.limits.maxPrCommentRunsPerHour).toBe(
+            DEFAULT_PR_COMMENT_RUNS_PER_HOUR
+        );
+    });
+
+    it("accepts 0 comment runs per hour and refuses more than 20", () => {
+        const at = (value: number) =>
+            parseBoardConfig({
+                ...minimalConfig,
+                limits: { maxPrCommentRunsPerHour: value },
+            }).success;
+
+        expect(at(0)).toBe(true);
+        expect(at(MAX_PR_COMMENT_RUNS_PER_HOUR)).toBe(true);
+        expect(at(MAX_PR_COMMENT_RUNS_PER_HOUR + 1)).toBe(false);
+    });
+
+    it("refuses a second pull request stage", () => {
+        expect(
+            issueRules(
+                withPr([
+                    {
+                        key: "pr",
+                        column: "PR",
+                        command: "/observe",
+                        pullRequest: {},
+                    },
+                    {
+                        key: "pr-two",
+                        column: "PR 2",
+                        command: "/observe",
+                        pullRequest: { draft: false },
+                    },
+                ])
+            )
+        ).toEqual([
+            "pull_request_stage_not_last",
+            "pull_request_stage_duplicated",
+        ]);
+    });
+
+    it("refuses a pull request stage that is not the last one", () => {
+        expect(
+            issueRules(
+                withPr([
+                    {
+                        key: "pr",
+                        column: "PR",
+                        command: "/observe",
+                        pullRequest: {},
+                    },
+                    { key: "after", column: "Depois", command: "/after" },
+                ])
+            )
+        ).toEqual(["pull_request_stage_not_last"]);
     });
 });

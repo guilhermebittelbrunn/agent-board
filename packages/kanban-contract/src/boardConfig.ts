@@ -10,6 +10,8 @@ const DEFAULT_MAX_TURNS_PER_STAGE = 200;
 export const DEFAULT_STAGE_TIMEOUT_MINUTES = 45;
 export const MIN_STAGE_TIMEOUT_MINUTES = 5;
 export const MAX_STAGE_TIMEOUT_MINUTES = 240;
+export const DEFAULT_PR_COMMENT_RUNS_PER_HOUR = 3;
+export const MAX_PR_COMMENT_RUNS_PER_HOUR = 20;
 
 export const DEFAULT_PROTECTED_BRANCHES = [
     "main",
@@ -40,6 +42,11 @@ export const specAuthoringConfigSchema = z
     })
     .prefault({});
 
+/** The stage that has it is the one where the board opens the card's pull request. */
+export const stagePullRequestSchema = z.object({
+    draft: z.boolean().default(true),
+});
+
 export const stageConfigSchema = z.object({
     key: z.string().regex(STAGE_KEY),
     column: z.string().min(1),
@@ -51,7 +58,43 @@ export const stageConfigSchema = z.object({
     approval: stageApprovalSchema.default("none"),
     onRework: z.string().regex(STAGE_KEY).optional(),
     onPrComment: z.string().regex(SLASH_COMMAND).optional(),
+    pullRequest: stagePullRequestSchema.optional(),
 });
+
+type StageInput = z.infer<typeof stageConfigSchema>;
+
+// A merge takes the card straight to Done, so no stage may come after the pull request one.
+function refinePullRequestStage(
+    stages: StageInput[],
+    ctx: z.RefinementCtx
+): void {
+    const pullRequestStages = [...stages.entries()].filter(
+        ([, stage]) => stage.pullRequest !== undefined
+    );
+    for (const [position, [index, stage]] of pullRequestStages.entries()) {
+        if (position > 0) {
+            ctx.addIssue({
+                code: "custom",
+                message: `Only one stage may open the pull request ("${stage.key}")`,
+                path: ["stages", index, "pullRequest"],
+                params: {
+                    rule: "pull_request_stage_duplicated",
+                    stageColumn: stage.column,
+                },
+            });
+        } else if (index !== stages.length - 1) {
+            ctx.addIssue({
+                code: "custom",
+                message: `The pull request stage "${stage.key}" must be the last one`,
+                path: ["stages", index, "pullRequest"],
+                params: {
+                    rule: "pull_request_stage_not_last",
+                    stageColumn: stage.column,
+                },
+            });
+        }
+    }
+}
 
 export const boardConfigSchema = z
     .object({
@@ -95,6 +138,12 @@ export const boardConfigSchema = z
                     .min(MIN_STAGE_TIMEOUT_MINUTES)
                     .max(MAX_STAGE_TIMEOUT_MINUTES)
                     .default(DEFAULT_STAGE_TIMEOUT_MINUTES),
+                maxPrCommentRunsPerHour: z
+                    .number()
+                    .int()
+                    .min(0)
+                    .max(MAX_PR_COMMENT_RUNS_PER_HOUR)
+                    .default(DEFAULT_PR_COMMENT_RUNS_PER_HOUR),
             })
             .prefault({}),
         environment: z
@@ -149,6 +198,8 @@ export const boardConfigSchema = z
             }
         }
 
+        refinePullRequestStage(config.stages, ctx);
+
         // Agents never commit on the base branch, so it has to be protected too.
         if (!config.protectedBranches.includes(config.baseBranch)) {
             ctx.addIssue({
@@ -166,6 +217,12 @@ export const boardConfigSchema = z
 export type StageConfig = z.infer<typeof stageConfigSchema>;
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
 export type SpecAuthoringConfig = z.infer<typeof specAuthoringConfigSchema>;
+
+export function findPullRequestStage(
+    config: Pick<BoardConfig, "stages">
+): StageConfig | undefined {
+    return config.stages.find((stage) => stage.pullRequest !== undefined);
+}
 
 export function parseBoardConfig(input: unknown) {
     return boardConfigSchema.safeParse(input);
