@@ -1,10 +1,15 @@
 /**
- * The two commands the person runs on the machine. The CLI lives in this repository's
- * `apps/runner` until it is published, so it runs through pnpm from a checkout.
+ * The commands the person runs on the machine. The CLI lives in the agent-board repository's
+ * `apps/runner`; `install-bin` copies it out of the checkout and puts `agent-board-runner` on
+ * the PATH, so every other command runs from any folder.
  */
-export function runnerCommands(code: string, apiUrl: string) {
-    return {
-        register: `pnpm --filter runner cli register ${code} --api ${apiUrl}`,
-        start: "pnpm --filter runner cli start",
-    };
+export const RUNNER_SETUP_COMMANDS = {
+    install: "pnpm install && pnpm --filter runner install-bin",
+    start: "agent-board-runner start",
+    list: "agent-board-runner list",
+    update: "git pull && pnpm install && pnpm --filter runner install-bin",
+} as const;
+
+export function runnerRegisterCommand(code: string, apiUrl: string): string {
+    return `agent-board-runner register ${code} --api ${apiUrl}`;
 }
