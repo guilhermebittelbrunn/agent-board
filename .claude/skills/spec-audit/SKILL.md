@@ -1,6 +1,6 @@
 ---
 name: spec-audit
-description: Reconcilia o backlog de specs (specs/features/) com a realidade do código e do pipeline — confere no código se o corte de MVP de cada spec foi entregue, cruza com docs/features/*/STATE.md, corrige os status, detecta deriva, move as specs entregues para docs/features/<slug>/spec.md, regrava a fila em specs/BACKLOG.md e a evidência em specs/reference/AUDIT.md. Use no /spec --sync, ao fechar um ciclo de entrega, ou quando desconfiar que o backlog está mentindo.
+description: Reconcilia o backlog de specs (specs/features/) com a realidade do código e do pipeline — confere no código se o corte de MVP de cada spec foi entregue, cruza com docs/features/*/STATE.md, corrige os status, detecta deriva, move as specs entregues para docs/features/<slug>/spec.md, regrava a fila em specs/BACKLOG.md e a evidência em specs/reference/AUDIT.md. Use no /spec --sync <slug> para fechar a spec na branch da feature depois do /test, no /spec --sync para a auditoria completa, ou quando desconfiar que o backlog está mentindo.
 ---
 
 # Auditoria do backlog de specs
@@ -10,6 +10,20 @@ código e fecha o loop `/spec → /analyze → /develop → /review → /test �
 
 Regra que governa tudo: **o código é a verdade.** Se o frontmatter diz `proposed` e a capacidade está
 implementada, o frontmatter está errado.
+
+## 0. Dois modos
+
+| Modo | Quando | Escopo |
+|------|--------|--------|
+| **Fechamento** (`--sync <slug>`) | Na branch da feature, logo depois do `/test` com `test = done` | Só a spec daquela feature: confere o corte, arquiva e atualiza a fila. Procedimento no §9. |
+| **Auditoria completa** (`--sync`) | No começo do `/cycle`, ou quando desconfiar do backlog | Todo `specs/`: os §1 a §8 abaixo. |
+
+O fechamento existe para a spec sair de `specs/` **na mesma branch que a implementou**. Assim o merge leva
+para `main`, num pacote só, o código, a spec arquivada em `docs/features/<slug>/spec.md` e o `BACKLOG.md` já
+com a próxima tarefa. A branch seguinte nasce de um backlog correto e não precisa reconstruir o que a
+anterior entregou.
+
+A auditoria completa continua necessária: ela pega deriva, regressão e a feature que pulou o fechamento.
 
 ## 1. Levante o material
 
@@ -136,9 +150,9 @@ Uma spec `done` **sai de `specs/`** e passa a viver junto da feature que a imple
 **Nunca apague uma spec.** `done` é movida; `rejected` e `superseded` ficam em `specs/features/` como memória
 institucional — é o que impede o `/spec` de repropor a mesma coisa na rodada seguinte.
 
-> **Commit:** o arquivo movido pertence ao commit `docs(features): <slug>` daquela feature. Como o
-> `--sync` costuma rodar depois do `/review`, na prática ele gera um commit de fechamento à parte. Não
-> commite por conta própria — [`git-commits.md`](../../rules/git-commits.md) exige aprovação explícita.
+> **Commit:** o movimento entra na branch da feature, num commit `docs(specs): archive <id>` que fica antes
+> do `docs(features): <slug>` (ou junto dele, se esse ainda não foi feito). Não commite por conta própria:
+> [`git-commits.md`](../../rules/git-commits.md) exige aprovação explícita, e quem pede é o orquestrador.
 
 ## 5. Detecte deriva
 
@@ -167,9 +181,10 @@ arquivo: duas specs com `depends_on: []` podem alterar as duas o mesmo
 ### O algoritmo
 
 1. **Filtre as elegíveis.** `status` em `proposed`/`approved`, **e** `depends_on` **satisfeito** (toda
-   dependência entregue e arquivada). Exclua `deferred`, `rejected`, `superseded` e `in-progress`.
-   > Spec entregue mas **ainda não mergeada** conta como `in-progress`: o código dela não está em `main`, e
-   > quem depender dela vai ramificar de uma base que não a contém.
+   dependência arquivada **em `main`**: `git cat-file -e origin/main:docs/features/<slug>/spec.md`). Exclua
+   `deferred`, `rejected`, `superseded` e `in-progress`.
+   > Spec arquivada só numa branch ainda não mergeada **não** satisfaz `depends_on`: o código dela não está
+   > em `main`, e quem depender dela vai ramificar de uma base que não a contém.
 2. **Ordene pela prioridade do backlog** — a ordem da seção "Ordem recomendada", não a alfabética.
 3. **Monte gulosamente.** Percorra a lista em ordem; a spec entra no lote atual se seu `contends_on` for
    **disjunto** do de **todas** as specs já no lote. Senão, tenta a próxima; o que sobrar abre lote novo.
@@ -244,6 +259,49 @@ nesta rodada tem o Resumo atualizado junto. Spec sem Resumo ganha um.
 - Divergência doc × código: <arquivo> afirma X, código mostra Y
 - Regressão: <id> — capacidade ausente no código
 ```
+
+## 9. Fechamento na branch da feature (`--sync <slug>`)
+
+Roda na branch que implementou a feature, depois do `/test`, antes da PR. Faz o §2, o §4.1 e o §5 **só para
+a spec daquela feature** e mexe o mínimo no `BACKLOG.md`.
+
+### Pré-condições (qualquer uma falhando → não feche e diga por quê)
+
+- A branch atual **não** é protegida (`git rev-parse --abbrev-ref HEAD`). Em `main`, o que cabe é a
+  auditoria completa.
+- `docs/features/<slug>/STATE.md` existe, traz `spec: <id>` e tem `analyze`, `develop`, `review` e `test`
+  em `done`. `test` em `blocked` significa defeito aberto: a spec não está entregue.
+- `specs/features/<id>.md` existe nesta branch. Se ela já estiver em `docs/features/<slug>/spec.md`, o
+  fechamento já foi feito; confira só se o `BACKLOG.md` bate.
+
+### Passos
+
+1. **Confira o corte de MVP no código da branch** (§2), item a item, com `arquivo:linha`. Os 🔒 do
+   `test/report.md` (critério que só infra externa verifica) não impedem o fechamento; registre-os.
+2. **Entrega parcial planejada** (o plano dividiu o corte em fatias e esta branch fez só a primeira): **não
+   arquive**. A spec fica em `specs/` como `in-progress`, com uma nota dizendo o que a fatia entregou e o
+   que falta, e o Resumo aponta o próximo `/analyze`.
+3. **Deriva** (§5), só desta spec.
+4. **Arquive** (§4.1): frontmatter `done` + `feature: <slug>`, `git mv`, links de entrada e de saída.
+5. **`BACKLOG.md`, mudança mínima:**
+   - tire a spec da fila e de "Em andamento";
+   - acrescente a linha em **Entregues** (id, data, link novo e a branch; a PR, se já existir);
+   - nas specs cujo `depends_on` esperava só esta, troque o próximo comando por "liberada depois do merge de
+     `<branch>`";
+   - atualize os contadores.
+
+   Não regrave seções que a feature não tocou. Duas branches fechando ao mesmo tempo editam linhas
+   diferentes do mesmo arquivo; quanto menos cada uma reescreve, mais fácil é o merge (mantenha as duas
+   mudanças; a próxima auditoria completa reordena a fila).
+6. **`reference/AUDIT.md`:** acrescente a entrada desta spec na seção **Entregues** (itens do corte com
+   evidência, placar do `/test`, 🔒, derivas). O cabeçalho "Última rodada" é da auditoria completa; não
+   mexa.
+7. **Relatório** curto: o que foi arquivado e para onde, o que a entrega libera na fila, e o commit proposto
+   `docs(specs): archive <id>`, com a lista de arquivos (a spec movida, `BACKLOG.md`, `AUDIT.md`, specs com
+   link corrigido e, se mudou, o `STATE.md`).
+
+Se a PR for fechada sem merge, nada disso chega a `main`: lá a spec continua em `specs/` com o status de
+antes, e o backlog segue coerente.
 
 ## Limites
 

@@ -170,7 +170,9 @@ critérios e o relatório ficam em `docs/features/<slug>/test/` para o usuário 
 Critérios e resultados já estão salvos e o `STATE.md` marca `test = done`. Pode `/compact`/`/clear` ao
 concluir, ou seguir para `/observe` (opcional) para gerar a observação final não-técnica.
 
-Se o `STATE.md` tiver `spec: <id>`, **sugira rodar `/spec --sync`** para fechar o ciclo: ele confere no
-código o que foi entregue e move a spec para `done`. Sem esse passo, o backlog em `specs/` passa a mentir.
+Se o `STATE.md` tiver `spec: <id>` e `test = done`, o próximo passo é **`/spec --sync <slug>`, nesta mesma
+branch e antes da PR**: ele confere no código o que foi entregue, arquiva a spec em
+`docs/features/<slug>/spec.md` e atualiza o `BACKLOG.md`. Assim o merge leva o backlog já correto para
+`main`, e a branch seguinte começa da próxima tarefa sem reconstruir o que esta entregou.
 
 Mantenha tudo em português e em Markdown estruturado.

@@ -124,17 +124,17 @@ Hub do ferramental: [`docs/AI-WORKFLOW.md`](docs/AI-WORKFLOW.md).
 ### Pipeline de tarefas — [`docs/TASK-PIPELINE.md`](docs/TASK-PIPELINE.md)
 
 ```
-/spec  →  /analyze  →  /develop  →  /review  →  /test     (+ opcionais: /observe · /mediate)
-descobrir  planejar     implementar   revisar     QA
-   ↑                                                └── /spec --sync fecha o ciclo
+/spec  →  /analyze  →  /develop  →  /review  →  /test  →  /spec --sync <slug>   (+ opcionais: /observe · /mediate)
+descobrir  planejar     implementar   revisar     QA        fecha a spec na própria branch
 
 /cycle — a linha inteira numa tacada, sem parar para perguntar (não commita)
 ```
 
 O ciclo começa no **backlog de funcionalidades** ([`specs/`](specs/README.md)): o `/spec` varre o repo e
 escreve as specs; você aprova uma e roda **`/analyze <nome-da-spec>`**
-(o nome da spec é o argumento padrão). No fim, `/spec --sync` audita o backlog contra o código — é isso que
-faz disso um **loop**, e não uma lista de desejos. Spec responde *o quê/por quê*; o plano do `/analyze`
+(o nome da spec é o argumento padrão). No fim, **na mesma branch**, `/spec --sync <slug>` confere a entrega no
+código, arquiva a spec e atualiza o `BACKLOG.md`, para o merge levar a fila já correta para `main`. O
+`/spec --sync` sem slug audita o backlog inteiro — é isso que faz disso um **loop**, e não uma lista de desejos. Spec responde *o quê/por quê*; o plano do `/analyze`
 responde *como*. **`specs/` contém só o que não foi entregue**; o ciclo de vida completo está em
 [`specs/README.md`](specs/README.md).
 
