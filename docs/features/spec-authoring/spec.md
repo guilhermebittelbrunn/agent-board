@@ -1,7 +1,7 @@
 ---
 id: spec-authoring
 title: Escrever spec com um agente, a partir de texto e anexos
-status: in-progress
+status: done
 value: alto
 effort: G
 audience: time
@@ -18,8 +18,8 @@ updated: 2026-11-27
 > **Resumo**
 > - **O quê:** descrever uma tarefa em texto livre, com anexos, e um agente transforma o pedido numa spec pronta para o pipeline, perguntando o que faltar.
 > - **Por quê:** hoje uma ideia só vira card depois que alguém escreve a spec no repositório; com isso o backlog passa a nascer dentro do board.
-> - **Status:** `in-progress` · valor alto · esforço G · time · implementada na branch, aguardando PR
-> - **Próximo passo:** abrir a PR da branch da noite e mergear com o CI verde; depois o `/spec --sync` arquiva
+> - **Status:** `done` · valor alto · esforço G · time
+> - **Próximo passo:** nenhum. Entregue na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (PR #12); spec arquivada em 2026-11-27, chega a `main` com o merge da PR.
 
 ## Problema
 
@@ -44,8 +44,8 @@ não recebe anexo e não tem como devolver as perguntas para o board.
 - Telas: [Nova spec](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-NewSpec) ·
   [Spec em escrita](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-SpecDraft) · coluna
   Rascunhos no [Quadro](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Main). Mapa completo em
-  [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- [`docs/board/ARCHITECTURE.md`](../../docs/board/ARCHITECTURE.md#ciclo-do-card) — ciclo do card.
+  [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- [`docs/board/ARCHITECTURE.md`](../../board/ARCHITECTURE.md#ciclo-do-card) — ciclo do card.
 
 ## Proposta — corte de MVP
 
@@ -113,10 +113,26 @@ A spec `app-cleanup` vem logo depois desta e mantém o upload e o Storage justam
   modelo configuráveis no `board.yml`.
 - Quem pode aprovar uma spec? — **recomendação:** `operator` ou acima; não precisa ser quem pediu.
 
-## Nota de andamento (2026-11-27)
+## Nota de entrega
 
-Implementada em 2026-11-27 na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (rodada autônoma do `/cycle`), com analyze, develop, review e test em `docs/features/spec-authoring/`. A branch não tem PR, push nem CI; por isso a spec continua `in-progress` e não foi arquivada.
+Conferida no código da branch `guilhermebittelbrunn/chore-overnight-cycle-specs` em 2026-11-27, no fechamento (`/spec --sync spec-authoring`), depois do `/test`. Os oito itens do corte estão implementados:
 
-Conferido no código: coluna Rascunhos (faixa `drafts`, etapa reservada `spec`), bloco `specAuthoring` no `board.yml` (`packages/kanban-contract/src/specAuthoring.ts`), rotas `boards/[id]/drafts`, `boards/[id]/attachments` e `cards/[slug]/spec/{approve,discard}`, ferramenta `get_attachment` no contrato e `/spec` com modo board em `kit/commands/spec.md`. O `/test` fechou 18 de 19 critérios; a leitura de PDF pelo MCP depende de runner real.
+- Nova spec com texto e anexos: `NewSpecDialog.tsx`, `POST boards/[id]/drafts` (`drafts/route.ts:28`) e `POST boards/[id]/attachments` (`attachments/route.ts:15`). O card nasce na faixa `drafts` (`packages/kanban-contract/src/boardLanes.ts:3`).
+- A escrita roda o `/spec` em modo board (`kit/commands/spec.md`, bloco `board-mode`); os anexos chegam pela ferramenta `get_attachment` (`agentContract.ts:101`).
+- Perguntas no bloco do card: o estado do rascunho vem de `draftStatus` (`specAuthoring.ts:88`), que passa a `waiting` com `pendingAsk` aberto.
+- O rascunho aparece no card enquanto é escrito: `SpecDraftDetail.tsx:101` renderiza a spec com `SpecMarkdown`.
+- A spec é gravada em `specs/features/<slug>.md` na branch do card: `specDraftPath` (`specAuthoring.ts:61`) e o commit por rodada pedido em `kit/commands/spec.md:18`.
+- Aprovar só sem pergunta aberta e move para Tarefas: `spec/approve/route.ts:32`, com a recusa em `checkDraftApprovable` (`apps/api/(shared)/lib/spec-draft.ts:288`) e a ordem em Tarefas na linha 71.
+- Descartar arquiva o card: `spec/discard/route.ts:17`, via `cardRepository.discardDraft`.
+- Bloco opcional no `board.yml`: `specAuthoringConfigSchema` (`boardConfig.ts:31`, ligado na linha 121) e a etapa reservada `spec` (`boardConfig.ts:29`).
 
-Diferenças em relação ao texto acima: o slug é gerado pela API; os anexos (imagem, PDF ou texto, até 3 MB) chegam ao agente pela ferramenta `get_attachment`, não embutidos no card; `needs_rework` na escrita deixa o card `failed`, de onde "Rodar de novo" sai.
+O `/test` fechou 18 de 19 critérios. O que ficou sem verificar (🔒) é a leitura de PDF pelo modelo via MCP, que depende de runner real.
+
+O que saiu diferente do texto acima:
+
+- O slug é gerado pela API, não escolhido pelo agente, então a colisão descrita nos riscos não acontece.
+- Os anexos (imagem, PDF ou texto, até 3 MB) não vão embutidos no card: o agente os lê com `get_attachment`. A spec estava imprecisa.
+- `needs_rework` na etapa de escrita deixa o card `failed`, de onde "Rodar de novo" sai.
+- A aprovação fica no card (`specApproval`), sem gravar `status: approved` no arquivo. A barra "N de 8 seções prontas" ficou fora, por decisão do plano.
+
+Ajustes de produto vistos e não feitos (achado A19 do `specs/reference/AUDIT.md`): o assistente de criação do quadro não mostra Rascunhos, clicar fora do diálogo Nova spec descarta o texto e arquivos pequenos aparecem como "1 kB".

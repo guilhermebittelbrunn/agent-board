@@ -72,9 +72,9 @@ mostra custo; o consumo dessas três, medido no uso da conta do Claude, é o que
 
 | Spec | Entrega |
 |------|---------|
-| [`execution-credentials`](../../specs/features/execution-credentials.md) | Cada membro dispara com a própria credencial |
-| [`pr-flow`](../../specs/features/pr-flow.md) | Aguardando PR: abrir, `/observe`, `/mediate` a cada comentário, merge move para Concluído |
-| [`spec-authoring`](../../specs/features/spec-authoring.md) | Texto ou anexo vira spec no board, escrita por um agente, com as perguntas no card |
+| [`execution-credentials`](../features/execution-credentials/spec.md) | Cada membro dispara com a própria credencial |
+| [`pr-flow`](../features/pr-flow/spec.md) | Aguardando PR: abrir, `/observe`, `/mediate` a cada comentário, merge move para Concluído |
+| [`spec-authoring`](../features/spec-authoring/spec.md) | Texto ou anexo vira spec no board, escrita por um agente, com as perguntas no card |
 | [`cycle-runs`](../../specs/features/cycle-runs.md) | Várias specs da Análise à PR sem parar, com as decisões registradas para revisar depois |
 | [`cloud-routines-runner`](../../specs/features/cloud-routines-runner.md) | Etapas em tarefas agendadas do Claude Code, com gatilho por API |
 

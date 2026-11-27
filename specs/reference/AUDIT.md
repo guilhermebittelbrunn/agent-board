@@ -203,8 +203,9 @@ Cada spec arquivada ganhou uma seção "Nota de entrega" com o detalhe. Resumo:
 - **A14 — Branch da noite fora do padrão, PR aberta.** `guilhermebittelbrunn/chore-overnight-cycle-specs`, 82
   commits, não bate com `<project>/<type>/<title>`; o usuário pediu para manter tudo nela durante a noite. A branch
   foi enviada e a PR #12 está aberta. Medido em 2026-11-27 com `gh run view`: os seis jobs do CI passaram em
-  `26eaf1f` (`changes`, `verify`, `secrets`, `audit`, `coverage`, `e2e`). Falta o merge; só depois dele as cinco
-  specs podem ser arquivadas.
+  `26eaf1f` (`changes`, `verify`, `secrets`, `audit`, `coverage`, `e2e`). Em 2026-11-27, com o fechamento na branch
+  (`/spec --sync <slug>`), quatro delas foram arquivadas nesta mesma branch; a `cycle-runs` segue `in-progress`
+  (fatia 1). Falta o merge, que leva o arquivamento para `main`.
 - **A15 — Infra pendente das specs da noite.** `firestore.indexes.json` a publicar (`app-cleanup`), permissão
   `Pull requests: Read and write` e quatro eventos no GitHub App (`pr-flow`), `CREDENTIALS_ENCRYPTION_KEY`
   (`execution-credentials`). Tudo registrado no `docs/PRE-PRODUCTION.md`, itens 5 e 10 e "Chave das credenciais da
@@ -228,6 +229,80 @@ Cada spec arquivada ganhou uma seção "Nota de entrega" com o detalhe. Resumo:
   ("Executor de teste: \`/develop dark-theme\` iniciado…"). 🟢 do `/test` da `cycle-runs`.
 
 ## Entregues
+
+### Rodada noturna, fechamento na branch — 2026-11-27
+
+`spec-authoring`, `app-cleanup`, `pr-flow` e `execution-credentials`, arquivadas pelo `/spec --sync <slug>` na
+branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (PR #12, CI verde em `26eaf1f`, aguardando merge). Até
+o merge, nenhuma delas está em `main` e o `depends_on` de quem depende delas continua sem satisfazer. A `cycle-runs`
+passou pelo mesmo fechamento e não foi arquivada: entregou a fatia 1 de 2.
+
+Pré-condições conferidas nas cinco: `docs/features/<slug>/STATE.md` com `spec: <id>` (linha 5) e `analyze`,
+`develop`, `review` e `test` em `done`; nenhum `docs/features/<slug>/spec.md` existia antes do movimento.
+
+#### `spec-authoring`
+
+- **Corte, 8 de 8:** faixa `drafts` (`packages/kanban-contract/src/boardLanes.ts:3`); `POST boards/[id]/drafts`
+  (`drafts/route.ts:28`) e `POST boards/[id]/attachments` (`attachments/route.ts:15`); `get_attachment`
+  (`agentContract.ts:101`); `draftStatus` com `waiting` para `pendingAsk` (`specAuthoring.ts:88`); rascunho no card
+  (`SpecDraftDetail.tsx:101`); `specDraftPath` (`specAuthoring.ts:61`) e commit por rodada
+  (`kit/commands/spec.md:18`); aprovar com `checkDraftApprovable` (`apps/api/(shared)/lib/spec-draft.ts:288`,
+  `spec/approve/route.ts:32`); descartar (`spec/discard/route.ts:17`); `specAuthoringConfigSchema`
+  (`boardConfig.ts:31`, `:121`).
+- **`/test`:** 18 ✅, 1 🔒 (PDF lido pelo modelo via MCP, só com runner real).
+- **Deriva:** slug gerado pela API; anexos pela ferramenta `get_attachment`, não embutidos no card (spec
+  imprecisa); `needs_rework` na escrita deixa o card `failed`; aprovação fica no card (`specApproval`), sem gravar
+  `status: approved` no arquivo. A19 segue aberto.
+
+#### `app-cleanup`
+
+- **Corte, 8 de 8:** `(authenticated)/(common)/(pages)/` só com `account` e `boards`; pós-login para `/boards`
+  (`postLoginNavigation.ts:89`); `(common)/layout.tsx:35` só com `Navbar`; menu com Perfil e Preferências
+  (`(common)/paths.ts:79-86`); `apps/api/app/(guards)/` só com `session.ts` (`requireSessionApi`, linha 23) e
+  `board.ts`; `grep` por `isImpersonating`, `requireAdminApi` e `requireCommonPanelApi` vazio em `apps/` e
+  `packages/`, e `x-role` só em `apps/api/__tests__/sessionGuard.test.ts:93`; rotas da API sem `entities`,
+  `notifications` e `users`; landing em `apps/app/app/[locale]/(landing)/page.tsx:22`, `:71-91` com os vídeos em
+  `apps/app/public/landing/`; `apps/e2e/tests/` sem `focusNotObscured`; referência viva `boardMember` no
+  `CLAUDE.md:85`.
+- **`/test`:** 20 critérios, 19 ✅ e 1 ✅ com ressalva (WebM baixado com `prefers-reduced-motion`, 🟡);
+  `pnpm e2e` 20/20.
+- **Deriva:** `session.ts` no lugar do `common-panel.ts` (spec imprecisa); `docs/AUTH-PANEL.md` virou página curta.
+  Props sem função continuam em A10.
+
+#### `pr-flow`
+
+- **Corte, 4 de 4:** etapa marcada com `pullRequest` (`boardConfig.ts:61`) e `openPullRequestOnEntry`
+  (`orchestrator.ts:167`), PR em rascunho com recaída (`pull-request-open.ts:94-123`); `onPullRequestComment` com
+  limite por hora (`orchestrator.ts:228`, `:235`); webhook de review, comentário e checks
+  (`pull-request-webhook.ts:27-29`, `:212-216`) e bloco no card (`CardPullRequest.tsx:119`, `:150`);
+  `settlePullRequest` (`orchestrator.ts:197`) a partir do `closed` com `merged` (`pull-request-webhook.ts:71-77`).
+- **`/test`:** aprovado na rodada 2; 🔒 PR com autor `[bot]`, 403 e 422 do GitHub e entrega real dos eventos.
+- **Deriva:** `/mediate` com limite por hora; textos da linha do tempo da PR gravados em pt-br pela API. A17 segue
+  aceito.
+
+#### `execution-credentials`
+
+- **Corte, 5 de 5:** tipos de credencial (`packages/kanban-contract/src/credential.ts:10`); AES-256-GCM
+  (`secret-box.ts:3`) com `CREDENTIALS_ENCRYPTION_KEY` (`credentials-key.ts:40`) e só `tokenLast4` no app
+  (`credential.mapper.ts:27`); `GET credentials` (`credentials/route.ts:9`) e `PUT`/`DELETE` por etapa
+  (`scheduled-tasks/[stageKey]/route.ts:18`, `:68`), tela `BoardCredentialsClient.tsx`; `chooseStageExecutor`
+  (`credential.ts:66`), `RUN_NO_CREDENTIAL_FOR_STAGE` (`cards/[slug]/runs/route.ts:36`) e `no_credential`
+  (`run.ts:21`); `operator` dispara (`roles.ts:48`); `triggeredBy` no run (`run.ts:71`).
+- **`/test`:** 17 de 17; 🔒 a oferta do Chrome para salvar o token.
+- **Deriva:** o run não grava o id da credencial da nuvem (spec imprecisa, fica com a `cloud-routines-runner`);
+  recusa em `no_runner` ou `no_credential` conforme a etapa; cadastro da etapa `spec` foi para a
+  `cloud-routines-runner`. A18 segue com o usuário.
+
+#### `cycle-runs`, não arquivada
+
+- **Fatia 1: 6 de 9 itens completos, 2 parciais (tela do ciclo sem infra; parar sem pausar), 1 ausente ("Mudar"):** opções e fila (`packages/kanban-contract/src/cycle.ts:8-13`, `:34-50`, `:169`);
+  `--cycle` no runner (`apps/runner/src/session.ts:24`) e `AGENT_ASK_IN_CYCLE`
+  (`apps/api/(shared)/lib/agent-contract/agent-tools.ts:132`); `decisions` (`agentContract.ts:80`); aprovação do
+  plano pulada no ciclo (`cardState.ts:32`); tela do ciclo e parar (`CycleDetailClient.tsx`,
+  `cycles/[cycleId]/stop/route.ts`, `StopCycleDialog.tsx`).
+- **Ausente, fatia 2:** pausar e retomar (`CYCLE_STATUSES` é `queued`, `running`, `finished`, `stopped`), "Mudar"
+  e "Concordo", pendências de infra na tela e aviso de `depends_on`.
+- **`/test`:** 17 de 18, 🟡 do selo no card pendente (A16). Fica `in-progress`, com a nota atualizada na spec.
 
 ### Fase 1 — 2026-11-27
 

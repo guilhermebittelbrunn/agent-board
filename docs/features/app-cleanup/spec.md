@@ -1,7 +1,7 @@
 ---
 id: app-cleanup
 title: App só com o board, área do usuário no cabeçalho e landing simples
-status: in-progress
+status: done
 value: médio
 effort: M
 audience: dx
@@ -18,8 +18,8 @@ updated: 2026-11-27
 > **Resumo**
 > - **O quê:** tirar do app e da API o que veio do next-boilerplate e o board não usa (admin, impersonação, playground, CRUD `entity`, notificações, sidebar genérica), deixar o app autenticado só com as telas de board, levar conta e preferências para o menu do usuário no cabeçalho e trocar o redirecionamento da raiz por uma landing que mostra a animação do board.
 > - **Por quê:** hoje um usuário com `type: admin` não usa o board sem impersonar alguém, o E2E de `main` falha de forma intermitente num formulário de `entity` que ninguém usa, e cada spec nova passa por código e docs que descrevem outro produto.
-> - **Status:** `in-progress` · valor médio · esforço M · dx · implementada na branch, aguardando PR
-> - **Próximo passo:** abrir a PR da branch da noite e mergear com o CI verde; depois o `/spec --sync` arquiva e publica `firestore.indexes.json` (item 10 do `docs/PRE-PRODUCTION.md`)
+> - **Status:** `done` · valor médio · esforço M · dx
+> - **Próximo passo:** nenhum. Entregue na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (PR #12); spec arquivada em 2026-11-27. Depois do merge, publicar `firestore.indexes.json` (item 10 do `docs/PRE-PRODUCTION.md`).
 
 ## Problema
 
@@ -82,8 +82,8 @@ Inventário de 2026-11-27, com o uso conferido por `grep`.
 
 ## Referências
 
-- Spec arquivada [`fork-cleanup`](../../docs/features/fork-cleanup/spec.md): a primeira rodada de corte, que deixou admin, notificações e upload de fora de propósito.
-- [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md): as telas do board que ficam.
+- Spec arquivada [`fork-cleanup`](../../features/fork-cleanup/spec.md): a primeira rodada de corte, que deixou admin, notificações e upload de fora de propósito.
+- [`docs/board/SCREENS.md`](../../board/SCREENS.md): as telas do board que ficam.
 - web.dev, "Replace animated GIFs with video" (https://web.dev/articles/replace-gifs-with-videos, coletado em 2026-11-27): recomenda `<video autoplay loop muted playsinline>` com fontes WebM e MP4 no lugar do GIF, e cita um GIF de 3,7 MB que virou MP4 de 551 KB e WebM de 341 KB.
 - Medição local em 2026-11-27, com `ffmpeg` sobre o `agent-board.gif`: MP4 H.264 (`-crf 26`) com 782.202 bytes e WebM VP9 (`-crf 36`) com 738.543 bytes, cerca de 80% menores que o GIF; o primeiro quadro em PNG, para `poster`, tem 59.745 bytes.
 
@@ -145,10 +145,19 @@ Inventário de 2026-11-27, com o uso conferido por `grep`.
 - O consentimento de cookies e o `@repo/analytics` saem? — **recomendação:** fora desta spec. Abrir uma spec pequena depois, se o usuário quiser.
 - A landing fica no mesmo app (`apps/app`) ou num app separado? — **recomendação:** no mesmo app, como rota pública; um app novo traria outro deploy na Vercel para uma página só.
 
-## Nota de andamento (2026-11-27)
+## Nota de entrega
 
-Implementada em 2026-11-27 na branch `guilhermebittelbrunn/chore-overnight-cycle-specs` (rodada autônoma do `/cycle`), com analyze, develop, review e test em `docs/features/app-cleanup/`. A branch não tem PR, push nem CI; por isso a spec continua `in-progress` e não foi arquivada.
+Conferida no código da branch `guilhermebittelbrunn/chore-overnight-cycle-specs` em 2026-11-27, no fechamento (`/spec --sync app-cleanup`), depois do `/test`. Os oito itens do corte estão implementados:
 
-Conferido no código: o app autenticado só tem `account` e `boards`; a landing está em `apps/app/app/[locale]/(landing)/` com `apps/app/public/landing/agent-board.{mp4,webm}` e o poster; a API ficou com os guards `session.ts` e `board.ts`; nenhum arquivo de `apps/` ou `packages/` lê `isImpersonating`, `x-role` (fora do teste que prova que o cabeçalho é ignorado), `requireAdminApi` ou `requireCommonPanelApi`; o `focusNotObscured.spec.ts` saiu do E2E. O `/test` fechou 20 critérios e `pnpm e2e` 20/20.
+- Só board no app autenticado: `apps/app/app/[locale]/(authenticated)/(common)/(pages)/` tem apenas `account`, `boards` e `loading.tsx`; o pós-login manda para `/{locale}/boards` (`apps/app/shared/lib/postLoginNavigation.ts:89`).
+- Layout sem sidebar: `(common)/layout.tsx:35` monta só a `Navbar`; não há `Sidebar` nem `NotificationsBell` no arquivo.
+- Área do usuário no menu: `ProfileDropdown` leva a Perfil e Preferências (`(common)/paths.ts:79-86`); a aba Segurança não existe mais.
+- Sem papel de plataforma nem impersonação: `apps/api/app/(guards)/` tem só `session.ts` (`requireSessionApi`, linha 23) e `board.ts`. `grep` por `isImpersonating`, `requireAdminApi` e `requireCommonPanelApi` em `apps/` e `packages/` não acha nada; `x-role` só aparece em `apps/api/__tests__/sessionGuard.test.ts:93`, que prova que o cabeçalho é ignorado.
+- Sem notificações e sem `entity` na API: `apps/api/app/(routes)/` tem `account`, `agent`, `auth`, `boards`, `files`, `github`, `health`, `mcp`, `runner` e `runners`; `firestore.indexes.json` não cita `entity` nem `notification`.
+- Landing pública: `apps/app/app/[locale]/(landing)/page.tsx`, com `<video>` WebM e MP4 e `poster` (linhas 71-91) e a consulta `prefers-reduced-motion` (linha 22); os arquivos estão em `apps/app/public/landing/`.
+- Testes, E2E e seed: `apps/e2e/tests/` ficou com `a11yDark`, `accountSettings`, `githubSignIn` e `signIn`; o `focusNotObscured.spec.ts` saiu; `apps/api/scripts/` não tem mais `create-dev-admin.mjs`.
+- Referência viva trocada para `boardMember` no `CLAUDE.md` (linha 85) e na skill `new-crud`.
 
-Diferenças em relação ao texto acima: o guard de sessão virou `apps/api/app/(guards)/session.ts` (`requireSessionApi`), que substituiu o `common-panel.ts` (o `contends_on` acima já aponta para ele); o `docs/AUTH-PANEL.md` ficou como página curta sobre sessão. Pendente sem bloqueio: as props `canRevoke` e `canGenerate` de `RunnerList` e `RunnerRegistrationPanel` ficaram sem função.
+O `/test` fechou 20 critérios (19 ✅ e 1 ✅ com ressalva: o WebM de 738 KB é baixado mesmo com `prefers-reduced-motion`, 🟡 não bloqueante), com `pnpm e2e` 20/20 e `next build` de app e api verdes.
+
+O que saiu diferente do texto acima: o guard de sessão virou `apps/api/app/(guards)/session.ts` (`requireSessionApi`), que substituiu o `common-panel.ts`; o `docs/AUTH-PANEL.md` ficou como página curta sobre sessão. As props `canRevoke` e `canGenerate` de `RunnerList` e `RunnerRegistrationPanel` ficaram sem função (achado A10 do `specs/reference/AUDIT.md`).

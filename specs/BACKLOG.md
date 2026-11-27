@@ -8,36 +8,32 @@ a fonte do conteúdo. Contrato e frontmatter: [`README.md`](README.md). Que tela
 ## Ordem recomendada
 
 Nenhuma spec pode começar agora. As cinco da noite de 2026-11-27 estão implementadas na branch
-`guilhermebittelbrunn/chore-overnight-cycle-specs`, na PR #12, com o CI verde em `26eaf1f`, e as três `proposed`
-restantes dependem de alguma delas. O primeiro passo é a tarefa direta 1 (mergear a PR #12). Depois do merge, a
-ordem é esta:
+`guilhermebittelbrunn/chore-overnight-cycle-specs`, na PR #12, com o CI verde em `26eaf1f`; quatro já estão
+arquivadas nessa branch e a `cycle-runs` segue na fatia 2. As três `proposed` restantes dependem de alguma delas.
+O primeiro passo é a tarefa direta 1 (mergear a PR #12). Depois do merge, a ordem é esta:
 
 | # | spec | o quê | status | valor · esforço | próximo comando |
 |---|------|-------|--------|-----------------|-----------------|
-| 1 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | `proposed` | médio · M | aprovar → `/analyze cloud-routines-runner`, depois do merge |
+| 1 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | `proposed` | médio · M | liberada depois do merge da PR #12; aprovar → `/analyze cloud-routines-runner` |
 | 2 | [`cycle-runs`](features/cycle-runs.md) (fatia 2) | Pausar e retomar, "Mudar"/"Concordo", infra na tela, aviso de `depends_on` | `in-progress` | alto · G | `/analyze cycle-runs`, depois do merge |
-| 3 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | `proposed` | médio · M | aprovar → `/analyze spec-discovery`, depois do merge |
+| 3 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | `proposed` | médio · M | liberada depois do merge da PR #12; aprovar → `/analyze spec-discovery` |
 | 4 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | `proposed` | médio · P | depois da fatia 2 da `cycle-runs` |
 
 ## Em andamento
 
-Todas implementadas na branch da noite, na PR #12 aberta. Nenhuma está em `main`.
+Implementada na branch da noite, na PR #12 aberta. Não está em `main`.
 
 | spec | o quê | situação |
 |------|-------|----------|
-| [`spec-authoring`](features/spec-authoring.md) | Escrever spec no board, com as perguntas no card | Completa; `/test` 18 de 19 (PDF via MCP só com runner real) |
-| [`app-cleanup`](features/app-cleanup.md) | App só com o board, conta no menu do usuário e landing simples | Completa; `/test` 20 de 20 |
-| [`pr-flow`](features/pr-flow.md) | Abrir, acompanhar e concluir a PR | Completa; falta a permissão no GitHub App para uso real |
-| [`execution-credentials`](features/execution-credentials.md) | Cada membro dispara com a própria credencial | Completa; aprovada depois de rodar, em 2026-11-27 |
 | [`cycle-runs`](features/cycle-runs.md) | Várias specs da Análise à PR sem parar | Fatia 1 de 2; spec inteira aprovada em 2026-11-27 |
 
 ## Aguardando triagem
 
 | spec | o quê | fase | valor · esforço | bloqueada por |
 |------|-------|------|-----------------|---------------|
-| [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | 2 | médio · M | merge da `execution-credentials` |
-| [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | 3 | médio · M | merge da `spec-authoring` |
-| [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | 3 | médio · P | `cycle-runs` inteira e merge da `execution-credentials` |
+| [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | 2 | médio · M | merge da PR #12 (`execution-credentials`) |
+| [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | 3 | médio · M | merge da PR #12 (`spec-authoring`) |
+| [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | 3 | médio · P | `cycle-runs` inteira e merge da PR #12 (`execution-credentials`) |
 
 ## Adiadas e substituídas
 
@@ -86,8 +82,12 @@ Todas implementadas na branch da noite, na PR #12 aberta. Nenhuma está em `main
 | `orchestrator` | 2026-11-27 | [`docs/features/orchestrator/spec.md`](../docs/features/orchestrator/spec.md) (PR #8) |
 | `agent-contract` | 2026-11-27 | [`docs/features/agent-contract/spec.md`](../docs/features/agent-contract/spec.md) (PR #8) |
 | `local-runner` | 2026-11-27 | [`docs/features/local-runner/spec.md`](../docs/features/local-runner/spec.md) (PR #8) |
+| `spec-authoring` | 2026-11-27 | [`docs/features/spec-authoring/spec.md`](../docs/features/spec-authoring/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
+| `app-cleanup` | 2026-11-27 | [`docs/features/app-cleanup/spec.md`](../docs/features/app-cleanup/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
+| `pr-flow` | 2026-11-27 | [`docs/features/pr-flow/spec.md`](../docs/features/pr-flow/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
+| `execution-credentials` | 2026-11-27 | [`docs/features/execution-credentials/spec.md`](../docs/features/execution-credentials/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
 
 ## Contadores
 
-`proposed` 3 · `approved` 0 · `in-progress` 5 · `deferred` 2 · `superseded` 1 · entregues 11. Última
-auditoria: 2026-11-27, fim da rodada noturna ([`AUDIT.md`](reference/AUDIT.md)).
+`proposed` 3 · `approved` 0 · `in-progress` 1 · `deferred` 2 · `superseded` 1 · entregues 15 (4 aguardando o
+merge da PR #12). Última auditoria: 2026-11-27, fim da rodada noturna ([`AUDIT.md`](reference/AUDIT.md)).
