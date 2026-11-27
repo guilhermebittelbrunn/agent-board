@@ -6,6 +6,7 @@ import ApplicationActions from "../actions/application/application";
 import AuthActions from "../actions/auth/action";
 import BoardActions from "../actions/board/action";
 import BoardCardActions from "../actions/boardCard/action";
+import BoardDraftActions from "../actions/boardDraft/action";
 import BoardMemberActions from "../actions/boardMember/action";
 import EntityActions from "../actions/entity/action";
 import FileActions from "../actions/file/action";
@@ -21,6 +22,7 @@ export class Client extends BaseClient {
     entity!: EntityActions;
     board!: BoardActions;
     boardCard!: BoardCardActions;
+    boardDraft!: BoardDraftActions;
     boardMember!: BoardMemberActions;
     file!: FileActions;
     account!: AccountActions;
@@ -36,6 +38,7 @@ export class Client extends BaseClient {
         this.entity = new EntityActions(this);
         this.board = new BoardActions(this);
         this.boardCard = new BoardCardActions(this);
+        this.boardDraft = new BoardDraftActions(this);
         this.boardMember = new BoardMemberActions(this);
         this.file = new FileActions(this);
         this.notification = new NotificationActions(this);
