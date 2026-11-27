@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     askInputSchema,
     attachArtifactInputSchema,
+    getAttachmentInputSchema,
     type Question,
     questionSchema,
 } from "../src/agentContract";
@@ -127,5 +128,31 @@ describe("attachArtifactInputSchema", () => {
         expect(attachArtifactInputSchema.safeParse(artifact("")).success).toBe(
             false
         );
+    });
+});
+
+describe("getAttachmentInputSchema", () => {
+    const ref = { cardId: "b1__audit-log", stage: "spec" };
+
+    it("accepts an attachment id shaped like a UUID", () => {
+        expect(
+            getAttachmentInputSchema.safeParse({
+                ...ref,
+                attachmentId: "3f0c9e1a-1b2c-4d5e-8f90-123456789abc",
+            }).success
+        ).toBe(true);
+    });
+
+    it("rejects a path or anything that is not a lowercase UUID", () => {
+        for (const attachmentId of [
+            "uploads/u1/3f0c9e1a-1b2c-4d5e-8f90-123456789abc.png",
+            "3F0C9E1A-1B2C-4D5E-8F90-123456789ABC",
+            "",
+        ]) {
+            expect(
+                getAttachmentInputSchema.safeParse({ ...ref, attachmentId })
+                    .success
+            ).toBe(false);
+        }
     });
 });

@@ -12,6 +12,7 @@ const MAX_OPTION_LABEL = 120;
 const MAX_OPTION_DESCRIPTION = 500;
 const MAX_ARTIFACT_PATH = 1024;
 const COMMIT_SHA = /^[0-9a-f]{40}$/;
+const ATTACHMENT_ID = /^[0-9a-f-]{36}$/;
 
 const cardRef = { cardId: z.string().min(1) };
 const stageRef = { ...cardRef, stage: z.string().min(1) };
@@ -60,6 +61,11 @@ export const completeStageInputSchema = z.object({
     summary: z.string().min(1).max(MAX_MARKDOWN),
 });
 
+export const getAttachmentInputSchema = z.object({
+    ...stageRef,
+    attachmentId: z.string().regex(ATTACHMENT_ID),
+});
+
 export const createCardInputSchema = z.object({
     boardId: z.string().min(1),
     title: z.string().min(1).max(MAX_TITLE),
@@ -73,6 +79,7 @@ export const AGENT_CONTRACT_TOOLS = {
     ask: askInputSchema,
     attach_artifact: attachArtifactInputSchema,
     complete_stage: completeStageInputSchema,
+    get_attachment: getAttachmentInputSchema,
     create_card: createCardInputSchema,
 } as const;
 
@@ -82,6 +89,7 @@ export type PostUpdateInput = z.infer<typeof postUpdateInputSchema>;
 export type AskInput = z.infer<typeof askInputSchema>;
 export type AttachArtifactInput = z.infer<typeof attachArtifactInputSchema>;
 export type CompleteStageInput = z.infer<typeof completeStageInputSchema>;
+export type GetAttachmentInput = z.infer<typeof getAttachmentInputSchema>;
 
 /** `create_card` stays out until a card can be born outside the sync of the repository's specs. */
 export const AGENT_MCP_TOOLS = [
@@ -90,6 +98,7 @@ export const AGENT_MCP_TOOLS = [
     "ask",
     "attach_artifact",
     "complete_stage",
+    "get_attachment",
 ] as const satisfies readonly AgentContractTool[];
 
 export const isAgentContractTool = (name: string): name is AgentContractTool =>
