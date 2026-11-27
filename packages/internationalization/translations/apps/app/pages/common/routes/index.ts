@@ -1,14 +1,6 @@
 export const commonRoutesTranslations = {
     "pt-br": {
-        home: "Início",
         platform: {
-            title: "Plataforma",
-            playground: "Playground",
-            entities: {
-                list: "Entidades",
-                create: "Nova entidade",
-                update: "Editar entidade",
-            },
             boards: {
                 list: "Boards",
                 create: "Novo board",
@@ -18,8 +10,6 @@ export const commonRoutesTranslations = {
                 board: "Quadro",
                 card: "Card",
             },
-            documentation: "Documentação",
-            settings: "Configurações",
         },
     },
 };
