@@ -1,11 +1,15 @@
-import { type BoardConfig, isAwaitingApproval } from "@repo/kanban-contract";
+import {
+    type BoardConfig,
+    findPullRequestStage,
+    isAwaitingApproval,
+} from "@repo/kanban-contract";
 import type { CardDTO } from "@repo/sdk/src/types";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
 
 /** Why the card is where it is, from its last run; `null` when the state says enough. */
 export function cardRunReason(
     card: CardDTO,
-    config: Pick<BoardConfig, "limits">,
+    config: Pick<BoardConfig, "limits" | "stages">,
     boardsDictionary: BoardsDictionary
 ): string | null {
     const reasonCopy = boardsDictionary.board.card.runReason;
@@ -27,6 +31,14 @@ export function cardRunReason(
         return fillMessage(reasonCopy.stopped, {
             login: lastRun.stoppedByLogin ?? "",
         });
+    }
+    const waitsForMerge =
+        card.state === "idle" &&
+        lastRun.outcome === "success" &&
+        card.pullRequest?.state === "open" &&
+        card.stageKey === findPullRequestStage(config)?.key;
+    if (waitsForMerge) {
+        return reasonCopy.awaitingMerge;
     }
     if (card.state !== "failed") {
         return null;

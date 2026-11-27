@@ -43,6 +43,7 @@ import {
     fillMessage,
 } from "../../../../(components)/boardConfigIssueMessage";
 import { CardArtifacts } from "../../../../(components)/CardArtifacts";
+import { CardPullRequest } from "../../../../(components)/CardPullRequest";
 import { CardQuestions } from "../../../../(components)/CardQuestions";
 import {
     type CardRunCommand,
@@ -403,6 +404,11 @@ function CardPageBody({
                 boardsDictionary={boardsDictionary}
                 card={card}
                 onRunCommand={onRunCommand}
+            />
+            <CardPullRequest
+                board={board}
+                boardsDictionary={boardsDictionary}
+                card={card}
             />
             <CardActivity
                 board={board}

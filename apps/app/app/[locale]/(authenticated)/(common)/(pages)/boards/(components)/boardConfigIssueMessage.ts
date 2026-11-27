@@ -52,6 +52,10 @@ function templateFor(issue: BoardConfigIssue, messages: IssueMessages): string {
                 : messages.reworkTargetInvalid;
         case "base_branch_unprotected":
             return messages.baseBranchUnprotected;
+        case "pull_request_stage_duplicated":
+            return messages.pullRequestStageDuplicated;
+        case "pull_request_stage_not_last":
+            return messages.pullRequestStageNotLast;
         case "yaml_syntax":
             return issue.params.line === undefined
                 ? messages.yamlSyntaxNoPosition
