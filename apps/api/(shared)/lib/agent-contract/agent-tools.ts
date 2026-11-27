@@ -1,8 +1,10 @@
 import {
     AGENT_CONTRACT_TOOLS,
+    type AgentAttachmentContent,
     type AgentCompleteResult,
     type AgentContractTool,
     type AgentEventResult,
+    type GetAttachmentInput,
     isAgentContractTool,
 } from "@repo/kanban-contract";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
@@ -11,6 +13,7 @@ import {
     agentEventFromTool,
 } from "@/(shared)/lib/card-events";
 import { completeRun } from "@/(shared)/lib/orchestrator/orchestrator";
+import { isStorageConfigured, readObject } from "@/(shared)/lib/storage";
 import { cardEventRepository } from "@/(shared)/repositories/card-event.repository";
 import { buildAgentCardView } from "./agent-card-view";
 import type { AgentContext } from "./agent-context";
@@ -76,6 +79,42 @@ async function completeStage(
     };
 }
 
+/** Only an attachment of this run's own card is found, so another card's id answers 404. */
+async function readAttachment(
+    input: GetAttachmentInput,
+    ctx: AgentContext
+): Promise<AgentToolOutcome> {
+    const attachment = ctx.card.request?.attachments.find(
+        (candidate) => candidate.id === input.attachmentId
+    );
+    if (attachment === undefined) {
+        return refuse("AGENT_ATTACHMENT_NOT_FOUND", HTTP_STATUS.NOT_FOUND);
+    }
+    if (!isStorageConfigured()) {
+        return refuse(
+            "STORAGE_NOT_CONFIGURED",
+            HTTP_STATUS.SERVICE_UNAVAILABLE
+        );
+    }
+    let contents: Buffer;
+    try {
+        contents = await readObject(attachment.path);
+    } catch {
+        return refuse("AGENT_ATTACHMENT_NOT_FOUND", HTTP_STATUS.NOT_FOUND);
+    }
+    const { id, name, contentType } = attachment;
+    return {
+        ok: true,
+        data: {
+            id,
+            name,
+            contentType,
+            size: contents.length,
+            base64: contents.toString("base64"),
+        } satisfies AgentAttachmentContent,
+    };
+}
+
 async function runTool(
     tool: AgentContractTool,
     input: unknown,
@@ -84,6 +123,8 @@ async function runTool(
     switch (tool) {
         case "get_card":
             return { ok: true, data: await buildAgentCardView(ctx) };
+        case "get_attachment":
+            return await readAttachment(input as GetAttachmentInput, ctx);
         case "post_update":
         case "ask":
         case "attach_artifact":

@@ -24,13 +24,22 @@ const {
     getGithubClientMock,
     cardStore,
     eventStore,
+    storageOnMock,
+    readObjectMock,
 } = vi.hoisted(() => ({
+    storageOnMock: vi.fn(),
+    readObjectMock: vi.fn(),
     findWithTokenMock: vi.fn(),
     findBoardMock: vi.fn(),
     completeRunMock: vi.fn(),
     getGithubClientMock: vi.fn(),
     cardStore: { current: null as FakeCardRepository | null },
     eventStore: { current: null as FakeCardEventRepository | null },
+}));
+
+vi.mock("@/(shared)/lib/storage", () => ({
+    isStorageConfigured: () => storageOnMock(),
+    readObject: (...args: unknown[]) => readObjectMock(...args),
 }));
 
 vi.mock("@/(shared)/repositories/run.repository", () => ({
@@ -171,9 +180,12 @@ beforeEach(() => {
         findBoardMock,
         completeRunMock,
         getGithubClientMock,
+        storageOnMock,
+        readObjectMock,
     ]) {
         mock.mockReset();
     }
+    storageOnMock.mockReturnValue(false);
     cards = createFakeCardRepository();
     cardStore.current = cards;
     events = createFakeCardEventRepository(cards);
@@ -586,5 +598,129 @@ describe("get_card", () => {
         );
 
         expect(view.spec.content).toBeNull();
+    });
+});
+
+describe("get_attachment", () => {
+    const ATTACHMENT_ID = "3f0c9e1a-1b2c-4d5e-8f90-123456789abc";
+    const OTHER_ID = "0a0c9e1a-1b2c-4d5e-8f90-123456789abc";
+    const specRef = { cardId: CARD_ID, stage: "spec" };
+
+    beforeEach(() => {
+        cards.seed(BOARD_ID, SLUG, {
+            lane: "drafts",
+            stageKey: "spec",
+            origin: "board",
+            state: "running",
+            activeRunId: RUN_ID,
+            spec: {
+                path: `specs/features/${SLUG}.md`,
+                sha: "",
+                status: "",
+                ref: `feat/${SLUG}`,
+            },
+            request: {
+                text: "Quero um alerta",
+                attachments: [
+                    {
+                        id: ATTACHMENT_ID,
+                        name: "print.png",
+                        contentType: "image/png",
+                        size: 3,
+                        path: `uploads/u1/${ATTACHMENT_ID}.png`,
+                    },
+                ],
+                requestedBy: { userId: "u1", login: "octo" },
+                requestedAt: new Date("2026-11-27T09:00:00.000Z"),
+            },
+        });
+        cards.seed(BOARD_ID, "other-card", {
+            request: {
+                text: "x",
+                attachments: [
+                    {
+                        id: OTHER_ID,
+                        name: "other.png",
+                        contentType: "image/png",
+                        size: 3,
+                        path: `uploads/u2/${OTHER_ID}.png`,
+                    },
+                ],
+                requestedBy: { userId: "u2", login: "someone" },
+                requestedAt: new Date("2026-11-27T09:00:00.000Z"),
+            },
+        });
+        findWithTokenMock.mockResolvedValue({
+            run: runRecord({ stageKey: "spec", command: "/spec" }),
+            token: storedToken(),
+        });
+        storageOnMock.mockReturnValue(true);
+        readObjectMock.mockResolvedValue(Buffer.from("AQID", "base64"));
+    });
+
+    it("answers the card's own attachment in base64", async () => {
+        const data = await dataOf<Record<string, unknown>>(
+            await call("get_attachment", {
+                ...specRef,
+                attachmentId: ATTACHMENT_ID,
+            })
+        );
+
+        expect(data).toEqual({
+            id: ATTACHMENT_ID,
+            name: "print.png",
+            contentType: "image/png",
+            size: 3,
+            base64: "AQID",
+        });
+        expect(readObjectMock).toHaveBeenCalledWith(
+            `uploads/u1/${ATTACHMENT_ID}.png`
+        );
+    });
+
+    it("answers 404 for an attachment of another card", async () => {
+        const response = await call("get_attachment", {
+            ...specRef,
+            attachmentId: OTHER_ID,
+        });
+
+        expect(await errorOf(response)).toEqual({
+            status: 404,
+            code: "AGENT_ATTACHMENT_NOT_FOUND",
+        });
+        expect(readObjectMock).not.toHaveBeenCalled();
+    });
+
+    it("answers 503 while storage is off", async () => {
+        storageOnMock.mockReturnValue(false);
+
+        const response = await call("get_attachment", {
+            ...specRef,
+            attachmentId: ATTACHMENT_ID,
+        });
+
+        expect(await errorOf(response)).toEqual({
+            status: 503,
+            code: "STORAGE_NOT_CONFIGURED",
+        });
+    });
+
+    it("shows the request on get_card without the bucket path", async () => {
+        const data = await dataOf<{
+            card: { origin: string };
+            spec: { ref: string };
+            request: { attachments: Record<string, unknown>[] };
+        }>(await call("get_card", { cardId: CARD_ID }));
+
+        expect(data.card.origin).toBe("board");
+        expect(data.spec.ref).toBe(`feat/${SLUG}`);
+        expect(data.request.attachments).toEqual([
+            {
+                id: ATTACHMENT_ID,
+                name: "print.png",
+                contentType: "image/png",
+                size: 3,
+            },
+        ]);
     });
 });
