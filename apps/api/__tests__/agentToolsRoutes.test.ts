@@ -126,6 +126,7 @@ const runRecord = (overrides: Record<string, unknown> = {}) => ({
     status: "running",
     active: true,
     deadlineAt: "2099-01-01T00:00:00.000Z",
+    cycleId: null,
     ...overrides,
 });
 
@@ -441,6 +442,60 @@ describe("agent tools", () => {
             stageKey: "analyze",
             state: "running",
         });
+    });
+
+    it("refuses ask in a cycle run, without writing a question", async () => {
+        findWithTokenMock.mockResolvedValue({
+            run: runRecord({ cycleId: "cycle1" }),
+            token: storedToken(),
+        });
+
+        expect(
+            await errorOf(
+                await call("ask", {
+                    ...ref,
+                    questions: [
+                        {
+                            question: "Header or OAuth?",
+                            header: "Auth",
+                            options: [{ label: "Header" }, { label: "OAuth" }],
+                        },
+                    ],
+                })
+            )
+        ).toEqual({
+            status: HTTP_STATUS.CONFLICT,
+            code: "AGENT_ASK_IN_CYCLE",
+        });
+        expect(agentEvents()).toHaveLength(0);
+        expect(cards.documents.get(CARD_ID)?.pendingAsk ?? null).toBeNull();
+    });
+
+    it("stores the decisions of complete_stage and the cycle on the report", async () => {
+        findWithTokenMock.mockResolvedValue({
+            run: runRecord({ cycleId: "cycle1" }),
+            token: storedToken(),
+        });
+        const decisions = [
+            {
+                decision: "Busca só pelo título.",
+                rule: "spec",
+                product: true,
+            },
+        ];
+
+        await dataOf(
+            await call("complete_stage", {
+                ...ref,
+                outcome: "success",
+                summary: "### Análise — plano pronto",
+                decisions,
+            })
+        );
+
+        expect(agentEvents()).toMatchObject([
+            { type: "report", decisions, cycleId: "cycle1" },
+        ]);
     });
 
     it("ignores complete_stage once the run is closed, without a second report", async () => {

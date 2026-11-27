@@ -3,6 +3,7 @@ import {
     type ExecutorReport,
     type Question,
     STAGE_OUTCOMES,
+    type StageDecision,
     type StageDispatch,
     type StageExecutor,
     type StageOutcome,
@@ -90,6 +91,31 @@ const SUMMARY: Record<StageOutcome, string> = {
     failed: "falhou",
 };
 
+export const FAKE_TECHNICAL_DECISION: StageDecision = {
+    decision: "Seguiu o padrão do repositório para a parte técnica da etapa.",
+    rule: "repo_pattern",
+    product: false,
+};
+
+export const FAKE_PRODUCT_DECISION: StageDecision = {
+    decision: "Adotou a recomendação da spec para o escopo visível ao usuário.",
+    rule: "spec",
+    product: true,
+};
+
+const ANALYSIS_COMMAND = "/analyze";
+
+/** What a cycle run decides on its own: one technical decision, plus one of product in the analysis. */
+function fakeDecisions(run: ActiveRunView): StageDecision[] {
+    return run.command === ANALYSIS_COMMAND
+        ? [FAKE_TECHNICAL_DECISION, FAKE_PRODUCT_DECISION]
+        : [FAKE_TECHNICAL_DECISION];
+}
+
+/**
+ * The simulated report of a run. Inside a cycle nobody answers questions, so a `needs_input`
+ * there carries none, as the API refuses `ask` to a real agent.
+ */
 export function fakeReport(
     run: ActiveRunView,
     outcome: StageOutcome
@@ -99,9 +125,24 @@ export function fakeReport(
         "",
         "**O que foi feito:** nada; o resultado é simulado e nenhum agente rodou.",
     ].join("\n");
-    return outcome === "needs_input"
-        ? { runId: run.runId, outcome, summary, questions: [FAKE_QUESTION] }
-        : { runId: run.runId, outcome, summary };
+    const inCycle = run.cycleId !== null;
+    if (outcome === "needs_input" && !inCycle) {
+        return {
+            runId: run.runId,
+            outcome,
+            summary,
+            questions: [FAKE_QUESTION],
+        };
+    }
+    if (outcome === "success" && inCycle) {
+        return {
+            runId: run.runId,
+            outcome,
+            summary,
+            decisions: fakeDecisions(run),
+        };
+    }
+    return { runId: run.runId, outcome, summary };
 }
 
 export function dispatchNote(input: StageDispatch): string {

@@ -5,8 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
     claimOutcome,
     createFakeExecutor,
+    FAKE_PRODUCT_DECISION,
     FAKE_RUN_DURATION_MS,
+    FAKE_TECHNICAL_DECISION,
     type FakeScript,
+    fakeReport,
     toFakeScript,
 } from "@/(shared)/lib/orchestrator/fake-executor";
 
@@ -17,6 +20,7 @@ const view = (runId: string, cardId = "b1__search-cards") => ({
     slug: "search-cards",
     stageKey: "analyze",
     command: "/analyze",
+    cycleId: null as string | null,
     startedAt: STARTED,
 });
 const elapsed = (ms: number) => new Date(STARTED.getTime() + ms);
@@ -126,6 +130,7 @@ describe("fake stage executor", () => {
             branch: "feat/search-cards",
             repository: { owner: "agent-board-demo", name: "sample-app" },
             triggeredBy: { userId: "p1", login: "octo" },
+            cycleId: null,
         });
 
         expect(result).toEqual({ ok: true, sessionUrl: null });
@@ -185,5 +190,34 @@ describe("fake-executor.mjs", () => {
         expect(result.stderr).toContain(
             'the target project is "agent-board-prod"'
         );
+    });
+});
+
+describe("fakeReport inside a cycle", () => {
+    const inCycle = (command: string) => ({
+        ...view("r9"),
+        command,
+        cycleId: "c1",
+    });
+
+    it("reports a technical and a product decision in the analysis", () => {
+        const report = fakeReport(inCycle("/analyze"), "success");
+        expect(report.decisions).toEqual([
+            FAKE_TECHNICAL_DECISION,
+            FAKE_PRODUCT_DECISION,
+        ]);
+    });
+
+    it("reports only the technical decision in later stages", () => {
+        expect(fakeReport(inCycle("/develop"), "success").decisions).toEqual([
+            FAKE_TECHNICAL_DECISION,
+        ]);
+    });
+
+    it("asks nothing in a cycle, and decides nothing outside one", () => {
+        expect(
+            fakeReport(inCycle("/analyze"), "needs_input").questions
+        ).toBeUndefined();
+        expect(fakeReport(view("r1"), "success").decisions).toBeUndefined();
     });
 });

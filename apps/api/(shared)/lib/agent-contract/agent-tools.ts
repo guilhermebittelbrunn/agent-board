@@ -48,6 +48,7 @@ async function recordEvent(
     const stored = await cardEventRepository.appendAgentEvent(ctx.card, {
         ...written.write,
         runId: ctx.run.id,
+        cycleId: ctx.run.cycleId,
     });
     if (!stored.ok) {
         return refuse(stored.code, HTTP_STATUS.CONFLICT);
@@ -125,8 +126,13 @@ async function runTool(
             return { ok: true, data: await buildAgentCardView(ctx) };
         case "get_attachment":
             return await readAttachment(input as GetAttachmentInput, ctx);
-        case "post_update":
         case "ask":
+            // Nobody answers before a cycle ends, so its agent decides and records why instead.
+            if (ctx.run.cycleId !== null) {
+                return refuse("AGENT_ASK_IN_CYCLE", HTTP_STATUS.CONFLICT);
+            }
+            return await recordEvent({ tool, input } as AgentEventInput, ctx);
+        case "post_update":
         case "attach_artifact":
             return await recordEvent({ tool, input } as AgentEventInput, ctx);
         case "complete_stage":
