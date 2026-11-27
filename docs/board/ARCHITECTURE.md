@@ -37,7 +37,7 @@ O board decide, os agentes executam e tudo volta para o card. Só uma peça é n
 
 | Coluna | Comando | Sai quando |
 |--------|---------|------------|
-| Rascunhos | `/spec "<pedido>" --board <card>` | Spec aprovada por alguém (spec `spec-authoring`) |
+| Rascunhos | `/spec <slug> --board <card>` (comando do bloco `specAuthoring`) | Alguém aprova a spec; o card vai para o fim de Tarefas |
 | Tarefas | — | Alguém arrasta o card, ou um ciclo o puxa (spec `cycle-runs`) |
 | Análise | `/analyze <slug> --board <card>` | Plano pronto, sem perguntas abertas |
 | Executando | `/develop <slug> --board <card>` | Handoff escrito e type-check verde |
@@ -52,6 +52,12 @@ O card tem uma **coluna** (a etapa) e um **estado** (`idle`, `queued`, `running`
 - `needs_input` → fica na etapa, `waiting_input`; volta a rodar quando alguém responde no card.
 - `needs_rework` → volta para a etapa de `onRework` (review e teste voltam para develop) até `limits.maxReworkLoops`; depois disso, `waiting_input`.
 - `failed` → fica na etapa, `failed`, com o motivo no card.
+
+Rascunhos é uma faixa própria (`drafts`), fixa antes de Tarefas, e a escrita roda como a etapa reservada
+`spec`. Ela não passa por `resolveTransition`: `success` deixa o rascunho `idle` com a spec pronta,
+`needs_input` deixa `waiting_input`, `needs_rework` e `failed` deixam `failed`, que sai com "Rodar
+de novo". O rascunho não se arrasta nem se move pelo menu; só sai de Rascunhos pela aprovação (`POST .../spec/approve`, que exige rodada
+concluída sem pergunta aberta) ou pelo descarte, que apaga o card do quadro e deixa a branch no GitHub.
 
 ## Executores
 
@@ -72,7 +78,7 @@ foram criadas; o nome final sai da spec que as criar.
 |---------|-------------------|
 | `board` | repositório (`owner/name`), instalação do GitHub App, `board.yml` validado (snapshot + sha), última sincronização do backlog (`backlogSync`), escolhas do board por etapa (`stageSettings`: limite de cards rodando e aprovação antes da etapa seguinte), `runsPumpedAt` (trava da fila); depois: runner padrão, agenda de ciclos |
 | `boardMember` | board, usuário (github id e login), papel no board, papel efetivo e data da última checagem, status do convite. Id `<boardId>__<login>` |
-| `card` | board, slug, título, spec (caminho, sha e status), pronto, órfão, faixa (`tasks`, `stage`, `done`) e etapa, ordem em Tarefas, estado, voltas de rework, branch, perguntas pendentes (`pendingAsk`: evento, etapa e quantidade), execução viva (`activeRunId`, no máximo uma) e resumo da última (`lastRun`: etapa, status, resultado, motivo do fim, quem parou); depois: PR, ciclo atual. Id `<boardId>__<slug>` |
+| `card` | board, slug, título, spec (caminho, sha e status), pronto, órfão, faixa (`drafts`, `tasks`, `stage`, `done`) e etapa, origem (`repository` ou `board`), onde a spec está (`spec.ref`: a branch do card enquanto ela não está na base), pedido escrito no board (`request`: texto, anexos e quem pediu), aprovação no board (`specApproval`), ordem em Tarefas, estado, voltas de rework, branch, perguntas pendentes (`pendingAsk`: evento, etapa e quantidade), execução viva (`activeRunId`, no máximo uma) e resumo da última (`lastRun`: etapa, status, resultado, motivo do fim, quem parou); depois: PR, ciclo atual. Id `<boardId>__<slug>` |
 | `run` | board, card e slug, etapa, comando, agente, modelo, esforço e limite de turnos copiados da etapa no disparo, branch, tipo de disparo (`drag`, `rerun`, `approve`, `answer`, `transition`), quem disparou (id e login), executor (`fake` só no emulador, `local` quando quem disparou tinha um runner online), status (`queued`, `running`, `finished`, `stopped`), `active` (verdadeiro enquanto na fila ou rodando), resultado, motivo do fim (`agent`, `timeout`, `dispatch_failed`, `stopped`, `no_runner`), quem parou, entrada na fila, início, prazo, fim, URL da sessão (vazia), turnos (o runner local informa no heartbeat e no fim), o runner que pegou o `run` (`runnerId`, `claimedAt`) e quando ele avisou o fim (`runnerFinishedAt`, que torna o aviso idempotente), e o token do agente: `tokenHash` (SHA-256 do segredo, nunca o token) e `tokenExpiresAt` (igual ao prazo). Id automático. Só o orquestrador escreve, sempre em transação no documento do card; o token é gravado na transação do `claim` do runner (ou por `issueRunToken`, no emulador), e nunca sai em `RunDTO`; depois: credencial usada |
 | `cardEvent` | board, card, etapa e faixa do card no momento, autor (agente pelo nome, ou pessoa pelo id e login), tipo (`update`, `question`, `answer`, `artifact`, `report`, `comment`), corpo em markdown e os campos de cada tipo (perguntas, respostas com o rótulo copiado, artefato com caminho e sha, resultado da etapa); `runId` aponta o `run` que gerou o evento de agente; comentários e respostas de pessoa ficam sem ele. Id automático. Só o autor edita ou apaga (soft delete) um comentário; eventos de agente não mudam |
 | `runner` | dono (`userId`), nome da máquina, `tokenHash` (SHA-256 do segredo do token `kbl_`), os quatro últimos caracteres do segredo para a tela, último contato (`lastSeenAt`, gravado no máximo a cada 30 s), `run` em andamento (`currentRunId`, um por vez), revogação como soft delete. Id automático |

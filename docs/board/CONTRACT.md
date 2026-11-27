@@ -32,7 +32,7 @@ o evento com o `runId` e encerra a etapa só por `completeRun`, que decide para 
 O MCP atende as duas gerações do protocolo no mesmo endpoint. Pedido com `_meta["io.modelcontextprotocol/protocolVersion"]`
 segue a revisão `2026-07-28`: `server/discover`, `tools/list` e `tools/call`, com os headers `MCP-Protocol-Version`,
 `Mcp-Method` e `Mcp-Name` conferidos contra o corpo. Pedido sem `_meta` segue as revisões com `initialize`
-(`2025-11-25`, `2025-06-18` e `2025-03-26`). `tools/list` traz cinco ferramentas; `create_card` fica de fora.
+(`2025-11-25`, `2025-06-18` e `2025-03-26`). `tools/list` traz seis ferramentas; `create_card` fica de fora.
 Recusa de ferramenta volta como resultado com `isError: true` e `{ "error": { "code" } }` no texto. Falha de token
 responde `401` HTTP antes de qualquer JSON-RPC.
 
@@ -55,6 +55,7 @@ pessoas diferentes que saem do mesmo endereço não dividem o mesmo balde.
 | `ask` | `cardId`, `stage`, `questions[]` (1–4, cada uma com 2–4 opções e recomendação opcional; pergunta até 1.000 caracteres, cabeçalho até 24, rótulo da opção até 120, descrição até 500) | Guarda as perguntas; o card mostra o selo *aguardando você* |
 | `attach_artifact` | `cardId`, `stage`, `path` (relativo à raiz do repositório, até 1.024 caracteres, sem `..`), `commitSha` | Liga um arquivo versionado (plano, handoff, revisão, critérios) ao card |
 | `complete_stage` | `cardId`, `stage`, `outcome`, `summary` | Encerra a execução; o orquestrador aplica `resolveTransition` com o `outcome` |
+| `get_attachment` | `cardId`, `stage`, `attachmentId` (UUID) | Devolve um arquivo anexado ao pedido do card (`request.attachments` do `get_card`). Só acha anexos do próprio card |
 | `create_card` | `boardId`, `title`, `specMarkdown`, `parentCardId?` | Ainda não disponível: valida e confere o board, e responde `501 AGENT_TOOL_NOT_AVAILABLE`. Cards nascem da sincronização das specs do repositório, e um card sem arquivo de spec ficaria órfão |
 
 `outcome` ∈ `success` · `needs_input` · `needs_rework` · `failed`.
@@ -65,7 +66,8 @@ Os tipos estão em `packages/kanban-contract/src/agentResults.ts`.
 
 | Ferramenta | `data` |
 |------------|--------|
-| `get_card` | `AgentCardView`: `card` (id, slug, título, coluna, etapa, estado, voltas, branch), `run` (id, etapa, comando, modelo, esforço, turnos, branch, prazo), `repository` (dono, nome, branch base), `spec` (caminho, ref, sha e corpo sem frontmatter; `null` nos dois últimos se o GitHub não respondeu), `pendingAsk`, `answers` (respostas de pessoas com a pergunta que fecham, de todas as etapas) e `artifacts` |
+| `get_card` | `AgentCardView`: `card` (id, slug, título, coluna, etapa, estado, voltas, branch), `run` (id, etapa, comando, modelo, esforço, turnos, branch, prazo), `repository` (dono, nome, branch base), `spec` (caminho, ref, sha e corpo sem frontmatter; `null` nos dois últimos se o GitHub não respondeu), `request` (o pedido escrito no board, com os anexos sem o caminho no bucket; `null` para card do repositório), `pendingAsk`, `answers` (respostas de pessoas com a pergunta que fecham, de todas as etapas) e `artifacts`. `card.origin` diz se o card nasceu no board (`board`) ou na sincronização (`repository`), e `spec.ref` é a branch onde a spec está: a do card para um rascunho ou card aprovado ainda não mergeado |
+| `get_attachment` | `AgentAttachmentContent`: id, nome, tipo, tamanho e `base64`. Pelo MCP, imagem volta como conteúdo `image`, texto como `text` e PDF como `resource` com `blob` |
 | `post_update`, `ask`, `attach_artifact` | `{ "eventId" }` |
 | `complete_stage` | `{ "ignored" }`: `true` quando o `run` já tinha fechado |
 
@@ -80,6 +82,8 @@ Os tipos estão em `packages/kanban-contract/src/agentResults.ts`.
 | `AGENT_STAGE_MISMATCH` | 403 | `stage` diferente da etapa do `run` |
 | `AGENT_RUN_CLOSED` | 409 | Qualquer ferramenta menos `complete_stage` depois de o `run` fechar |
 | `AGENT_TOOL_NOT_AVAILABLE` | 501 | `create_card` |
+| `AGENT_ATTACHMENT_NOT_FOUND` | 404 | `get_attachment` com id que não está no pedido do card, ou objeto que sumiu do bucket |
+| `STORAGE_NOT_CONFIGURED` | 503 | `get_attachment` sem Cloud Storage configurado |
 | `VALIDATION_FAILED` | 400/413 | Entrada fora do schema ou acima de 100 KiB |
 | `CARD_STAGE_NOT_FOUND`, `CARD_ARTIFACT_PATH_INVALID` | 404, 422 | Etapa fora do `board.yml`; caminho de artefato com `..`, barra inicial ou `\` |
 | `BOARD_NOT_FOUND`, `CARD_NOT_FOUND` | 404 | O board ou o card do `run` sumiu |
