@@ -36,8 +36,7 @@
     "react-icons": "5.5.0",
     "react-toastify": "^11.0.5",
     "require-in-the-middle": "7.5.2",
-    "zod": "^4.1.12",
-    "zustand": "^5.0.14"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
