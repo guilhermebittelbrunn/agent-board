@@ -95,6 +95,11 @@ Sem `GITHUB_APP_ID` ou `GITHUB_APP_PRIVATE_KEY`, a API escolhe o cliente do GitH
   usuário é `admin` neles;
 - fora do emulador: sem cliente, e o código para quem chama é `GITHUB_APP_NOT_CONFIGURED` (503).
 
+No emulador, o cliente de exemplo também abre a PR do card na etapa de PR (número derivado da branch, sem
+estado) e recusa duas branches de propósito: `feat/qa-pr-permission` responde como um App sem
+`Pull requests: write` (`GITHUB_APP_PERMISSION_MISSING`) e `feat/qa-pr-rejected` como o GitHub recusando a
+PR (`GITHUB_PULL_REQUEST_REJECTED`).
+
 Sem `GITHUB_WEBHOOK_SECRET`, `POST /github/webhook` responde `503 GITHUB_APP_NOT_CONFIGURED`. O boot
 imprime uma linha `[github] …` para cada caso. Criar e instalar o App:
 [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md).
@@ -480,6 +485,25 @@ curl -s -X POST http://localhost:3002/agent/tools/get_card \
 O token sai uma vez, só no terminal; a execução guarda o hash dele. Não cole o token em arquivo versionado nem em
 relatório: cite `kbr_<runId>_***`. `--expired` grava a validade no passado, para ver a recusa `AGENT_TOKEN_EXPIRED`.
 A trava é a mesma do `pnpm seed`.
+
+#### Eventos da PR no emulador
+
+Com um card na etapa Aguardando PR (o `sample-app` de exemplo tem a etapa `pr` com `pullRequest`), o script
+`github-webhook` manda à API local o evento que o GitHub mandaria, assinado. A API e o script precisam do
+mesmo `GITHUB_WEBHOOK_SECRET`; gere um valor só para a sessão e exporte nos dois terminais, sem gravar em
+arquivo:
+
+```bash
+export GITHUB_WEBHOOK_SECRET="$(openssl rand -hex 32)"   # no terminal da API, antes do pnpm dev, e neste
+pnpm --filter api github-webhook agent-board-demo--sample-app search-cards comment
+pnpm --filter api github-webhook agent-board-demo--sample-app search-cards checks-failure --app github-actions
+pnpm --filter api github-webhook agent-board-demo--sample-app search-cards review-changes --login qa-pr-flow
+pnpm --filter api github-webhook agent-board-demo--sample-app search-cards merged
+```
+
+Eventos: `merged`, `closed`, `reopened`, `comment`, `review-approved`, `review-changes`, `checks-success`,
+`checks-failure` e `synchronize`. O script lê o número da PR no card, imprime só o status e o corpo da
+resposta, e tem a mesma trava do `pnpm seed`.
 
 #### Runner local com o agente de teste
 

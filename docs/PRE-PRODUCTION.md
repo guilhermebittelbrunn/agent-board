@@ -105,6 +105,20 @@ gera.
 - [x] GitHub App criado na conta ou organização dona dos repositórios (Settings → Developer settings → GitHub Apps → New GitHub App). É um App próprio do board, separado do Claude GitHub App
 - [x] Permissões de repositório: Metadata (read), Contents (read), Pull requests (read & write), Issues (read), Checks (read)
 - [x] Nenhum evento extra marcado. O `installation_repositories` chega a todo GitHub App sem precisar assinar
+- [ ] Conferir no App (Permissions & events → Repository permissions) que `Pull requests` está mesmo em
+  `Read and write`. O item acima foi marcado antes de existir código que escrevesse no GitHub; até a
+  `pr-flow`, nada mediu. Se precisar mudar, cada instalação tem de aceitar a permissão nova (a conta dona
+  recebe o pedido em Settings → Applications → Installed GitHub Apps → Review request); até lá o card mostra
+  `GITHUB_APP_PERMISSION_MISSING` e a API não responde 500
+- [ ] Assinar os eventos `Pull request`, `Pull request review`, `Issue comment` e `Check suite`
+  (Permissions & events → Subscribe to events). `Issue comment` depende de `Issues: read` e `Check suite`
+  de `Checks: read`, já listadas. Sem eles a PR abre, mas o card não vê review, comentário, CI nem merge
+- [ ] Conferir de ponta a ponta num repositório de teste com o kit: levar um card até Aguardando PR e ver a
+  PR aparecer como rascunho com autor `<app>[bot]`; comentar e ver o `/mediate` na linha do tempo; em
+  Advanced → Recent Deliveries do App, as entregas com `200` e `{"data":{"handled":true}}`; mergear e ver o
+  card em Concluído. Também conferir se `check_suite.completed` do GitHub Actions chega ao App (a
+  documentação diz que sim para quem tem `Checks: read`; não medido). Em repositório privado de conta Free o
+  GitHub não aceita rascunho: o board abre pronta para review e avisa na linha do tempo
 - [x] Webhook URL `https://<host-da-api>/github/webhook`, content type `application/json`, com um segredo gerado por `openssl rand -hex 32`
 - [ ] Chave privada gerada no App (Credentials → Key pairs → New key), `.pem` baixado e guardado só no gerenciador de segredos
 - [x] `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (com as quebras de linha escapadas como `\n`) e `GITHUB_WEBHOOK_SECRET` nas variáveis da `apps/api` na Vercel. Nunca na `apps/app`
@@ -118,10 +132,11 @@ de cada instância. Sem ele, um colaborador adicionado ou removido leva até 5 m
 
 Por quê: é a credencial com que a API lista os repositórios, lê o `.kanban/board.yml` e consulta a
 permissão de cada pessoa no GitHub, que limita o papel no board. Sem ele não há importação de board em
-produção. As permissões de PR, Issues e Checks só passam a ser usadas com a spec `pr-flow`; pedi-las agora
-evita reaprovar a instalação em cada repositório depois. Os eventos `pull_request`,
-`pull_request_review`, `pull_request_review_comment`, `issue_comment` e `check_suite` entram junto com
-ela.
+produção. As permissões de PR, Issues e Checks são usadas pela coluna Aguardando PR (spec `pr-flow`): o board abre
+a PR com `Pull requests: write` e acompanha o card pelos eventos `pull_request`, `pull_request_review`,
+`issue_comment` e `check_suite`. O `pull_request_review_comment` fica de fora porque cada comentário em
+linha já chega dentro do `pull_request_review`, e assinar os dois dispararia o `/mediate` uma vez por
+comentário.
 
 Sem as variáveis, a API sobe e o build passa. O boot avisa uma vez (`[github] GitHub App is NOT
 configured…` e `[github] GITHUB_WEBHOOK_SECRET is not set…`), `POST /github/webhook` responde `503

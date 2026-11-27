@@ -43,12 +43,12 @@ O board decide, os agentes executam e tudo volta para o card. Só uma peça é n
 | Executando | `/develop <slug> --board <card>` | Handoff escrito e type-check verde |
 | Revisando | `/review <slug> --board <card>` | Revisão escrita, commits e push na branch |
 | Testando | `/test <slug> --board <card>` | Testes relacionados verdes e critérios de aceite gerados |
-| Aguardando PR | `/observe` ao entrar; `/mediate` a cada comentário | PR aprovada e mergeada |
+| Aguardando PR | o board abre a PR (etapa com `pullRequest` no `board.yml`); `/observe` ao entrar; `/mediate` a cada comentário ou review, até `limits.maxPrCommentRunsPerHour` por hora | PR mergeada (vai para Concluído) ou fechada sem merge (volta ao fim de Tarefas) |
 | Concluído | — | — |
 
 O card tem uma **coluna** (a etapa) e um **estado** (`idle`, `queued`, `running`, `waiting_input`, `failed`). *Aguardando você* é o estado `waiting_input`: um selo no card, não uma coluna. Regras de transição (`packages/kanban-contract/src/cardState.ts`):
 
-- `success` → próxima etapa; entra `queued`, ou `idle` se a etapa exige aprovação.
+- `success` → próxima etapa; entra `queued`, ou `idle` se a etapa exige aprovação. Na etapa de PR (a que tem `pullRequest`), o card fica nela, `idle`, até o merge.
 - `needs_input` → fica na etapa, `waiting_input`; volta a rodar quando alguém responde no card.
 - `needs_rework` → volta para a etapa de `onRework` (review e teste voltam para develop) até `limits.maxReworkLoops`; depois disso, `waiting_input`.
 - `failed` → fica na etapa, `failed`, com o motivo no card.
@@ -58,6 +58,15 @@ Rascunhos é uma faixa própria (`drafts`), fixa antes de Tarefas, e a escrita r
 `needs_input` deixa `waiting_input`, `needs_rework` e `failed` deixam `failed`, que sai com "Rodar
 de novo". O rascunho não se arrasta nem se move pelo menu; só sai de Rascunhos pela aprovação (`POST .../spec/approve`, que exige rodada
 concluída sem pergunta aberta) ou pelo descarte, que apaga o card do quadro e deixa a branch no GitHub.
+
+A etapa de PR tem transições próprias, vindas do webhook (`apps/api/(shared)/lib/pull-request/`):
+ao entrar nela o board abre a PR antes de rodar o comando (`ensurePullRequest`, também em
+`POST .../pull-request`); a PR mergeada leva o card a Concluído e a fechada sem merge o devolve ao fim de
+Tarefas, sempre depois de a execução viva terminar (`settlePullRequest`); comentário ou review que pede algo
+dispara o `onPrComment` com `trigger: pr_comment`, ou fica esperando a execução viva acabar ou o limite por
+hora liberar (`unhandledCommentAt`). O GitHub falso do emulador abre a PR sem estado e recusa as branches
+`feat/qa-pr-permission` (403) e `feat/qa-pr-rejected` (422); `pnpm --filter api github-webhook` manda os
+eventos.
 
 ## Executores
 
