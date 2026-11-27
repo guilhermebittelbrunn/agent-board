@@ -57,6 +57,8 @@ const card = (overrides: Partial<CardDTO> = {}): CardDTO => ({
     pendingAsk: PENDING,
     activeRunId: null,
     lastRun: null,
+    pullRequest: null,
+    pullRequestError: null,
     reworkLoops: 0,
     order: 0,
     branch: "feat/search-cards",

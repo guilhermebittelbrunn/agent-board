@@ -36,6 +36,8 @@ const card = (slug: string, overrides: Partial<CardDTO> = {}): CardDTO => ({
     pendingAsk: null,
     activeRunId: null,
     lastRun: null,
+    pullRequest: null,
+    pullRequestError: null,
     reworkLoops: 0,
     order: 0,
     branch: null,
