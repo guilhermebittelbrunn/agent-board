@@ -70,7 +70,7 @@ describe("finishMarkdown", () => {
     it("writes duration, turns, the exit and the local session", () => {
         const markdown = finishMarkdown(
             { command: "/analyze" },
-            { name: "macbook" },
+            { id: "c704GbOe9oeb", name: "macbook" },
             {
                 turns: 84,
                 durationMs: 720_000,
@@ -79,7 +79,7 @@ describe("finishMarkdown", () => {
             }
         );
         expect(markdown).toContain(
-            "Runner `macbook`: `/analyze` terminou em 12 min · 84 turnos."
+            "Runner `macbook` (id `c704Gb`): `/analyze` terminou em 12 min · 84 turnos."
         );
         expect(markdown).toContain("limite de turnos");
         expect(markdown).toContain("Sessão local: `0b6f1c2e`");
@@ -88,11 +88,11 @@ describe("finishMarkdown", () => {
     it("adds no exit line when the agent exited on its own", () => {
         const markdown = finishMarkdown(
             { command: "/develop" },
-            { name: "m" },
+            { id: "r1", name: "m" },
             { turns: 1, durationMs: 4000, exit: "exited" }
         );
         expect(markdown).toBe(
-            "Runner `m`: `/develop` terminou em 4 s · 1 turno."
+            "Runner `m` (id `r1`): `/develop` terminou em 4 s · 1 turno."
         );
     });
 });

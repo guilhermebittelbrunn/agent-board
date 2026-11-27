@@ -1,4 +1,8 @@
-import type { RunnerExit, RunnerFinishInput } from "@repo/kanban-contract";
+import {
+    type RunnerExit,
+    type RunnerFinishInput,
+    shortRunnerId,
+} from "@repo/kanban-contract";
 import type { RunRecord } from "@/(shared)/mappers/run.mapper";
 import type { RunnerRecord } from "@/(shared)/mappers/runner.mapper";
 
@@ -28,12 +32,12 @@ export function formatDuration(durationMs: number): string {
  */
 export function finishMarkdown(
     run: Pick<RunRecord, "command">,
-    runner: Pick<RunnerRecord, "name">,
+    runner: Pick<RunnerRecord, "id" | "name">,
     input: RunnerFinishInput
 ): string {
     const turnsLabel = input.turns === 1 ? "turno" : "turnos";
     const lines = [
-        `Runner \`${runner.name}\`: \`${run.command}\` terminou em ${formatDuration(input.durationMs)} · ${input.turns} ${turnsLabel}.`,
+        `Runner \`${runner.name}\` (id \`${shortRunnerId(runner.id)}\`): \`${run.command}\` terminou em ${formatDuration(input.durationMs)} · ${input.turns} ${turnsLabel}.`,
     ];
     const note = EXIT_NOTE[input.exit];
     if (note !== null) {
