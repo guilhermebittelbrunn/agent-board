@@ -7,17 +7,16 @@ a fonte do conteúdo. Contrato e frontmatter: [`README.md`](README.md). Que tela
 
 ## Ordem recomendada
 
-Nenhuma spec pode começar agora. As cinco da noite de 2026-11-27 estão implementadas na branch
-`guilhermebittelbrunn/chore-overnight-cycle-specs`, na PR #12, com o CI verde em `26eaf1f`; quatro já estão
-arquivadas nessa branch e a `cycle-runs` segue na fatia 2. As três `proposed` restantes dependem de alguma delas.
-O primeiro passo é a tarefa direta 1 (mergear a PR #12). Depois do merge, a ordem é esta:
+A PR #12 foi mergeada em 2026-11-27, e o resto deste arquivo ainda descreve o estado anterior ao merge até o
+próximo `/spec --sync`. A `backlog-approval` está aprovada e é a primeira da fila.
 
 | # | spec | o quê | status | valor · esforço | próximo comando |
 |---|------|-------|--------|-----------------|-----------------|
-| 1 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | `proposed` | médio · M | liberada depois do merge da PR #12; aprovar → `/analyze cloud-routines-runner` |
-| 2 | [`cycle-runs`](features/cycle-runs.md) (fatia 2) | Pausar e retomar, "Mudar"/"Concordo", infra na tela, aviso de `depends_on` | `in-progress` | alto · G | `/analyze cycle-runs`, depois do merge |
-| 3 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | `proposed` | médio · M | liberada depois do merge da PR #12; aprovar → `/analyze spec-discovery` |
-| 4 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | `proposed` | médio · P | depois da fatia 2 da `cycle-runs` |
+| 1 | [`backlog-approval`](features/backlog-approval.md) | Toda spec do índice vira card com o motivo do bloqueio; aprovar `proposed` pelo painel | `approved` | alto · M | `/analyze backlog-approval` |
+| 2 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | `proposed` | médio · M | aprovar → `/analyze cloud-routines-runner` |
+| 3 | [`cycle-runs`](features/cycle-runs.md) (fatia 2) | Pausar e retomar, "Mudar"/"Concordo", infra na tela, aviso de `depends_on` | `in-progress` | alto · G | `/analyze cycle-runs` |
+| 4 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | `proposed` | médio · M | aprovar → `/analyze spec-discovery` |
+| 5 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | `proposed` | médio · P | depois da fatia 2 da `cycle-runs` |
 
 ## Em andamento
 
