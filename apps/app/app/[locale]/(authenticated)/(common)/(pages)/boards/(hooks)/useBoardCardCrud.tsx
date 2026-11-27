@@ -1,5 +1,6 @@
 import useAlert from "@repo/design-system/hooks/useAlert";
 import { getDictionary } from "@repo/internationalization/client";
+import { SPEC_STAGE_KEY } from "@repo/kanban-contract";
 import type {
     BoardViewDTO,
     CardDTO,
@@ -159,7 +160,10 @@ export const useBoardCardCrud = (boardId: string) => {
                     current.id === card.id
                         ? {
                               ...current,
-                              lane: "stage" as const,
+                              lane:
+                                  stageKey === SPEC_STAGE_KEY
+                                      ? ("drafts" as const)
+                                      : ("stage" as const),
                               stageKey,
                               state: "queued" as const,
                           }

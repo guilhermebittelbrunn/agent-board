@@ -9,9 +9,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@repo/design-system/components/ui/dialog";
-import { type BoardConfig, resolveBranchName } from "@repo/kanban-contract";
+import {
+    type BoardConfig,
+    findStageConfig,
+    resolveBranchName,
+} from "@repo/kanban-contract";
 import type { BoardViewDTO, CardDTO } from "@repo/sdk/src/types";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
+import { stageColumnName } from "./stageColumnName";
 
 export type TriggerKind = "drag" | "rerun" | "approve";
 
@@ -74,10 +79,16 @@ export function TriggerStageDialog({
     onCloseAutoFocus,
 }: TriggerStageDialogProps) {
     const triggerCopy = boardsDictionary.trigger;
-    const stage = board.config.stages.find(
-        (candidate) => candidate.key === request?.stageKey
-    );
-    const column = stage?.column ?? "";
+    const stage =
+        request === null || request === undefined
+            ? undefined
+            : findStageConfig(board.config, request.stageKey);
+    const column =
+        stageColumnName(
+            board.config,
+            request?.stageKey ?? null,
+            boardsDictionary
+        ) ?? "";
     const wipLimit = stage
         ? (board.stageSettings[stage.key]?.wipLimit ?? null)
         : null;

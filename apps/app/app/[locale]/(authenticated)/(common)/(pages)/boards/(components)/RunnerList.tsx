@@ -5,6 +5,7 @@ import { Button } from "@repo/design-system/components/ui/button";
 import type { BoardDTO, RunnerDTO } from "@repo/sdk/src/types";
 import { useFormatDisplayDateTime } from "@/shared/lib/formatDisplayDateTime";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
+import { stageColumnName } from "./stageColumnName";
 
 type RunnerListProps = {
     runners: RunnerDTO[];
@@ -17,27 +18,29 @@ type RunnerListProps = {
 /** A run on this board reads by its column; a run on another board only has its stage key here. */
 function stageLabel(
     run: NonNullable<RunnerDTO["currentRun"]>,
-    board: RunnerListProps["board"]
+    board: RunnerListProps["board"],
+    boardsDictionary: BoardsDictionary
 ): string {
     if (run.boardId !== board.id) {
         return run.stageKey;
     }
     return (
-        board.config.stages.find((stage) => stage.key === run.stageKey)
-            ?.column ?? run.stageKey
+        stageColumnName(board.config, run.stageKey, boardsDictionary) ??
+        run.stageKey
     );
 }
 
 function activityLine(
     runner: RunnerDTO,
     board: RunnerListProps["board"],
-    runnersCopy: BoardsDictionary["credentials"]["runners"],
+    boardsDictionary: BoardsDictionary,
     formatDateTime: (value: string) => string
 ): string {
+    const runnersCopy = boardsDictionary.credentials.runners;
     if (runner.currentRun) {
         return fillMessage(runnersCopy.busy, {
             slug: runner.currentRun.slug,
-            stage: stageLabel(runner.currentRun, board),
+            stage: stageLabel(runner.currentRun, board, boardsDictionary),
         });
     }
     if (!runner.online) {
@@ -90,7 +93,7 @@ export function RunnerList({
                             {activityLine(
                                 runner,
                                 board,
-                                runnersCopy,
+                                boardsDictionary,
                                 formatDateTime
                             )}
                         </p>

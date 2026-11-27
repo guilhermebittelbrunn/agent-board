@@ -1,6 +1,8 @@
 "use client";
 
+import { Button } from "@repo/design-system/components/ui/button";
 import { cn } from "@repo/design-system/lib/utils";
+import { PlusIcon } from "lucide-react";
 import { type DragEvent, type ReactNode, useId } from "react";
 import { boardColumnTitle } from "./boardColumnTitle";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
@@ -13,6 +15,8 @@ type BoardColumnProps = {
     isDropTarget: boolean;
     boardsDictionary: BoardsDictionary;
     children: ReactNode;
+    /** Shown on the Drafts column to whoever can start a spec draft. */
+    onAdd?: () => void;
     onDragOver: (event: DragEvent<HTMLElement>) => void;
     onDragLeave: () => void;
     onDrop: (event: DragEvent<HTMLElement>) => void;
@@ -43,11 +47,14 @@ function ColumnSubtitle({
             </span>
         );
     }
+    const hintOf = {
+        drafts: columnsCopy.draftsHint,
+        tasks: columnsCopy.tasksHint,
+        done: columnsCopy.doneHint,
+    } as const;
     return (
         <span className="text-muted-foreground text-xs">
-            {column.lane === "tasks"
-                ? columnsCopy.tasksHint
-                : columnsCopy.doneHint}
+            {hintOf[column.lane]}
         </span>
     );
 }
@@ -59,6 +66,7 @@ export function BoardColumn({
     isDropTarget,
     boardsDictionary,
     children,
+    onAdd,
     onDragOver,
     onDragLeave,
     onDrop,
@@ -79,7 +87,19 @@ export function BoardColumn({
             onDragOver={onDragOver}
             onDrop={onDrop}
         >
-            <header className="flex flex-col gap-0.5 border-border border-b px-1 pb-2">
+            <header className="relative flex flex-col gap-0.5 border-border border-b px-1 pb-2">
+                {onAdd ? (
+                    <Button
+                        aria-label={boardsDictionary.board.columns.addDraft}
+                        className="absolute top-0 right-0 size-7"
+                        onClick={onAdd}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <PlusIcon aria-hidden className="size-4" />
+                    </Button>
+                ) : null}
                 <h2
                     className="flex items-baseline gap-2 font-semibold text-sm"
                     id={titleId}

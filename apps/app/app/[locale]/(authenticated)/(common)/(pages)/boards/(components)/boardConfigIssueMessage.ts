@@ -44,6 +44,8 @@ function templateFor(issue: BoardConfigIssue, messages: IssueMessages): string {
             return messages.notAllowed;
         case "stage_key_duplicated":
             return messages.stageKeyDuplicated;
+        case "stage_key_reserved":
+            return messages.stageKeyReserved;
         case "rework_target_invalid":
             return issue.params.suggestion === undefined
                 ? messages.reworkTargetInvalidNoSuggestion

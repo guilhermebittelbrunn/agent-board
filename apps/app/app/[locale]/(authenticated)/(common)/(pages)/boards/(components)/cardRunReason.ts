@@ -13,7 +13,7 @@ export function cardRunReason(
     if (
         card.activeRunId !== null ||
         lastRun === null ||
-        card.lane !== "stage"
+        !(card.lane === "stage" || card.lane === "drafts")
     ) {
         return null;
     }

@@ -1,4 +1,4 @@
-import type { BoardConfig } from "@repo/kanban-contract";
+import { type BoardConfig, findStageConfig } from "@repo/kanban-contract";
 import type { CardEventViewDTO } from "@repo/sdk/src/types";
 
 export type CardEventGroupLabel =
@@ -31,9 +31,7 @@ function labelOf(
     if (event.stageKey === null) {
         return event.lane === "done" ? { kind: "done" } : { kind: "tasks" };
     }
-    const stage = config.stages.find(
-        (candidate) => candidate.key === event.stageKey
-    );
+    const stage = findStageConfig(config, event.stageKey);
     return stage
         ? { kind: "stage", stageKey: stage.key, column: stage.column, loop }
         : { kind: "removed", stageKey: event.stageKey, loop };

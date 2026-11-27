@@ -7,6 +7,7 @@ import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
 import type { CardRunCommand } from "./CardRunControls";
 import { restoreRunDialogFocus } from "./runDialogFocus";
 import { StopRunDialog } from "./StopRunDialog";
+import { stageColumnName } from "./stageColumnName";
 import {
     type TriggerKind,
     type TriggerRequest,
@@ -68,8 +69,9 @@ export function useStageRunDialogs({
     };
 
     const columnOf = (stageKey: string | null) =>
-        board?.config.stages.find((stage) => stage.key === stageKey)?.column ??
-        "";
+        board
+            ? (stageColumnName(board.config, stageKey, boardsDictionary) ?? "")
+            : "";
 
     const requestTrigger = (
         card: CardDTO,

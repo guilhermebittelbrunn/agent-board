@@ -31,6 +31,8 @@ type BoardColumnsProps = {
     renderRunControls?: (card: CardDTO) => ReactNode;
     onMove: (card: CardDTO, destination: MoveDestination) => void;
     onReorder: (card: CardDTO, slugs: string[], index: number) => void;
+    /** Opens the new spec dialog from the Drafts column; absent for who cannot start one. */
+    onNewDraft?: () => void;
 };
 
 const DRAG_TYPE = "text/plain";
@@ -45,6 +47,9 @@ function emptyHintOf(
     boardsDictionary: BoardsDictionary
 ): string {
     const emptyCopy = boardsDictionary.board.columns.empty;
+    if (column.lane === "drafts") {
+        return emptyCopy.drafts;
+    }
     if (column.lane === "tasks") {
         return emptyCopy.tasks;
     }
@@ -92,29 +97,27 @@ function ColumnCard({
 }: ColumnCardProps) {
     const isTasks = grouped.column.lane === "tasks";
     const isRunning = card.activeRunId !== null;
-    const menu =
-        canPrioritize && !isRunning ? (
-            <span className="contents" data-card-menu={card.id}>
-                <CardMoveMenu
-                    boardsDictionary={boardsDictionary}
-                    canTrigger={canTrigger}
-                    card={card}
-                    columns={screenColumns}
-                    onMove={onMove}
-                    onReorder={onReorder}
-                    queue={
-                        isTasks ? { index, size: grouped.cards.length } : null
-                    }
-                />
-            </span>
-        ) : null;
+    const canMove = canPrioritize && !isRunning && card.lane !== "drafts";
+    const menu = canMove ? (
+        <span className="contents" data-card-menu={card.id}>
+            <CardMoveMenu
+                boardsDictionary={boardsDictionary}
+                canTrigger={canTrigger}
+                card={card}
+                columns={screenColumns}
+                onMove={onMove}
+                onReorder={onReorder}
+                queue={isTasks ? { index, size: grouped.cards.length } : null}
+            />
+        </span>
+    ) : null;
 
     return (
         <li>
             <BoardCardItem
                 boardsDictionary={boardsDictionary}
                 card={card}
-                draggable={canPrioritize && !isRunning}
+                draggable={canMove}
                 href={href}
                 isDragging={isDragging}
                 menu={menu}
@@ -163,6 +166,7 @@ export function BoardColumns({
     renderRunControls,
     onMove,
     onReorder,
+    onNewDraft,
 }: BoardColumnsProps) {
     const [dragging, setDragging] = useState<CardDTO | null>(null);
     const [dropColumnId, setDropColumnId] = useState<string | null>(null);
@@ -262,6 +266,9 @@ export function BoardColumns({
                         )}
                         isDropTarget={dropColumnId === column.id}
                         key={column.id}
+                        onAdd={
+                            column.lane === "drafts" ? onNewDraft : undefined
+                        }
                         onDragLeave={() =>
                             setDropColumnId((current) =>
                                 current === column.id ? null : current
