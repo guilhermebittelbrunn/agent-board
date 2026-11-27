@@ -28,6 +28,11 @@ export type TransitionInput = {
     current: CardPosition & { stageKey: string };
     outcome: StageOutcome;
     approvalGateEnabled: boolean;
+    /**
+     * The card runs inside a cycle: no approval holds it, and a success on `holdStageKey`
+     * leaves it idle there instead of moving on.
+     */
+    cycle?: { holdStageKey: string | null };
 };
 
 function findStage(config: BoardConfig, key: string): StageConfig {
@@ -76,6 +81,10 @@ export function resolveTransition(input: TransitionInput): CardPosition {
         };
     }
 
+    if (input.cycle && stage.key === input.cycle.holdStageKey) {
+        return { ...current, state: "idle" };
+    }
+
     // The pull request stage ends with the merge, not with its command: the card waits there.
     if (stage.pullRequest !== undefined) {
         return { ...current, state: "idle" };
@@ -91,7 +100,10 @@ export function resolveTransition(input: TransitionInput): CardPosition {
     }
     return {
         stageKey: next,
-        state: requiresApproval(stage, approvalGateEnabled) ? "idle" : "queued",
+        state:
+            !input.cycle && requiresApproval(stage, approvalGateEnabled)
+                ? "idle"
+                : "queued",
         reworkLoops: current.reworkLoops,
     };
 }

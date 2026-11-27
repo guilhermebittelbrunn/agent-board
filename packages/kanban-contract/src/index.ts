@@ -8,6 +8,7 @@ export * from "./boardLanes";
 export * from "./cardEvent";
 export * from "./cardState";
 export * from "./credential";
+export * from "./cycle";
 export * from "./identity";
 export * from "./pullRequest";
 export * from "./roles";

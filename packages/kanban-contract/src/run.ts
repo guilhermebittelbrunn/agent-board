@@ -1,4 +1,4 @@
-import type { Question } from "./agentContract";
+import type { Question, StageDecision } from "./agentContract";
 import type { BoardConfig } from "./boardConfig";
 import type { CardLane } from "./boardLanes";
 import type { CardPendingAsk } from "./cardEvent";
@@ -29,6 +29,7 @@ export const RUN_TRIGGERS = [
     "answer",
     "transition",
     "pr_comment",
+    "cycle",
 ] as const;
 export type RunTrigger = (typeof RUN_TRIGGERS)[number];
 
@@ -68,6 +69,8 @@ export type StageDispatch = {
     branch: string;
     repository: { owner: string; name: string };
     triggeredBy: RunPerson;
+    /** The cycle the run belongs to; the agent then decides on its own instead of asking. */
+    cycleId: string | null;
 };
 
 export type ActiveRunView = {
@@ -76,6 +79,7 @@ export type ActiveRunView = {
     slug: string;
     stageKey: string;
     command: string;
+    cycleId: string | null;
     startedAt: Date;
 };
 
@@ -84,6 +88,7 @@ export type ExecutorReport = {
     outcome: StageOutcome;
     summary: string;
     questions?: Question[];
+    decisions?: StageDecision[];
 };
 
 export type StageDispatchResult =
