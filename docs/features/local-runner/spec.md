@@ -1,7 +1,7 @@
 ---
 id: local-runner
 title: Runner local com o Claude Agent SDK
-status: in-progress
+status: done
 value: alto
 effort: G
 audience: time
@@ -10,7 +10,7 @@ area: [packages/runner, apps/api, packages/kanban-contract]
 depends_on: [agent-contract]
 contends_on: []
 feature: local-runner
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # Runner local com o Claude Agent SDK
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** um CLI na máquina-alvo que roda as etapas com o Claude Agent SDK.
 > - **Por quê:** o pipeline depende do ambiente local (emulador, browser, credenciais de dev).
-> - **Status:** `in-progress` · valor alto · esforço G · time
-> - **Próximo passo:** `/develop local-runner` (plano em `docs/features/local-runner/analyze/plan.md`)
+> - **Status:** `done` · valor alto · esforço G · time
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -35,11 +35,11 @@ login do Claude de quem registrou o runner.
 
 ## Referências
 
-- Telas: [Minhas credenciais](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Credentials). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
+- Telas: [Minhas credenciais](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Credentials). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
 - [Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview) — carrega `.claude/` do projeto,
   hooks, permissões, sessões.
 - [Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan).
-- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#com-que-credencial-a-execução-roda).
+- [`docs/board/ACCESS.md`](../../board/ACCESS.md#com-que-credencial-a-execução-roda).
 
 ## Proposta — corte de MVP
 
@@ -79,3 +79,11 @@ login do Claude de quem registrou o runner.
 
 - Agent SDK em TypeScript ou `claude -p` como subprocesso? — **recomendação:** Agent SDK (stream tipado,
   controle de turnos por execução).
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- O CLI ficou em `apps/runner`, não em `packages/runner`, e chama o `claude -p` como subprocesso em vez do Agent SDK. `docs/board/DECISIONS.md` e `docs/board/README.md` ainda dizem Agent SDK (achado A11).
+- O runner grava uma nota de início e o tempo no fim; o progresso no meio da etapa depende do agente chamar `post_update`, como manda a regra do modo board.
+- Além do corte: `--dangerously-skip-permissions`, `--keep-worktrees`, lista `permissions.allow` do repositório com `acceptEdits`, limpeza de execuções interrompidas, heartbeat e revogação do runner.

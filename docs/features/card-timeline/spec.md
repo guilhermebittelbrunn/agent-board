@@ -1,7 +1,7 @@
 ---
 id: card-timeline
 title: Linha do tempo do card, perguntas e respostas
-status: in-progress
+status: done
 value: alto
 effort: M
 audience: time
@@ -10,7 +10,7 @@ area: [apps/api, apps/app, packages/sdk, packages/kanban-contract]
 depends_on: [card-backlog]
 contends_on: []
 feature: card-timeline
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # Linha do tempo do card, perguntas e respostas
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** cada card mostra o que os agentes fizeram em cada etapa, as perguntas e as respostas.
 > - **Por quê:** quem prioriza ou revisa precisa entender a tarefa sem abrir código nem sessões.
-> - **Status:** `in-progress` · valor alto · esforço M · time
-> - **Próximo passo:** `/develop` (plano em `docs/features/card-timeline/analyze/plan.md`)
+> - **Status:** `done` · valor alto · esforço M · time
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -34,8 +34,8 @@ Sem uma linha do tempo no card, quem decide prioridade ou revisa resultado preci
 
 ## Referências
 
-- Telas: [Card aguardando você](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-CardDetail) · [responder perguntas no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MCard). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- [`docs/board/CONTRACT.md`](../../docs/board/CONTRACT.md).
+- Telas: [Card aguardando você](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-CardDetail) · [responder perguntas no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MCard). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- [`docs/board/CONTRACT.md`](../../board/CONTRACT.md).
 
 ## Proposta — corte de MVP
 
@@ -72,3 +72,10 @@ Sem uma linha do tempo no card, quem decide prioridade ou revisa resultado preci
 ## Perguntas em aberto
 
 - Editar ou apagar eventos? — **recomendação:** só comentários de pessoas, pelo autor.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- Os eventos ficam numa coleção de topo, `cardEvent`, com `cardId`, e o card ganhou `pendingAsk`.
+- Além do corte: o autor edita e apaga o próprio comentário, há uma aba Artefatos e o teto é de 4 perguntas. Responder exige `operator` ou acima; `viewer` só comenta.

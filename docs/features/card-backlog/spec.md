@@ -1,7 +1,7 @@
 ---
 id: card-backlog
 title: Cards a partir do backlog de specs e board com colunas
-status: in-progress
+status: done
 value: alto
 effort: G
 audience: time
@@ -10,7 +10,7 @@ area: [apps/api, apps/app, packages/sdk, packages/design-system, packages/kanban
 depends_on: [board-import, board-members]
 contends_on: []
 feature: card-backlog
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # Cards a partir do backlog de specs e board com colunas
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** o backlog de specs do repositório aparece como cards, com prioridade e colunas.
 > - **Por quê:** é onde o time decide o que entra e acompanha o andamento.
-> - **Status:** `in-progress` · valor alto · esforço G · time
-> - **Próximo passo:** `/develop card-backlog` (plano em [`docs/features/card-backlog/analyze/plan.md`](../../docs/features/card-backlog/analyze/plan.md))
+> - **Status:** `done` · valor alto · esforço G · time
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -37,9 +37,9 @@ quando as specs mudam no repositório.
 
 ## Referências
 
-- Telas: [Quadro](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Main) · [Board recém-criado](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardEmpty) · [quadro no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MBoard). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
+- Telas: [Quadro](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Main) · [Board recém-criado](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardEmpty) · [quadro no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MBoard). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
 - Formato das specs: `specs/README.md` do repositório importado.
-- [`docs/board/ARCHITECTURE.md`](../../docs/board/ARCHITECTURE.md#ciclo-do-card).
+- [`docs/board/ARCHITECTURE.md`](../../board/ARCHITECTURE.md#ciclo-do-card).
 
 ## Proposta — corte de MVP
 
@@ -81,3 +81,12 @@ quando as specs mudam no repositório.
 ## Perguntas em aberto
 
 - A ordem do board deve ser escrita de volta no `BACKLOG.md`? — **recomendação:** não no MVP.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- A coleção se chama `card` e o recurso do SDK, `boardCard`.
+- Soltar o card numa coluna de etapa dispara a etapa pelo `orchestrator`; a rota `move` aceita só `tasks` e `done`. O "mover sem disparo" do corte deixou de existir quando o orquestrador entrou, e é o comportamento esperado.
+- Em Tarefas, o card mostra posição e título, sem selo nem branch (`BoardCardItem.tsx:81`, `:97`). Corte silencioso, achado A9 da auditoria.
+- Arrastar é o nativo do navegador, com menu "⋯" para teclado; a spec fica numa aba que não abre por padrão.

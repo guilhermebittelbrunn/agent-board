@@ -1,7 +1,7 @@
 ---
 id: theme-toggle
 title: Tema claro e escuro no board
-status: in-progress
+status: done
 value: médio
 effort: P
 audience: time
@@ -10,7 +10,7 @@ area: [apps/app, packages/design-system]
 depends_on: [card-backlog]
 contends_on: [packages/design-system/components/ui/mode-toggle.tsx]
 feature: theme-toggle
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # Tema claro e escuro no board
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** um botão no cabeçalho do board alterna entre tema claro e escuro; o primeiro acesso segue o tema do sistema.
 > - **Por quê:** o board fica aberto o dia todo ao lado do editor, e quem usa tema escuro no resto do ambiente não quer uma tela clara no meio.
-> - **Status:** `in-progress` · valor médio · esforço P · time
-> - **Próximo passo:** `/develop theme-toggle` (plano em [`docs/features/theme-toggle/analyze/plan.md`](../../docs/features/theme-toggle/analyze/plan.md))
+> - **Status:** `done` · valor médio · esforço P · time
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -45,8 +45,8 @@ ciclos) também precisam funcionar nos dois temas desde o começo.
   [spec em escrita](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-DarkSpecDraft),
   [ciclo](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-DarkCycleRun),
   [celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-DarkMBoard)). Mapa completo em
-  [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- Regra de ouro 11 do [`CLAUDE.md`](../../CLAUDE.md): o QA percorre as telas em claro e escuro.
+  [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- Regra de ouro 11 do [`CLAUDE.md`](../../../CLAUDE.md): o QA percorre as telas em claro e escuro.
 
 ## Proposta — corte de MVP
 
@@ -79,3 +79,10 @@ ciclos) também precisam funcionar nos dois temas desde o começo.
 
 - Botão que alterna direto ou o menu atual, com "sistema"? — **recomendação:** alternar direto; seguir o
   sistema fica só como padrão do primeiro acesso.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- Não há cabeçalho próprio do board: o botão fica na Navbar do painel (`apps/app/shared/components/ui/Navbar.tsx:29`), em todas as telas autenticadas. A spec `app-cleanup` leva o botão para o cabeçalho do board.
+- O botão alterna entre claro e escuro; a opção "sistema" ficou só em Preferências da conta.

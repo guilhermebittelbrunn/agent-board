@@ -1,7 +1,7 @@
 ---
 id: board-members
 title: Membros, convites e papéis do board
-status: in-progress
+status: done
 value: alto
 effort: M
 audience: confianca
@@ -10,7 +10,7 @@ area: [apps/api, apps/app, packages/sdk, packages/kanban-contract]
 depends_on: [board-import]
 contends_on: []
 feature: board-members
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # Membros, convites e papéis do board
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** convidar pessoas por login do GitHub, com papéis limitados pela permissão no repositório.
 > - **Por quê:** o board é colaborativo, mas ninguém pode ver ou disparar mais do que pode no GitHub.
-> - **Status:** `in-progress` · valor alto · esforço M · confianca
-> - **Próximo passo:** `/develop board-members` (plano em `docs/features/board-members/analyze/plan.md`)
+> - **Status:** `done` · valor alto · esforço M · confianca
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -40,8 +40,8 @@ credencial de outra pessoa ou ver repositórios a que não tem acesso no GitHub.
 
 ## Referências
 
-- Telas: [Membros](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Members). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md) — papéis, regra do papel efetivo e quando checar.
+- Telas: [Membros](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Members). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- [`docs/board/ACCESS.md`](../../board/ACCESS.md) — papéis, regra do papel efetivo e quando checar.
 
 ## Proposta — corte de MVP
 
@@ -81,3 +81,11 @@ credencial de outra pessoa ou ver repositórios a que não tem acesso no GitHub.
 ## Perguntas em aberto
 
 - Convidar por e-mail também? — **recomendação:** não; só login do GitHub.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- `operator` já dispara etapas (`packages/kanban-contract/src/roles.ts:47`), embora a spec deixasse "só o dono dispara" para depois. Achado A8 da auditoria.
+- O convite pendente ativa no primeiro acesso ao board, não no primeiro login. Quem não é membro recebe 404, não 403.
+- As regras de quem convida, muda e remove quem ficaram em `roles.ts`; a tabela de impacto dizia "Nenhum" para o contrato.

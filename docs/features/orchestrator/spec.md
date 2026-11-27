@@ -1,7 +1,7 @@
 ---
 id: orchestrator
 title: Orquestrador de etapas (estados, fila e transições)
-status: in-progress
+status: done
 value: alto
 effort: G
 audience: time
@@ -10,7 +10,7 @@ area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: [card-timeline]
 contends_on: []
 feature: orchestrator
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # Orquestrador de etapas (estados, fila e transições)
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** arrastar um card dispara a etapa e o resultado move o card sozinho.
 > - **Por quê:** sem um ponto único, telas e agentes moveriam cards cada um do seu jeito.
-> - **Status:** `in-progress` · valor alto · esforço G · time
-> - **Próximo passo:** `/develop` (plano em `docs/features/orchestrator/analyze/plan.md`)
+> - **Status:** `done` · valor alto · esforço G · time
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -36,8 +36,8 @@ alguém). Sem um ponto único que faça isso, cada tela e cada agente moveria ca
 
 ## Referências
 
-- Telas: [Quadro](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Main) · [Disparar etapa](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-TriggerStage) · [mover card no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MMove) · aba Etapas da [Configuração](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Settings). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- [`docs/board/ARCHITECTURE.md`](../../docs/board/ARCHITECTURE.md) — ciclo do card, executores e dados.
+- Telas: [Quadro](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Main) · [Disparar etapa](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-TriggerStage) · [mover card no celular](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-MMove) · aba Etapas da [Configuração](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Settings). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- [`docs/board/ARCHITECTURE.md`](../../board/ARCHITECTURE.md) — ciclo do card, executores e dados.
 
 ## Proposta — corte de MVP
 
@@ -79,3 +79,11 @@ alguém). Sem um ponto único que faça isso, cada tela e cada agente moveria ca
 
 - Processar a fila com cron da Vercel ou com Cloud Functions do Firebase? — **recomendação:** decidir no
   `/analyze`, preferindo o que não exigir plano pago.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- Limite WIP e gate de aprovação ficam em `board.stageSettings`, gravados por `PATCH /boards/[id]/stage-settings`, e não no `board.yml`.
+- Não há cron nem worker: o `tick` roda nas leituras do board e do card. Isso respondeu a pergunta em aberto (nem cron da Vercel, nem Cloud Functions).
+- Além do corte: executor escolhido por pessoa, motivos de encerramento `no_runner` e `dispatch_failed`, e recusa `RUN_EXECUTOR_UNAVAILABLE` quando não há executor.

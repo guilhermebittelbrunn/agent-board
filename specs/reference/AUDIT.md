@@ -5,131 +5,175 @@ fila, para decidir, fica no [`BACKLOG.md`](../BACKLOG.md).
 
 ## Última rodada
 
-**2026-11-25**, na branch `guilhermebittelbrunn/chore-cycle-three-tasks`, sobre `main` em `53fea15` (merge da
-PR #1). Nenhuma PR de feature mergeou depois da semeadura; as PRs abertas são todas do Dependabot.
+**2026-11-27**, na branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, sobre `main` em `dac8f60` (merge
+da PR #11). Desde a auditoria anterior (2026-11-25, sobre `53fea15`) mergearam a PR #8 (`a19ece1`, as dez specs
+da fase 1), a #9 (deploy em produção registrado no `PRE-PRODUCTION.md`), a #10 (Vercel sem build de preview) e a
+#11 (`pr-flow` aprovada).
 
-Verificadas 20 specs (17 `proposed`, 2 `deferred`, 1 `superseded`) e a arquivada `fork-cleanup`. Transições
-aplicadas: nenhuma. Correções de referência: 2 specs. Recomendação de ordem: 1 troca.
+Verificadas 19 specs: 10 `in-progress`, 1 `approved`, 5 `proposed`, 2 `deferred`, 1 `superseded`. Transições
+aplicadas: 10 `in-progress` → `done`, todas arquivadas; `spec-authoring` `proposed` → `approved` por pedido
+direto do usuário. Spec nova: `app-cleanup`, `approved` por pedido direto do usuário. Links corrigidos:
+`docs/board/ROADMAP.md` (10).
 
 ## Entregas conferidas
 
-Nenhum item do corte de MVP das 17 specs `proposed` existe no código. Conferido por camada:
+Cada item do corte de MVP das dez specs foi procurado no código. Nenhum item está ausente. Os itens que
+ficaram diferentes do texto estão em "Deriva"; nenhum deles deixa de entregar o que o item pedia.
 
-| Onde se procurou | Resultado |
-|------------------|-----------|
-| `apps/api/app/(routes)/` | `account`, `auth`, `entities`, `files`, `health`, `notifications`, `users`. Nenhuma rota de board, card, membro, execução ou webhook. |
-| `apps/app/app/[locale]/(authenticated)/(common)/(pages)/` | `account`, `entities`, `playground`. Nenhuma tela de board. |
-| `packages/` | Não há `packages/runner`. `packages/kanban-contract` tem só o contrato (`agentContract.ts`, `boardConfig.ts`, `cardState.ts`, `roles.ts`), com 3 arquivos de teste. |
-| `git grep` por `GithubAuthProvider`, `githubId`, `octokit`, `GITHUB_APP`, `x-hub-signature` em `apps/` e `packages/` | Zero ocorrências. |
-| `docs/features/*/STATE.md` | Nenhum. A única pasta, `fork-cleanup`, tem só a spec (entregue fora do pipeline). |
+| spec | itens do corte | evidência principal |
+|------|----------------|---------------------|
+| `github-app-integration` | 6 de 6 | `apps/api/(shared)/lib/github/github-rest-client.ts:242-319`, `github-installation-tokens.ts:13-39`, `apps/api/app/(routes)/github/webhook/route.ts:44-78` |
+| `github-sign-in` | 5 de 5 | `apps/api/app/(routes)/auth/sign-in/github/route.ts:63-77`, `apps/api/(shared)/lib/user-merge.ts:111-134`, `packages/auth/sign-in-method.ts:7-20`, `SignInForm.tsx:99-109` |
+| `board-import` | 5 de 5 | `apps/api/(shared)/lib/board-import.ts:136-212`, `packages/kanban-contract/src/boardConfigIssues.ts:27-94`, `apps/api/app/(routes)/boards/[id]/reload/route.ts:36-116` |
+| `board-members` | 6 de 6 | `apps/api/app/(guards)/board.ts:25-55`, `apps/api/(shared)/lib/board-access.ts:139-214`, `packages/kanban-contract/src/roles.ts:65-106`, `boards/[id]/members/**` |
+| `card-backlog` | 7 de 7 | `apps/api/(shared)/lib/card-sync.ts:97-337`, `boards/[id]/cards/order/route.ts:13-40`, `boards/[id]/cards/[slug]/spec/route.ts:38-47`, `BoardColumns.tsx:250-324` |
+| `theme-toggle` | 3 de 3 | `packages/design-system/components/ui/mode-toggle.tsx:23-34`, `apps/app/shared/components/ui/Navbar.tsx:29`, `apps/app/__tests__/boardThemeTokens.test.ts:31` |
+| `card-timeline` | 6 de 6 | `packages/kanban-contract/src/cardEvent.ts:5-116`, `boards/[id]/cards/[slug]/answers/route.ts:26-50`, `CardQuestions.tsx:74-135`, `CardArtifacts.tsx:52-83` |
+| `orchestrator` | 8 de 8 | `apps/api/(shared)/lib/orchestrator/decide.ts:44-310`, `orchestrator.ts:86-332`, `run.repository.ts:145-225`, `CardRunControls.tsx:35-64` |
+| `agent-contract` | 6 de 6 | `apps/api/app/(routes)/agent/tools/[tool]/route.ts:9`, `apps/api/app/(routes)/mcp/route.ts:11`, `agent-card-view.ts:83-128`, `agent-tools.ts:99-136`, `apps/api/__tests__/agentToolsRoutes.test.ts:280-304` |
+| `local-runner` | 5 de 5 | `apps/runner/src/cli.ts:141-254`, `poll.ts:23-59`, `run-job.ts:92-348`, `supervisor.ts:116-140`, `apps/api/(shared)/repositories/runner.repository.ts:255-278` |
 
-As 2 `deferred` (`clickup-import`, `github-actions-runner`) também não foram entregues por tabela. A
-`superseded` (`schedules-and-budgets`) aponta para `cycle-schedule`, que existe e está `proposed`.
+Cruzamento com o pipeline: os dez `docs/features/<slug>/STATE.md` trazem `spec: <id>` e `test: done`; todos
+ainda mostram `review: in-progress` porque o `/cycle` não commita, e os commits só entraram depois, na PR #8
+(96 commits, um `docs(features): <slug>` por feature). Ver A12.
 
-`fork-cleanup` (arquivada) sem regressão: nenhum arquivo rastreado de organização, cobrança ou trilha de
-auditoria, e nenhuma dependência `resend` ou `stripe` em `package.json`.
+As 2 `deferred` (`clickup-import`, `github-actions-runner`) não foram entregues por tabela. A `superseded`
+(`schedules-and-budgets`) aponta para `cycle-schedule`, que existe e está `proposed`. `fork-cleanup`
+(arquivada) sem regressão.
 
 ## Gates
 
-Medidos nesta rodada com `--force` (sem cache do turbo), Node 22.13.0, pnpm 10.19.0.
+Gates locais não rodados nesta rodada; a medição vem do CI.
 
 | Gate | Resultado |
 |------|-----------|
-| `pnpm turbo run lint --force` | Biome: 651 arquivos, nenhuma correção. |
-| `pnpm turbo run typecheck --force` | 12 de 12 workspaces verdes. |
-| `pnpm turbo run test --force` | 211 arquivos e 2.077 testes verdes: `api` 811, `app` 662, `@repo/auth` 192, `@repo/design-system` 140, `@repo/security` 65, `@repo/shared` 51, `@repo/analytics` 41, `@repo/internationalization` 35, `@repo/next-config` 34, `@repo/kanban-contract` 21, `e2e` (Vitest) 16, `@repo/sdk` 9. |
-| `test:emulator` | Não medido aqui: a máquina tem JDK 17 e os emuladores exigem 21. |
-| CI em `main` no SHA do merge (`53fea15`) | Run 45697478049 (`push`) verde. Na PR #1, os jobs `verify`, `e2e`, `coverage`, `audit`, `secrets` e `changes` passaram. |
+| CI da PR #8 | `verify`, `e2e`, `coverage`, `audit`, `secrets` e `changes` verdes. |
+| CI de `main` no push do merge `a19ece1` (run 45865765915) | Vermelho: `e2e` falhou em `apps/e2e/tests/focusNotObscured.spec.ts:188` (timeout de 120 s no `locator.click`). Os outros cinco jobs verdes. |
+| CI de `main` em `a80dd70` (run 45888331957) | Vermelho no mesmo teste. |
+| CI de `main` em `dac8f60` (run 45892697078) | Os seis jobs verdes. |
+
+O teste que oscila mede o formulário de edição de `entity`, que a `app-cleanup` remove (achado A6).
 
 ## Lotes paralelos
 
-Elegíveis: `proposed`/`approved` com `depends_on` entregue. Só duas specs passam o filtro: as outras 15
-dependem de alguma spec não entregue.
+Elegíveis: `approved`/`proposed` com `depends_on` entregue. Passam quatro specs: `spec-authoring`, `app-cleanup`,
+`pr-flow` e `execution-credentials`. As outras quatro dependem de spec ainda não entregue (`cycle-runs` de
+`pr-flow`; `cloud-routines-runner` de `execution-credentials`; `spec-discovery` de `spec-authoring`;
+`cycle-schedule` de `cycle-runs` e `execution-credentials`).
 
-| Lote | Specs | O que cada uma toca | Por que não colidem |
-|------|-------|---------------------|---------------------|
-| 1 | `github-app-integration`, `github-sign-in` | App: cliente GitHub, webhook e env na `apps/api`. Login: `packages/auth`, perfil do usuário na API, tela de login | `contends_on` vazio nas duas |
+| Lote | Specs | O que cada uma toca (`contends_on`) | Por que não colidem |
+|------|-------|-------------------------------------|---------------------|
+| 1 | `spec-authoring`, `app-cleanup`, `pr-flow` | `boardConfig.ts` · layout comum do app, `common-panel.ts` e `Navbar.tsx` · nenhum | Conjuntos disjuntos |
+| 2 | `execution-credentials` | nenhum | Sozinha |
 
-Nenhuma ficou de fora do lote 1 por colisão nem pelo teto de 3; o lote tem só duas porque não há uma terceira
-elegível. `board-import` precisa das duas entregues e mergeadas antes.
+`execution-credentials` ficou fora do lote 1 só pelo teto de 3, sem colisão.
+
+Ressalva forte para esta rodada: a `app-cleanup` declara três arquivos, mas tira o `isImpersonating` de 12
+arquivos de `boards/` no app e de 6 da API, e mexe nos códigos de erro de
+`packages/internationalization/translations/packages/shared/utils.ts`, que a `spec-authoring` e a `pr-flow`
+também vão alterar. O lote disjunto em `contends_on` não reflete o risco real. O usuário definiu execução em
+sequência (1º `spec-authoring`, 2º `app-cleanup`, 3º `pr-flow`), e é o que se recomenda: a `app-cleanup` roda
+sozinha.
 
 Nota de processo: só um workspace roda a auditoria (`--audit-only`); os demais usam `--no-audit`. Sem isso, o
 `BACKLOG.md` é reescrito por mais de um agente ao mesmo tempo.
 
-Ressalva: `contends_on` disjunto reduz conflito, não elimina. As duas specs do lote 1 provavelmente acrescentam
-códigos de erro em `packages/internationalization/translations/packages/shared/utils.ts` (`apiErrors`) e podem
-mexer no env da API. Nenhuma das duas declara esses arquivos.
+Ressalva geral: `contends_on` disjunto reduz conflito, não elimina.
 
-Nesta rodada as três specs pedidas vão rodar em sequência, na mesma branch; o lote não se aplica.
+## Pré-condições das specs aprovadas
+
+- **`spec-authoring`.** Dependências (`orchestrator`, `agent-contract`, `card-timeline`) entregues em `main`.
+  Roda contra o emulador sem infra externa. O upload existente (`apps/api/app/(routes)/files/route.ts`) aceita só
+  imagem JPEG, PNG ou WebP até 4 MiB, então PDF e texto pedem ampliar a validação. Em produção, anexos exigem o
+  Cloud Storage no plano Blaze (item 12 do `docs/PRE-PRODUCTION.md`); sem ele, a rota responde
+  `503 STORAGE_NOT_CONFIGURED`, e o pedido em texto precisa funcionar sozinho. O `kit/commands/` não tem
+  `spec.md` e o `/spec` deste repo não tem modo board: os dois estão dentro do corte.
+- **`app-cleanup`.** Sem dependência. Roda inteira no emulador. Mantém upload e Storage por causa da
+  `spec-authoring`.
+- **`pr-flow`.** Dependências (`github-app-integration`, `orchestrator`) entregues. Abrir PR de verdade exige o
+  GitHub App criado com permissão de escrita em pull requests; no emulador vale o cliente GitHub falso.
 
 ## Dependências
 
-| spec | `depends_on` |
-|------|--------------|
-| `github-sign-in` · `github-app-integration` | — |
-| `board-import` | `github-app-integration`, `github-sign-in` |
-| `board-members` | `board-import` |
-| `card-backlog` | `board-import`, `board-members` |
-| `theme-toggle` | `card-backlog` |
-| `card-timeline` | `card-backlog` |
-| `orchestrator` | `card-timeline` |
-| `agent-contract` | `orchestrator` |
-| `local-runner` | `agent-contract` |
-| `execution-credentials` | `board-members`, `local-runner` |
-| `pr-flow` | `github-app-integration`, `orchestrator` |
-| `spec-authoring` | `orchestrator`, `agent-contract`, `card-timeline` |
-| `cycle-runs` | `orchestrator`, `agent-contract`, `pr-flow` |
-| `cloud-routines-runner` | `agent-contract`, `execution-credentials` |
-| `spec-discovery` | `spec-authoring` |
-| `cycle-schedule` | `cycle-runs`, `execution-credentials` |
+| spec | `depends_on` | situação |
+|------|--------------|----------|
+| `spec-authoring` | `orchestrator`, `agent-contract`, `card-timeline` | satisfeito |
+| `app-cleanup` | — | satisfeito |
+| `pr-flow` | `github-app-integration`, `orchestrator` | satisfeito |
+| `execution-credentials` | `board-members`, `local-runner` | satisfeito |
+| `cycle-runs` | `orchestrator`, `agent-contract`, `pr-flow` | espera `pr-flow` |
+| `cloud-routines-runner` | `agent-contract`, `execution-credentials` | espera `execution-credentials` |
+| `spec-discovery` | `spec-authoring` | espera `spec-authoring` |
+| `cycle-schedule` | `cycle-runs`, `execution-credentials` | espera as duas |
 
-## Deriva e referências corrigidas
+## Deriva
 
-Nenhuma deriva de implementação: nada do backlog foi implementado. A rodada conferiu toda referência a
-caminho e a `arquivo:linha` nas specs. As quatro âncoras com linha batem (`base.repository.ts:59`,
-`common-panel.ts:30` duas vezes, `packages/auth/client.ts:152`), e os símbolos citados de
-`@repo/kanban-contract` existem. Duas specs estavam erradas:
+Cada spec arquivada ganhou uma seção "Nota de entrega" com o detalhe. Resumo:
 
-| spec | estava | ficou | leitura |
-|------|--------|-------|---------|
-| `spec-discovery` | Citava `.claude/skills/market-research/` e dizia que o `/spec` aciona essa skill | A skill saiu no `fork-cleanup`; a pesquisa está nas instruções do `estrategista-produto` | A spec estava errada |
-| `github-sign-in` | Apontava `signInWithGoogle` de `packages/auth/client.ts:152` como o padrão do login Google | O login da tela passa por `apps/app/shared/lib/googleSignInApi.ts:32` → `POST /auth/sign-in/google` (`route.ts:17`) → `identitySignInWithGoogleIdToken` (`firebase-identity-toolkit.ts:204`). O `signInWithGoogle` do pacote só é usado por `packages/auth/provider.tsx:396` | A spec estava incompleta; ganhou também os riscos do E2E e do emulador |
-
-Caminhos citados que ainda não existem e não são erro: `packages/runner` (`local-runner` vai criar) e
-`anthropics/claude-code-action` (repositório no GitHub).
+| spec | especificado | implementado | leitura |
+|------|--------------|--------------|---------|
+| `github-app-integration` | Webhook registra o evento e invalida o cache | Só log; cache de permissão em memória do processo | Implementação desviou (A7) |
+| `github-sign-in` | Provedor em `packages/auth` | Em `apps/app/shared/lib/githubSignInApi.ts`; contrato ganhou `identity.ts` | Spec imprecisa |
+| `board-import` | Lê o `board.yml` da branch base; contrato sem impacto | Lê do branch padrão; parse, issues e diff no contrato; um board por repositório | Spec imprecisa |
+| `board-members` | Só o dono dispara no MVP | `operator` já dispara (`roles.ts:47`) | Implementação desviou (A8) |
+| `card-backlog` | Mover sem disparo; card com selo e branch | Soltar numa etapa dispara; Tarefas sem selo nem branch | O primeiro é esperado com o orquestrador; o segundo é corte silencioso (A9) |
+| `theme-toggle` | Botão no cabeçalho do board | Na Navbar do painel | Spec imprecisa; a `app-cleanup` cria o cabeçalho |
+| `card-timeline` | Coleção `events` | Coleção de topo `cardEvent`, `pendingAsk` no card, edição de comentário | Spec imprecisa |
+| `orchestrator` | WIP no `board.yml`; fila com cron ou Cloud Functions | `board.stageSettings`; `tick` nas leituras | Pergunta em aberto resolvida no `/analyze` |
+| `agent-contract` | Token do orquestrador, revogado no fim | Token do claim do runner; aceito até o prazo, só repete `complete_stage` | Mesmo efeito; código morto (A10) |
+| `local-runner` | `packages/runner` com Agent SDK | `apps/runner` com `claude -p` | Implementação desviou; docs ainda dizem Agent SDK (A11) |
 
 ## Achados e pendências
 
-- **A1 — `github-sign-in` remove a entrada de que o pipeline depende.** O corte tira e-mail e senha, mas
-  `apps/e2e/support/seedAccounts.ts` e `apps/e2e/tests/signIn.spec.ts` entram assim, e o `/test` usa as
-  contas do seed. Registrado como risco e pergunta na spec. Dono: o usuário, na triagem.
-- **A2 — CI vermelho nos PRs do Dependabot.** #3, #4, #6 e #7 falham em `verify`; a #6 também em
-  `coverage` e a #3 também em `e2e`. O log do run 45698052887 não veio pelo `gh run view --log-failed`; a causa não foi medida. A
-  #4 sobe o TypeScript para 7.0.2, uma major. Sem dono.
-- **A3 — `fork-cleanup` não tem `STATE.md`.** Entregue fora do pipeline, por decisão registrada na própria
-  spec. A auditoria não cria a pasta nem o arquivo.
-- **A4 — Modo degradado das três primeiras specs.** `github-app-integration` testa assinatura e JWT com
-  segredo de teste, mas não prova os sinais de pronto sem o App criado. `github-sign-in` funciona no
-  emulador pelo popup; a troca do token do GitHub na API, no molde do Google, provavelmente não
-  ([docs do emulador](https://firebase.google.com/docs/emulator-suite/connect_auth), coletado em
-  2026-11-25). `board-import` só é percorrida no `/test` sem credencial se existir um cliente GitHub falso
-  em dev. As credenciais de produção (GitHub App e OAuth App no Firebase) vão para
-  `docs/PRE-PRODUCTION.md`, no item 4 (Login) e num item novo para o App.
-- **A5 — Parser de YAML.** `board-import` precisa de um como dependência direta da API; hoje `yaml` e
-  `js-yaml` só aparecem como transitivas no lockfile. Dependência nova passa pelo relatório
-  (`.claude/cycle-policy.md`).
+- **A1 — resolvido.** O login por e-mail e senha ficou só no emulador; seed, E2E e `/test` seguem funcionando.
+- **A2 — CI vermelho nos PRs do Dependabot.** #3 (`verify`, `e2e`), #4 (`verify`, TypeScript 7.0.2), #6
+  (`verify`, `coverage`) e #7 (`verify`) continuam abertos e vermelhos. Causa não medida. Sem dono.
+- **A3 — `fork-cleanup` não tem `STATE.md`.** Entregue fora do pipeline, por decisão registrada na spec.
+- **A4 — Credenciais de produção.** GitHub App e OAuth App no Firebase seguem no `docs/PRE-PRODUCTION.md`; os
+  sinais de pronto contra repositório real continuam sem medida.
+- **A5 — resolvido.** O parser `yaml` entrou como dependência de `@repo/kanban-contract`.
+- **A6 — E2E intermitente em `main`.** `focusNotObscured.spec.ts:188` falhou nos pushes de `a19ece1` e `a80dd70`
+  e passou em `dac8f60`. Mede o formulário de `entity`; sai com a `app-cleanup`.
+- **A7 — Cache de permissão em memória.** `github-permission-cache.ts:54`. Em serverless, o webhook `member` só
+  invalida a instância que o recebeu; as outras esperam o TTL de 5 minutos. Aceitável no MVP; vira risco com
+  mais de uma pessoa no board.
+- **A8 — `operator` dispara antes da fase 2.** `roles.ts:47-49` e o guard `"trigger"` liberam disparo a partir de
+  `operator`; o `ROADMAP.md` diz que, antes da fase 2, só o dono dispara. Decisão do usuário.
+- **A9 — Cards de Tarefas sem selo nem branch.** `BoardCardItem.tsx:81`, `:97`. Pequeno; sem dono.
+- **A10 — Código morto.** `issueRunToken` (`apps/api/(shared)/lib/agent-contract/run-token.ts:51`) e
+  `runRepository.setToken` (`run.repository.ts:101`) só aparecem em testes; `isEmptyStagesDiff`
+  (`packages/kanban-contract/src/boardConfigDiff.ts:32`) também. Herdados do core: `reloadCurrentUser`
+  (`packages/auth/client.ts:208`) e `apps/app/shared/hooks/useHealthCheck.ts`, sem chamador.
+- **A11 — Doc diverge do código.** `docs/board/DECISIONS.md:139`, `docs/board/README.md:37` e a tabela da fase 1
+  do `ROADMAP.md` dizem que o runner usa o Agent SDK; o código chama `claude -p` (`apps/runner/src/session.ts`).
+- **A12 — `STATE.md` desatualizados.** As dez features da fase 1 mostram `review: in-progress`, mas os commits
+  estão em `main` desde a PR #8. A auditoria só acrescentaria `spec:`, que já existe; o ajuste da etapa é do
+  pipeline.
+- **A13 — G2 não medido.** As dez specs entraram pelo `/cycle` no terminal, não por cards do board. O G2 pede
+  três features de Análise a Concluído **no board**. Continua aberto.
 
 ## Entregues
+
+### Fase 1 — 2026-11-27
+
+`github-app-integration`, `github-sign-in`, `board-import`, `board-members`, `card-backlog`, `theme-toggle`,
+`card-timeline`, `orchestrator`, `agent-contract` e `local-runner`.
+
+- **Como:** `/cycle` noturno em 2026-11-25 e 2026-11-26, com `analyze`, `develop`, `review` e `test` em
+  `docs/features/<slug>/`; commits na PR #8 (`guilhermebittelbrunn/chore-cycle-three-tasks`, merge `a19ece1` em
+  2026-11-26). Specs arquivadas em `docs/features/<slug>/spec.md`.
+- **Conferido:** corte de MVP item a item (tabela de "Entregas conferidas"); CI da PR #8 verde; `test` de cada
+  feature com `pnpm e2e` 31/31 na última passada.
+- **Deriva:** tabela "Deriva" acima e a "Nota de entrega" de cada spec.
 
 ### `fork-cleanup` — 2026-11-25
 
 - **Como:** direto na PR #1 (`chore/bootstrap-agent-board`), sem as etapas do pipeline; spec arquivada em
   [`docs/features/fork-cleanup/spec.md`](../../docs/features/fork-cleanup/spec.md).
 - **Conferido:** typecheck dos 12 workspaces, `pnpm check` e Vitest de todos os workspaces, verdes.
-  `pnpm e2e` e `test:emulator` ficam com o CI da PR.
 - **Deriva:** organizações e trilha de auditoria saíram, embora a spec as deixasse fora do corte; `entity` e
-  upload passaram a ser escopados por pessoa (`userId`). O login ficou com e-mail/senha e Google até
-  `github-sign-in`.
+  upload passaram a ser escopados por pessoa (`userId`). O resto do boilerplate (admin, notificações, `entity`)
+  sai na `app-cleanup`.
 
 ## Feito na criação do repositório (fora do backlog)
 

@@ -1,7 +1,7 @@
 ---
 id: github-sign-in
 title: Login com GitHub
-status: in-progress
+status: done
 value: alto
 effort: M
 audience: confianca
@@ -10,7 +10,7 @@ area: [packages/auth, apps/app, apps/api, packages/sdk]
 depends_on: []
 contends_on: []
 feature: github-sign-in
-updated: 2026-11-25
+updated: 2026-11-27
 ---
 
 # Login com GitHub
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** entrar no board só com a conta do GitHub, guardando `githubId`, `login` e avatar.
 > - **Por quê:** a permissão de cada pessoa nos boards vem do GitHub; e-mail e Google não dizem nada sobre isso.
-> - **Status:** `in-progress` · valor alto · esforço M · confianca
-> - **Próximo passo:** `/test github-sign-in`. Plano em [`docs/features/github-sign-in/analyze/plan.md`](../../docs/features/github-sign-in/analyze/plan.md); o login por e-mail fica só no emulador.
+> - **Status:** `done` · valor alto · esforço M · confianca
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -47,8 +47,8 @@ GitHub de quem entra.
 
 ## Referências
 
-- Telas: [Entrar](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Login). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#identidade).
+- Telas: [Entrar](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Login). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- [`docs/board/ACCESS.md`](../../board/ACCESS.md#identidade).
 - Firebase Auth — provedor GitHub (OAuth App do GitHub configurado no console do Firebase).
 
 ## Proposta — corte de MVP
@@ -100,3 +100,11 @@ GitHub de quem entra.
   já é limitado pela permissão no repositório.
 - Como fica o login por e-mail e senha? — **recomendação:** sai da UI e do cadastro, mas continua aceito
   quando o app roda contra o emulador, para o seed, a suíte E2E e o `/test` seguirem entrando.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- O provedor GitHub ficou em `apps/app/shared/lib/githubSignInApi.ts`, não em `packages/auth`; o pacote ganhou só o filtro de método (`packages/auth/sign-in-method.ts`).
+- `@repo/kanban-contract` ganhou `identity.ts`, camada que a tabela de impacto não citava.
+- E-mail e senha continuam na tela quando o app roda contra o emulador, como a pergunta em aberto recomendava.

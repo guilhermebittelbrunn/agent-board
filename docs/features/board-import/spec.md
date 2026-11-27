@@ -1,7 +1,7 @@
 ---
 id: board-import
 title: Criar board importando um repositório
-status: in-progress
+status: done
 value: alto
 effort: M
 audience: time
@@ -10,7 +10,7 @@ area: [apps/api, apps/app, packages/sdk, packages/kanban-contract]
 depends_on: [github-app-integration, github-sign-in]
 contends_on: []
 feature: board-import
-updated: 2026-11-26
+updated: 2026-11-27
 ---
 
 # Criar board importando um repositório
@@ -18,8 +18,8 @@ updated: 2026-11-26
 > **Resumo**
 > - **O quê:** criar um board escolhendo um repositório e lendo o `.kanban/board.yml` dele.
 > - **Por quê:** é o primeiro valor visível: o repositório vira colunas, com erro claro quando o arquivo está errado.
-> - **Status:** `in-progress` · valor alto · esforço M · time
-> - **Próximo passo:** `/develop board-import`, com o plano em [`docs/features/board-import/analyze/plan.md`](../../docs/features/board-import/analyze/plan.md).
+> - **Status:** `done` · valor alto · esforço M · time
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -37,8 +37,8 @@ exatamente o que corrigir.
 
 ## Referências
 
-- Telas: [Meus boards](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Boards) · [Novo board](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-NewBoard) · [Primeiro acesso](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardsEmpty) · aba Etapas da [Configuração](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Settings). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- [`docs/board/IMPORT.md`](../../docs/board/IMPORT.md) e [`kit/`](../../kit/README.md).
+- Telas: [Meus boards](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Boards) · [Novo board](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-NewBoard) · [Primeiro acesso](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardsEmpty) · aba Etapas da [Configuração](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Settings). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- [`docs/board/IMPORT.md`](../../board/IMPORT.md) e [`kit/`](../../../kit/README.md).
 
 ## Proposta — corte de MVP
 
@@ -78,3 +78,11 @@ exatamente o que corrigir.
 ## Perguntas em aberto
 
 - Permitir mais de um board por repositório? — **recomendação:** não; um repositório, um board.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- O `board.yml` é lido do branch padrão do repositório (`apps/api/(shared)/lib/board-import.ts:167`), não do `baseBranch` declarado no próprio arquivo. A spec estava imprecisa: o `baseBranch` só existe depois de ler o arquivo.
+- Parse do YAML, issues por campo e diff de etapas foram para `@repo/kanban-contract`, com a dependência `yaml` lá. A tabela de impacto dizia "Nenhum" para o contrato.
+- As coleções se chamam `board` e `boardMember`. O id é determinístico (`owner--name`), então vale um board por repositório; a lista de repositórios mostra só aqueles em que a pessoa é admin.

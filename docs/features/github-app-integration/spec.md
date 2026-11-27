@@ -1,7 +1,7 @@
 ---
 id: github-app-integration
 title: Integração com o GitHub App do board
-status: in-progress
+status: done
 value: alto
 effort: M
 audience: confianca
@@ -10,7 +10,7 @@ area: [apps/api, packages/kanban-contract]
 depends_on: []
 contends_on: []
 feature: github-app-integration
-updated: 2026-11-25
+updated: 2026-11-27
 ---
 
 # Integração com o GitHub App do board
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** o board fala com o GitHub por um App próprio: lê repositórios, consulta permissões e recebe webhooks.
 > - **Por quê:** sem isso nenhuma importação, papel ou PR funciona.
-> - **Status:** `in-progress` · valor alto · esforço M · confianca
-> - **Próximo passo:** `/test github-app-integration` (plano em [`docs/features/github-app-integration/analyze/plan.md`](../../docs/features/github-app-integration/analyze/plan.md)).
+> - **Status:** `done` · valor alto · esforço M · confianca
+> - **Próximo passo:** nenhum. Entregue na PR #8 (merge `a19ece1`); spec arquivada em 2026-11-27.
 
 ## Problema
 
@@ -36,8 +36,8 @@ consegue começar.
 
 ## Referências
 
-- Telas: [Novo board](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-NewBoard) · [Primeiro acesso](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardsEmpty). Mapa completo em [`docs/board/SCREENS.md`](../../docs/board/SCREENS.md).
-- [`docs/board/ACCESS.md`](../../docs/board/ACCESS.md#github-app-do-board) — permissões e eventos do App.
+- Telas: [Novo board](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-NewBoard) · [Primeiro acesso](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-BoardsEmpty). Mapa completo em [`docs/board/SCREENS.md`](../../board/SCREENS.md).
+- [`docs/board/ACCESS.md`](../../board/ACCESS.md#github-app-do-board) — permissões e eventos do App.
 - [REST API — collaborators](https://docs.github.com/en/enterprise-cloud@latest/rest/collaborators/collaborators).
 
 ## Proposta — corte de MVP
@@ -84,3 +84,11 @@ consegue começar.
 - Ter um cliente GitHub falso quando a API roda contra o emulador, com um repositório de exemplo? —
   **recomendação:** sim, no mesmo espírito do seed do Firebase; sem ele, `board-import` não tem como ser
   percorrida no `/test` sem credencial real.
+
+## Nota de entrega
+
+Conferida no código em 2026-11-27 pelo `/spec --sync`: todos os itens do corte de MVP estão implementados e entraram em `main` pela PR #8 (merge `a19ece1`). O que saiu diferente do texto acima:
+
+- A listagem de repositórios percorre todas as instalações do App, não uma só (`apps/api/(shared)/lib/github/github-rest-client.ts:242`).
+- "Registrar o evento" ficou só no log; nada é persistido. O cache de permissão vive na memória do processo (`github-permission-cache.ts:54`), então, em serverless, o webhook `member` invalida apenas a instância que o recebeu. Achado A7 da auditoria.
+- Entrou um cliente GitHub falso, com repositórios de exemplo, usado quando a API roda contra o emulador (`github-fake-client.ts`). Era a recomendação da pergunta em aberto.

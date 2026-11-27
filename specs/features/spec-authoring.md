@@ -1,7 +1,7 @@
 ---
 id: spec-authoring
 title: Escrever spec com um agente, a partir de texto e anexos
-status: proposed
+status: approved
 value: alto
 effort: G
 audience: time
@@ -10,7 +10,7 @@ area: [packages/kanban-contract, packages/sdk, apps/api, apps/app, kit]
 depends_on: [orchestrator, agent-contract, card-timeline]
 contends_on: [packages/kanban-contract/src/boardConfig.ts]
 feature: -
-updated: 2026-11-25
+updated: 2026-11-27
 ---
 
 # Escrever spec com um agente, a partir de texto e anexos
@@ -18,8 +18,8 @@ updated: 2026-11-25
 > **Resumo**
 > - **O quê:** descrever uma tarefa em texto livre, com anexos, e um agente transforma o pedido numa spec pronta para o pipeline, perguntando o que faltar.
 > - **Por quê:** hoje uma ideia só vira card depois que alguém escreve a spec no repositório; com isso o backlog passa a nascer dentro do board.
-> - **Status:** `proposed` · valor alto · esforço G · time
-> - **Próximo passo:** aguardando triagem
+> - **Status:** `approved` · valor alto · esforço G · time
+> - **Próximo passo:** `/analyze spec-authoring` (primeira da fila de 2026-11-27, por pedido do usuário)
 
 ## Problema
 
@@ -92,6 +92,20 @@ não recebe anexo e não tem como devolver as perguntas para o board.
 - Um pedido com um print vira spec no formato do template, com pelo menos uma rodada de perguntas
   respondida pelo board.
 - Aprovar move o card para Tarefas e a spec aparece na branch `feat/<slug>`.
+
+
+## Aprovação e pré-condições
+
+Aprovada em 2026-11-27 por pedido direto do usuário, que mandou executá-la na rodada noturna do `/cycle` como a primeira da fila.
+
+As três dependências estão entregues e em `main` (PR #8): `orchestrator`, `agent-contract` e `card-timeline`, arquivadas em `docs/features/<slug>/spec.md`. O corte roda sem infraestrutura externa quando a API está no emulador, com duas ressalvas:
+
+- **Anexos.** A API já tem upload para o Cloud Storage (`apps/api/app/(routes)/files/route.ts:13`, com `lib/storage.ts` e URL assinada), testado no emulador do Storage. Esse upload aceita só imagem JPEG, PNG ou WebP até 4 MiB (`apps/api/(shared)/validation/file.schema.ts:11`, `:35`), então PDF e texto exigem ampliar a validação. Em produção, o Storage exige o plano Blaze e o item 12 do `docs/PRE-PRODUCTION.md`; sem ele a rota responde `503 STORAGE_NOT_CONFIGURED`. Por isso o pedido em texto precisa funcionar sozinho, com o anexo como acréscimo opcional.
+- **Executor.** A escrita é uma etapa como as outras: roda no runner local (`apps/runner`) ou no executor falso do emulador, no `/test`. A nuvem continua com a `cloud-routines-runner`.
+
+Outra lacuna fica dentro do corte: o `kit/commands/` não traz `spec.md`, e o `.claude/commands/spec.md` deste repositório ainda não tem modo board. Os dois entram na fatia `kit/` descrita na tabela de impacto.
+
+A spec `app-cleanup` vem logo depois desta e mantém o upload e o Storage justamente por causa dos anexos.
 
 ## Perguntas em aberto
 
