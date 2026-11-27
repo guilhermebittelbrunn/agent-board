@@ -12,6 +12,7 @@
     "seed:timeline": "node --env-file-if-exists=.env scripts/seed-card-timeline.mjs",
     "fake-executor": "node --env-file-if-exists=.env scripts/fake-executor.mjs",
     "agent-token": "node --env-file-if-exists=.env scripts/agent-token.mjs",
+    "github-webhook": "node --env-file-if-exists=.env scripts/github-webhook.mjs",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
