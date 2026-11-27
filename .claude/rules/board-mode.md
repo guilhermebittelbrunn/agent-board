@@ -37,6 +37,22 @@ de qualidade. Onde esta regra conflitar com um passo interativo de um comando, e
   opções e a recomendação), depois `mcp__kanban__complete_stage` com `outcome: needs_input` e pare. No
   próximo disparo, as respostas chegam pelo `get_card`.
 
+## 2.1 Dentro de um ciclo (`--cycle <ciclo-id>`)
+
+O disparo traz `--cycle <id>` (e `get_card` traz `card.cycleId`) quando a etapa roda dentro de um ciclo. Aí
+ninguém vai responder antes de o ciclo terminar:
+
+- **Nunca** chame `ask`: a API recusa com `AGENT_ASK_IN_CYCLE`.
+- Decida tudo pela escada `.claude/cycle-policy.md` → recomendação da spec → padrão do repositório → menor
+  impacto, e registre cada decisão em `complete_stage.decisions`, com a regra usada (`policy`, `spec`,
+  `repo_pattern` ou `least_impact`). Cada decisão tem até 500 caracteres; são no máximo 20 por etapa.
+- O que no modo board normal viraria pergunta (produto, escopo, nome visível) vai com `product: true`: o
+  board mostra essas decisões em "Para revisar".
+- `needs_input` só quando a etapa não tem como seguir nem com a recomendação. A spec sai do ciclo e espera
+  você; o ciclo segue com as outras.
+- A aprovação do plano não segura o card dentro do ciclo: depois da análise, a próxima etapa já começa.
+- Remova `--cycle <id>` de `$ARGUMENTS` junto com `--board`.
+
 ## 3. Branch, commits e push
 
 - A branch vem do disparo (`branchPattern` do `.kanban/board.yml`, ex.: `feat/<slug>`). **No modo board

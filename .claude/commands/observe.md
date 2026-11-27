@@ -19,6 +19,7 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
 
 - Sem rodada de aprovação: confira você mesmo o texto contra o padrão (2–3 parágrafos, ~150 palavras,
   sem termo técnico) e publique com `post_update`, depois `complete_stage(success)`.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)

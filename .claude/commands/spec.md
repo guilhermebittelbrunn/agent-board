@@ -32,6 +32,7 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
 - Toda rodada termina com commit de `specs/features/<slug>.md` (`docs(specs): ...`) e push na branch do
   card, `attach_artifact` do arquivo e `complete_stage`. Use `success` só quando não restar pergunta.
 - Não mexa no `specs/BACKLOG.md` nesta etapa: a spec entra no índice quando o card for entregue.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)

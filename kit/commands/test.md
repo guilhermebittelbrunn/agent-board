@@ -8,5 +8,6 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
 - Sem perguntas: gere sempre o roteiro de teste manual; rode e2e só se o ambiente tiver browser.
 - Teste relacionado falhando por defeito do código → `needs_rework`; por ambiente → `failed` com o motivo.
 - Termine com commit dos testes criados e de `docs/features/<slug>/test/`, e push.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 

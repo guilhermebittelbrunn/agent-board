@@ -24,6 +24,7 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
 - Crie a branch do card a partir da base e termine com commit de `docs/features/<slug>/` e push.
 - Card que veio de Rascunhos (`get_card` com `card.origin: "board"`) já teve a spec aprovada no board:
   trate o `status: proposed` do arquivo como `approved` e grave `in-progress` como de costume.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)

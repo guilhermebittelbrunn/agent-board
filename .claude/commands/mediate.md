@@ -20,6 +20,7 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
 
 - Disparado por comentário novo na PR do card. Itens `⏳ Decisão pendente` e `❓ Preciso de contexto` vão
   para `ask`; correções em commits novos e push; o markdown de replies vai para o card com `post_update`.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)
