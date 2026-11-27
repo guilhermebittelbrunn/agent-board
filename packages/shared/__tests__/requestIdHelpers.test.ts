@@ -11,7 +11,7 @@ const UUID_V4 =
 const SAMPLE_SIZE = 50;
 
 function requestWith(headers: Record<string, string> = {}): Request {
-    return new Request("http://localhost:3002/entities", { headers });
+    return new Request("http://localhost:3002/boards", { headers });
 }
 
 describe("REQUEST_ID_HEADER", () => {

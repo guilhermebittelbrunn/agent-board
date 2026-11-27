@@ -1,12 +1,3 @@
-/** HTTP headers for authenticated request context (SDK ↔ API). */
-export const AUTH_REQUEST_HEADER = {
-    USER_ID: "x-user-id",
-    REQUEST_USER_ID: "x-request-user-id",
-    USER_ROLE: "x-user-role",
-    REQUEST_ROLE: "x-request-role",
-    USER_TIMEZONE: "x-user-timezone",
-} as const;
-
 /**
  * IANA time zone of the caller (e.g. `America/Sao_Paulo`), for formatting and
  * auditing dates on the server. Untrusted input: validate before use and never
