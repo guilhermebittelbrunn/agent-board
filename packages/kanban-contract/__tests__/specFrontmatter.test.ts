@@ -1,9 +1,31 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
     firstHeading,
     parseSpecFrontmatter,
     specBody,
 } from "../src/specFrontmatter";
+
+const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
+
+function repositorySpecFiles(): string[] {
+    const backlog = readdirSync(`${REPO_ROOT}specs/features`)
+        .filter((name) => name.endsWith(".md"))
+        .map((name) => `specs/features/${name}`);
+    const archived = readdirSync(`${REPO_ROOT}docs/features`)
+        .map((slug) => `docs/features/${slug}/spec.md`)
+        .filter((file) => existsSync(`${REPO_ROOT}${file}`));
+    return [...backlog, ...archived, "specs/reference/TEMPLATE.md"];
+}
+
+describe("parseSpecFrontmatter on this repository", () => {
+    it.each(repositorySpecFiles())("reads %s", (file) => {
+        const text = readFileSync(`${REPO_ROOT}${file}`, "utf8");
+
+        expect(parseSpecFrontmatter(text)).toMatchObject({ ok: true });
+    });
+});
 
 describe("parseSpecFrontmatter", () => {
     it("reads id, title and status", () => {
