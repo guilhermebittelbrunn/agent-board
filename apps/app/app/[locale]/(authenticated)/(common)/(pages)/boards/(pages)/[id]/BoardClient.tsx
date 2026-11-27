@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@repo/design-system/components/ui/button";
 import { getDictionary } from "@repo/internationalization/client";
 import { canPrioritizeCards, canTriggerStages } from "@repo/kanban-contract";
 import type {
@@ -9,8 +10,9 @@ import type {
 } from "@repo/sdk/src/types";
 import FormattedError from "@repo/shared/utils/helpers/formattedError";
 import { handleClientError } from "@repo/shared/utils/helpers/handleClientError";
+import { PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
@@ -37,16 +39,19 @@ import {
     type CardRunCommand,
     CardRunControls,
 } from "../../(components)/CardRunControls";
+import { DraftCardControls } from "../../(components)/DraftCardControls";
 import {
     type GroupedBoard,
     groupCardsByColumn,
 } from "../../(components)/groupCardsByColumn";
 import { countRuns } from "../../(components)/hasActiveRun";
+import { NewSpecDialog } from "../../(components)/NewSpecDialog";
 import { NotReadyCards } from "../../(components)/NotReadyCards";
 import { useStageRunDialogs } from "../../(components)/useStageRunDialogs";
 import { useBoardCardCrud } from "../../(hooks)/useBoardCardCrud";
 import { useFindBoardById } from "../../(hooks)/useFindBoardById";
 import { useListBoardCards } from "../../(hooks)/useListBoardCards";
+import { useSpecDraftCrud } from "../../(hooks)/useSpecDraftCrud";
 
 type BoardScreenProps = {
     board: BoardViewDTO;
@@ -63,6 +68,10 @@ type BoardScreenProps = {
     onMove: (card: CardDTO, destination: MoveDestination) => void;
     onReorder: (card: CardDTO, slugs: string[], index: number) => void;
     onRunCommand: (card: CardDTO, command: CardRunCommand) => void;
+    approvingSlug: string | null;
+    onApproveSpec: (card: CardDTO) => void;
+    /** Absent for who cannot start a spec draft. */
+    onNewDraft?: () => void;
 };
 
 function BoardScreen({
@@ -80,6 +89,9 @@ function BoardScreen({
     onMove,
     onReorder,
     onRunCommand,
+    approvingSlug,
+    onApproveSpec,
+    onNewDraft,
 }: BoardScreenProps) {
     const hasCardOnBoard = grouped.columns.some(
         (column) => column.cards.length > 0
@@ -126,9 +138,25 @@ function BoardScreen({
                     cardHref={cardHref}
                     columns={grouped.columns}
                     onMove={onMove}
+                    onNewDraft={onNewDraft}
                     onReorder={onReorder}
-                    renderRunControls={(card) =>
-                        card.lane === "done" ? null : (
+                    renderRunControls={(card) => {
+                        if (card.lane === "done") {
+                            return null;
+                        }
+                        if (card.lane === "drafts") {
+                            return (
+                                <DraftCardControls
+                                    boardsDictionary={boardsDictionary}
+                                    canApprove={canPrioritize}
+                                    card={card}
+                                    href={cardHref(card.slug)}
+                                    isApproving={approvingSlug === card.slug}
+                                    onApprove={onApproveSpec}
+                                />
+                            );
+                        }
+                        return (
                             <CardRunControls
                                 board={board}
                                 boardsDictionary={boardsDictionary}
@@ -136,8 +164,8 @@ function BoardScreen({
                                 card={card}
                                 onCommand={onRunCommand}
                             />
-                        )
-                    }
+                        );
+                    }}
                 />
             </section>
             {hasCardOnBoard && grouped.notReady.length > 0 ? (
@@ -203,6 +231,70 @@ function boardPermissions(
     };
 }
 
+/** The "New spec" entry points, the dialog behind them and approving a draft from its card. */
+function useSpecDrafts({
+    boardId,
+    board,
+    canTrigger,
+    boardsDictionary,
+    cardHref,
+}: {
+    boardId: string;
+    board: BoardViewDTO | undefined;
+    canTrigger: boolean;
+    boardsDictionary: BoardsDictionary;
+    cardHref: (slug: string) => string;
+}) {
+    const router = useRouter();
+    const [isOpen, setIsOpen] = useState(false);
+    const { approveSpecMutation } = useSpecDraftCrud(boardId);
+    const open = canTrigger ? () => setIsOpen(true) : undefined;
+
+    return {
+        open,
+        button: open ? (
+            <Button onClick={open} type="button" variant="outline">
+                <PlusIcon aria-hidden />
+                {boardsDictionary.drafts.newSpec.open}
+            </Button>
+        ) : null,
+        dialog:
+            board && canTrigger ? (
+                <NewSpecDialog
+                    board={board}
+                    boardsDictionary={boardsDictionary}
+                    onCreated={(slug) => {
+                        setIsOpen(false);
+                        router.push(cardHref(slug));
+                    }}
+                    onOpenChange={setIsOpen}
+                    open={isOpen}
+                />
+            ) : null,
+        approvingSlug: approveSpecMutation.isPending
+            ? (approveSpecMutation.variables?.slug ?? null)
+            : null,
+        approve: (card: CardDTO) => approveSpecMutation.mutate(card),
+    };
+}
+
+function headerActions(
+    newSpecButton: ReactNode,
+    syncButton: ReactNode,
+    hasCardOnBoard: boolean
+): ReactNode {
+    const sync = hasCardOnBoard ? syncButton : null;
+    if (!(newSpecButton || sync)) {
+        return null;
+    }
+    return (
+        <div className="flex flex-wrap gap-2">
+            {newSpecButton}
+            {sync}
+        </div>
+    );
+}
+
 export function BoardClient() {
     const params = useParams<{ id: string }>();
     const id = typeof params.id === "string" ? params.id : "";
@@ -250,6 +342,13 @@ export function BoardClient() {
     const hasCardOnBoard =
         grouped?.columns.some((column) => column.cards.length > 0) ?? false;
     const cardHref = (slug: string) => routes.boards.card(id, slug).url;
+    const specDrafts = useSpecDrafts({
+        boardId: id,
+        board,
+        canTrigger,
+        boardsDictionary,
+        cardHref,
+    });
 
     const syncButton = canPrioritize ? (
         <BoardSyncButton
@@ -308,7 +407,11 @@ export function BoardClient() {
             <Container
                 header={
                     <BoardPageHeader
-                        actions={hasCardOnBoard ? syncButton : null}
+                        actions={headerActions(
+                            specDrafts.button,
+                            syncButton,
+                            hasCardOnBoard
+                        )}
                         board={board}
                         boardsDictionary={boardsDictionary}
                         links={{
@@ -329,6 +432,7 @@ export function BoardClient() {
                 {board && grouped ? (
                     <BoardScreen
                         announcement={announcement}
+                        approvingSlug={specDrafts.approvingSlug}
                         board={board}
                         boardsDictionary={boardsDictionary}
                         canPrioritize={canPrioritize}
@@ -336,8 +440,10 @@ export function BoardClient() {
                         cardHref={cardHref}
                         credentialsHref={routes.boards.credentials(id).url}
                         grouped={grouped}
+                        onApproveSpec={specDrafts.approve}
                         onDismissSkipped={() => setSkipped([])}
                         onMove={moveCard}
+                        onNewDraft={specDrafts.open}
                         onReorder={reorderCard}
                         onRunCommand={onCommand}
                         skipped={skipped}
@@ -346,6 +452,7 @@ export function BoardClient() {
                 ) : null}
             </Container>
             {dialogs}
+            {specDrafts.dialog}
         </>
     );
 }
