@@ -24,7 +24,9 @@ const { completeRun, settlePullRequest, stopRun, tick, triggerStage } =
 const { FAKE_RUN_DURATION_MS } = await import(
     "@/(shared)/lib/orchestrator/fake-executor"
 );
-const { createCycle } = await import("@/(shared)/lib/orchestrator/cycle");
+const { createCycle, stopCycle } = await import(
+    "@/(shared)/lib/orchestrator/cycle"
+);
 const { cycleRepository } = await import(
     "@/(shared)/repositories/cycle.repository"
 );
@@ -560,5 +562,172 @@ describe("orchestrator against the Firestore emulator", () => {
                 await cardRepository.findById(`${board.id}__${slug}`)
             ).toMatchObject({ stageKey: "test", state: "idle", cycleId: null });
         }
+    });
+    it("stops a cycle mid-stage, detaches its cards and starts the queued cycle", async () => {
+        const board = await createBoard();
+        const firstId = await createCard(board.id, "stop-first");
+        const secondId = await createCard(board.id, "stop-second");
+        const nextId = await createCard(board.id, "stop-next");
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const options = {
+            until: "pull_request" as const,
+            concurrency: 1 as const,
+            onFailure: "skip" as const,
+        };
+        const running = await createCycle({
+            board,
+            input: { slugs: ["stop-first", "stop-second"], options },
+            by: OCTO,
+            now: start,
+        });
+        const queued = await createCycle({
+            board,
+            input: { slugs: ["stop-next"], options },
+            by: OCTO,
+            now: start,
+        });
+        if (!(running.ok && queued.ok)) {
+            throw new Error("cycle refused");
+        }
+        expect(queued.cycle.status).toBe("queued");
+        expect(await cardRepository.findById(firstId)).toMatchObject({
+            stageKey: "analyze",
+            state: "running",
+            cycleId: running.cycle.id,
+        });
+
+        const stopAt = new Date(start.getTime() + FAKE_RUN_DURATION_MS / 2);
+        const stopped = await stopCycle({
+            board,
+            cycleId: running.cycle.id,
+            by: OCTO,
+            now: stopAt,
+        });
+
+        expect(stopped).toMatchObject({
+            ok: true,
+            cycle: {
+                status: "stopped",
+                items: [
+                    { slug: "stop-first", status: "stopped" },
+                    { slug: "stop-second", status: "skipped" },
+                ],
+            },
+        });
+        const first = await cardRepository.findById(firstId);
+        expect(first).toMatchObject({
+            stageKey: "analyze",
+            activeRunId: null,
+            cycleId: null,
+        });
+        expect(first?.state).not.toBe("running");
+        expect((await runsOf(firstId)).map((run) => run.status)).not.toContain(
+            "running"
+        );
+        expect(await cardRepository.findById(secondId)).toMatchObject({
+            lane: "tasks",
+            cycleId: null,
+        });
+        expect(await runsOf(secondId)).toHaveLength(0);
+        expect(await cycleRepository.findById(queued.cycle.id)).toMatchObject({
+            status: "running",
+        });
+        const boardDoc = await db().collection("board").doc(board.id).get();
+        expect(boardDoc.data()?.runningCycleId).toBe(queued.cycle.id);
+        expect(await cardRepository.findById(nextId)).toMatchObject({
+            stageKey: "analyze",
+            cycleId: queued.cycle.id,
+        });
+        expect(
+            await stopCycle({
+                board,
+                cycleId: running.cycle.id,
+                by: OCTO,
+                now: stopAt,
+            })
+        ).toMatchObject({ ok: false, code: "CYCLE_NOT_ACTIVE" });
+    });
+
+    it("closes a cycle on the first failure with onFailure stop and lets the other spec end its current stage", async () => {
+        const board = await createBoard();
+        const failingId = await createCard(board.id, "halt-failing");
+        const otherId = await createCard(board.id, "halt-other");
+        await createCard(board.id, "halt-pending");
+        const nextId = await createCard(board.id, "halt-next");
+        await scriptCard(failingId, ["failed"]);
+        await scriptCard(otherId, ["silent"]);
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const running = await createCycle({
+            board,
+            input: {
+                slugs: ["halt-failing", "halt-other", "halt-pending"],
+                options: {
+                    until: "pull_request",
+                    concurrency: 2,
+                    onFailure: "stop",
+                },
+            },
+            by: OCTO,
+            now: start,
+        });
+        const queued = await createCycle({
+            board,
+            input: {
+                slugs: ["halt-next"],
+                options: {
+                    until: "testing",
+                    concurrency: 1,
+                    onFailure: "skip",
+                },
+            },
+            by: OCTO,
+            now: start,
+        });
+        if (!(running.ok && queued.ok)) {
+            throw new Error("cycle refused");
+        }
+
+        await tick(board, new Date(start.getTime() + FAKE_RUN_DURATION_MS));
+
+        expect(await cycleRepository.findById(running.cycle.id)).toMatchObject({
+            status: "stopped",
+            items: [
+                { slug: "halt-failing", status: "failed" },
+                { slug: "halt-other", status: "running" },
+                { slug: "halt-pending", status: "skipped" },
+            ],
+        });
+        expect(await cardRepository.findById(otherId)).toMatchObject({
+            stageKey: "analyze",
+            state: "running",
+        });
+        expect(await cycleRepository.findById(queued.cycle.id)).toMatchObject({
+            status: "running",
+        });
+        expect(await cardRepository.findById(nextId)).toMatchObject({
+            stageKey: "analyze",
+            cycleId: queued.cycle.id,
+        });
+
+        const MS_PER_MINUTE = 60_000;
+        await tick(
+            board,
+            new Date(
+                start.getTime() +
+                    config.limits.stageTimeoutMinutes * MS_PER_MINUTE
+            )
+        );
+        const other = await cardRepository.findById(otherId);
+        expect(other).toMatchObject({
+            stageKey: "analyze",
+            activeRunId: null,
+            cycleId: null,
+        });
+        expect(await runsOf(otherId)).toHaveLength(1);
+        const closed = await cycleRepository.findById(running.cycle.id);
+        expect(closed?.items[1]).toMatchObject({
+            slug: "halt-other",
+            status: "failed",
+        });
     });
 });
