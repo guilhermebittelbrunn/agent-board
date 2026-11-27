@@ -116,6 +116,22 @@ describe("cardRunReason", () => {
     const reasonOf = (card: ReturnType<typeof runCard>) =>
         cardRunReason(card, RUN_CONFIG, boardsDictionary);
 
+    it("names the column a run refused for lack of credential", () => {
+        const column = RUN_CONFIG.stages.find(
+            (stage) => stage.key === "analyze"
+        )?.column;
+        expect(
+            reasonOf(
+                runCard("c", {
+                    state: "failed",
+                    lastRun: lastRun({ endReason: "no_credential" }),
+                })
+            )
+        ).toBe(
+            `Você não tem credencial que sirva a ${column}. Veja Minhas credenciais.`
+        );
+    });
+
     it("explains a stopped run and a dispatch that failed", () => {
         expect(
             reasonOf(

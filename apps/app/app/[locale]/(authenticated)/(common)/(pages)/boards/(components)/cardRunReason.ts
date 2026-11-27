@@ -5,6 +5,7 @@ import {
 } from "@repo/kanban-contract";
 import type { CardDTO } from "@repo/sdk/src/types";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
+import { stageColumnName } from "./stageColumnName";
 
 /** Why the card is where it is, from its last run; `null` when the state says enough. */
 export function cardRunReason(
@@ -53,6 +54,13 @@ export function cardRunReason(
     }
     if (lastRun.endReason === "no_runner") {
         return reasonCopy.noRunner;
+    }
+    if (lastRun.endReason === "no_credential") {
+        return fillMessage(reasonCopy.noCredential, {
+            column:
+                stageColumnName(config, lastRun.stageKey, boardsDictionary) ??
+                lastRun.stageKey,
+        });
     }
     return null;
 }
