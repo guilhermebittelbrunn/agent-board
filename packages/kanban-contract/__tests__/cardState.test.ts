@@ -118,3 +118,45 @@ describe("resolveTransition", () => {
         expect(next.state).toBe("idle");
     });
 });
+
+describe("resolveTransition on the pull request stage", () => {
+    const result = parseBoardConfig({
+        version: 1,
+        name: "board",
+        stages: [
+            { key: "test", column: "Testando", command: "/test" },
+            {
+                key: "pr",
+                column: "Aguardando PR",
+                command: "/observe",
+                pullRequest: {},
+            },
+        ],
+    });
+    if (!result.success) {
+        throw new Error("fixture must be valid");
+    }
+    const prConfig = result.data;
+
+    it("keeps the card on the stage, idle, after a success", () => {
+        const next = resolveTransition({
+            config: prConfig,
+            current: { stageKey: "pr", state: "running", reworkLoops: 1 },
+            outcome: "success",
+            approvalGateEnabled: false,
+        });
+
+        expect(next).toEqual({ stageKey: "pr", state: "idle", reworkLoops: 1 });
+    });
+
+    it("still fails like any stage", () => {
+        const next = resolveTransition({
+            config: prConfig,
+            current: { stageKey: "pr", state: "running", reworkLoops: 0 },
+            outcome: "failed",
+            approvalGateEnabled: false,
+        });
+
+        expect(next.state).toBe("failed");
+    });
+});

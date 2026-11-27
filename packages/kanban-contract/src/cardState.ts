@@ -76,6 +76,11 @@ export function resolveTransition(input: TransitionInput): CardPosition {
         };
     }
 
+    // The pull request stage ends with the merge, not with its command: the card waits there.
+    if (stage.pullRequest !== undefined) {
+        return { ...current, state: "idle" };
+    }
+
     const next = nextStageKey(config, current.stageKey);
     if (next === null) {
         return {

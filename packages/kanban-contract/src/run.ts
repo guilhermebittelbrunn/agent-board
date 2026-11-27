@@ -27,6 +27,7 @@ export const RUN_TRIGGERS = [
     "approve",
     "answer",
     "transition",
+    "pr_comment",
 ] as const;
 export type RunTrigger = (typeof RUN_TRIGGERS)[number];
 

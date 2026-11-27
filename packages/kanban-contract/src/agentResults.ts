@@ -2,6 +2,7 @@ import type { StageConfig } from "./boardConfig";
 import type { CardLane } from "./boardLanes";
 import type { CardPendingAsk, ResolvedAnswer } from "./cardEvent";
 import type { CardState } from "./cardState";
+import type { PullRequestState } from "./pullRequest";
 import type { AttachmentType } from "./specAuthoring";
 
 /** A person's answers to one `ask`, paired with the question event they close. */
@@ -76,6 +77,13 @@ export type AgentCardView = {
     pendingAsk: CardPendingAsk | null;
     answers: AgentAnsweredQuestion[];
     artifacts: AgentArtifactRef[];
+    /** The pull request the board opened for the card, `null` before the pull request stage. */
+    pullRequest: {
+        number: number;
+        url: string;
+        draft: boolean;
+        state: PullRequestState;
+    } | null;
 };
 
 export type AgentEventResult = { eventId: string };

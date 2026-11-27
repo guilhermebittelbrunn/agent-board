@@ -8,6 +8,7 @@ export * from "./boardLanes";
 export * from "./cardEvent";
 export * from "./cardState";
 export * from "./identity";
+export * from "./pullRequest";
 export * from "./roles";
 export * from "./run";
 export * from "./runner";
