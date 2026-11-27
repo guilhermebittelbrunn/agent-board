@@ -8,16 +8,13 @@ async function loadRouting() {
 }
 
 describe("resolveAccountTab", () => {
-    it.each(["profile", "security", "preferences"])(
-        "aceita a seção %s",
-        async (tab) => {
-            const { resolveAccountTab } = await loadRouting();
+    it.each(["profile", "preferences"])("aceita a seção %s", async (tab) => {
+        const { resolveAccountTab } = await loadRouting();
 
-            expect(resolveAccountTab(tab)).toBe(tab);
-        }
-    );
+        expect(resolveAccountTab(tab)).toBe(tab);
+    });
 
-    it.each([null, "", "xyz", "PROFILE", "billing", "privacy"])(
+    it.each([null, "", "xyz", "PROFILE", "billing", "privacy", "security"])(
         "cai no perfil quando a URL pede %j",
         async (raw) => {
             const { resolveAccountTab } = await loadRouting();
@@ -32,11 +29,11 @@ describe("accountTabHref", () => {
         const { accountTabHref } = await loadRouting();
         const current = new URLSearchParams("tab=profile&from=menu");
 
-        const href = accountTabHref("/pt-br/account", current, "security");
+        const href = accountTabHref("/pt-br/account", current, "preferences");
         const params = new URL(href, "http://localhost").searchParams;
 
         expect(href.startsWith("/pt-br/account?")).toBe(true);
-        expect(params.get("tab")).toBe("security");
+        expect(params.get("tab")).toBe("preferences");
         expect(params.get("from")).toBe("menu");
     });
 

@@ -3,75 +3,34 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/env", () => ({ env: {} }));
 vi.mock("@repo/security", () => ({ secure: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
-vi.mock("@/lib/server/panelSnapshot", () => ({
-    resolvePanelSnapshot: vi.fn(),
-}));
-vi.mock("@/lib/server/onboarding", () => ({
-    resolveOnboardingRedirect: vi.fn(),
-}));
-vi.mock("@/lib/server/requireAdmin", () => ({ requireAdmin: vi.fn() }));
-vi.mock("@/lib/server/sidebarState", () => ({
-    resolveSidebarDefaultOpen: vi.fn(),
-}));
 vi.mock("@/shared/components/ui/Navbar", () => ({ default: () => null }));
-vi.mock("@/shared/components/ui/EmailNotVerifiedNotice", () => ({
-    EmailNotVerifiedNotice: () => null,
-}));
-vi.mock("@/app/[locale]/(authenticated)/(common)/sidebar", () => ({
-    SidebarCommon: () => null,
-}));
-vi.mock("@/app/[locale]/(authenticated)/(admin)/admin/sidebar", () => ({
-    SidebarAdmin: () => null,
-}));
 
-const { generateMetadata: commonMetadata } = await import(
+const { generateMetadata } = await import(
     "@/app/[locale]/(authenticated)/(common)/layout"
 );
-const { generateMetadata: adminMetadata } = await import(
-    "@/app/[locale]/(authenticated)/(admin)/admin/layout"
-);
 
-const titleFor = async (
-    generate: typeof commonMetadata,
-    locale: string
-): Promise<unknown> =>
-    (await generate({ params: Promise.resolve({ locale }) })).title;
+const titleFor = async (locale: string): Promise<unknown> =>
+    (await generateMetadata({ params: Promise.resolve({ locale }) })).title;
 
 afterEach(() => {
     vi.unstubAllEnvs();
 });
 
-describe("panel layout titles", () => {
-    it.each([["pt-br", "Painel do usuário"]])(
-        "titles the common panel in %s",
-        async (locale, environment) => {
-            vi.stubEnv("NEXT_PUBLIC_APP_NAME", "");
+describe("panel layout title", () => {
+    it("names the area after the boards in pt-br", async () => {
+        vi.stubEnv("NEXT_PUBLIC_APP_NAME", "");
 
-            expect(await titleFor(commonMetadata, locale)).toEqual({
-                default: `${environment} | ${DEFAULT_BRAND_NAME}`,
-                template: `%s | ${DEFAULT_BRAND_NAME}`,
-            });
-        }
-    );
-
-    it.each([["pt-br", "Administração"]])(
-        "titles the admin panel in %s",
-        async (locale, environment) => {
-            vi.stubEnv("NEXT_PUBLIC_APP_NAME", "");
-
-            expect(await titleFor(adminMetadata, locale)).toEqual({
-                default: `${environment} | ${DEFAULT_BRAND_NAME}`,
-                template: `%s | ${DEFAULT_BRAND_NAME}`,
-            });
-        }
-    );
+        expect(await titleFor("pt-br")).toEqual({
+            default: `Boards | ${DEFAULT_BRAND_NAME}`,
+            template: `%s | ${DEFAULT_BRAND_NAME}`,
+        });
+    });
 
     it("falls back to the default locale when the segment is not a supported locale", async () => {
         vi.stubEnv("NEXT_PUBLIC_APP_NAME", "");
 
-        expect(await titleFor(commonMetadata, "xx")).toEqual({
-            default: `Painel do usuário | ${DEFAULT_BRAND_NAME}`,
+        expect(await titleFor("xx")).toEqual({
+            default: `Boards | ${DEFAULT_BRAND_NAME}`,
             template: `%s | ${DEFAULT_BRAND_NAME}`,
         });
     });
@@ -79,8 +38,8 @@ describe("panel layout titles", () => {
     it("uses the configured brand name", async () => {
         vi.stubEnv("NEXT_PUBLIC_APP_NAME", "QA Brand");
 
-        expect(await titleFor(adminMetadata, "pt-br")).toEqual({
-            default: "Administração | QA Brand",
+        expect(await titleFor("pt-br")).toEqual({
+            default: "Boards | QA Brand",
             template: "%s | QA Brand",
         });
     });

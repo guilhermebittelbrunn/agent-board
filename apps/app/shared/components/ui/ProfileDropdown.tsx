@@ -17,7 +17,12 @@ import {
     DropdownMenuTrigger,
 } from "@repo/design-system/components/ui/dropdown-menu";
 import { getDictionary } from "@repo/internationalization/client";
-import { CookieIcon, LogOutIcon, UserIcon } from "lucide-react";
+import {
+    CookieIcon,
+    LogOutIcon,
+    SlidersHorizontalIcon,
+    UserIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useMyAccount } from "@/shared/hooks/useMyAccount";
 import { withLocalePath } from "@/shared/lib/localePath";
@@ -28,6 +33,7 @@ export default function ProfileDropdown() {
     const { data: account } = useMyAccount();
     const cookieConsent = useCookieConsent();
     const profileDropdown = dictionary.apps.app.shared.profileDropdown;
+    const accountTabs = dictionary.apps.app.pages.common.account.tabs;
 
     // The Firebase client user is the fallback, not the source: it does not know the
     // avatar reference and keeps a stale display name until the token refreshes.
@@ -61,9 +67,25 @@ export default function ProfileDropdown() {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                        <Link href={withLocalePath(locale, "/account")}>
+                        <Link
+                            href={withLocalePath(
+                                locale,
+                                "/account?tab=profile"
+                            )}
+                        >
                             <UserIcon className="text-muted-foreground" />
-                            <span>{profileDropdown.myAccount}</span>
+                            <span>{accountTabs.profile}</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link
+                            href={withLocalePath(
+                                locale,
+                                "/account?tab=preferences"
+                            )}
+                        >
+                            <SlidersHorizontalIcon className="text-muted-foreground" />
+                            <span>{accountTabs.preferences}</span>
                         </Link>
                     </DropdownMenuItem>
                     {cookieConsent.available && (

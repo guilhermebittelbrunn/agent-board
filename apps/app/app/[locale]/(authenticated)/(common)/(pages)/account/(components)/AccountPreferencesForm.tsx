@@ -13,7 +13,6 @@ import { Footer } from "@/shared/components/ui/Footer";
 import { FormContainer } from "@/shared/components/ui/FormContainer";
 import { SettingsSection } from "@/shared/components/ui/SettingsSection";
 import { storeActiveTheme } from "@/shared/lib/themePreference";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { useAccountMutations } from "../(hooks)/useAccountMutations";
 import {
     type AccountPreferencesFormValues,
@@ -30,7 +29,6 @@ export function AccountPreferencesForm({
 }: AccountPreferencesFormProps) {
     const { dictionary } = getDictionary();
     const { setTheme } = useTheme();
-    const { isImpersonating } = useAuthRequestPanel();
     const accountPreferences =
         dictionary.apps.app.pages.common.account.preferences;
     const { updatePreferencesMutation } = useAccountMutations();
@@ -90,7 +88,6 @@ export function AccountPreferencesForm({
                     </FormContainer>
                     <Footer
                         confirmLabel={accountPreferences.save}
-                        disabled={isImpersonating}
                         isLoading={updatePreferencesMutation.isPending}
                         showBack={false}
                         sticky={false}

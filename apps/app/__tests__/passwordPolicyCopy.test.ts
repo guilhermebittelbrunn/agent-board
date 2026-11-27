@@ -14,12 +14,8 @@ type Locale = (typeof LOCALES)[number];
  * notices when the constant moves and a message keeps announcing the old minimum.
  */
 function newPasswordMessages(locale: Locale): Record<string, string> {
-    const { apps, packages } = globalTranslations[locale];
+    const { packages } = globalTranslations[locale];
     return {
-        "app admin.users.passwordMin":
-            apps.app.pages.admin.users.form.validation.passwordMin,
-        "app account.security.newPasswordMin":
-            apps.app.pages.common.account.security.validation.newPasswordMin,
         "apiErrors.AUTH_PASSWORD_TOO_SHORT":
             packages.utils.apiErrors.AUTH_PASSWORD_TOO_SHORT,
     };
@@ -29,8 +25,6 @@ function existingPasswordMessages(locale: Locale): Record<string, string> {
     const { apps } = globalTranslations[locale];
     return {
         "app signIn.passwordMin": apps.app.pages.signIn.validation.passwordMin,
-        "app account.security.min":
-            apps.app.pages.common.account.security.validation.min,
     };
 }
 

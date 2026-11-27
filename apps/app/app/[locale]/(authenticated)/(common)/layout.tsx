@@ -1,18 +1,11 @@
-import { SidebarProvider } from "@repo/design-system/components/ui/sidebar";
 import { getTranslations } from "@repo/internationalization/server";
 import { resolveLocale } from "@repo/internationalization/utils";
 import { secure } from "@repo/security";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { env } from "@/env";
-import { resolvePanelSnapshot } from "@/lib/server/panelSnapshot";
-import { resolveSidebarDefaultOpen } from "@/lib/server/sidebarState";
-import NotificationsBell from "@/shared/components/notifications/NotificationsBell";
 import Navbar from "@/shared/components/ui/Navbar";
-import { isImpersonatingSnapshot } from "@/shared/lib/panelState";
 import { panelTitleTemplate } from "@/shared/lib/panelTitles";
-import { SidebarCommon } from "./sidebar";
 
 type AppLayoutProperties = {
     readonly children: ReactNode;
@@ -27,37 +20,21 @@ export const generateMetadata = async ({
 
     return {
         title: panelTitleTemplate(
-            dictionary.apps.app.pages.navbar.environmentCommon
+            dictionary.apps.app.pages.common.routes.platform.boards.list
         ),
     };
 };
 
-const AppLayout = async ({ children, params }: AppLayoutProperties) => {
+const AppLayout = async ({ children }: AppLayoutProperties) => {
     if (env.ARCJET_KEY) {
         await secure(["CATEGORY:PREVIEW"]);
     }
 
-    // Admins belong on /admin; they only stay in the common area while actually acting
-    // as a common user. A COMMON panel without a target is not impersonation — the API
-    // would reject every request — so it lands here as "not impersonating" and bounces.
-    // Done server-side (one hop, loop-free) instead of a client redirect that can
-    // ping-pong with the proxy.
-    const { locale } = await params;
-    const snapshot = await resolvePanelSnapshot();
-    if (
-        snapshot.profileKind === "admin" &&
-        !isImpersonatingSnapshot(snapshot)
-    ) {
-        redirect(`/${locale}/admin`);
-    }
-
     return (
-        <SidebarProvider defaultOpen={await resolveSidebarDefaultOpen()}>
-            <SidebarCommon>
-                <Navbar notifications={<NotificationsBell />} />
-                {children}
-            </SidebarCommon>
-        </SidebarProvider>
+        <div className="flex min-h-dvh flex-col">
+            <Navbar />
+            <main className="flex flex-1 flex-col">{children}</main>
+        </div>
     );
 };
 

@@ -8,16 +8,9 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { panelMock, updatePreferencesMutateMock, setThemeMock } = vi.hoisted(
-    () => ({
-        panelMock: vi.fn(),
-        updatePreferencesMutateMock: vi.fn(),
-        setThemeMock: vi.fn(),
-    })
-);
-
-vi.mock("@/shared/providers/AuthRequestPanelContext", () => ({
-    useAuthRequestPanel: () => panelMock(),
+const { updatePreferencesMutateMock, setThemeMock } = vi.hoisted(() => ({
+    updatePreferencesMutateMock: vi.fn(),
+    setThemeMock: vi.fn(),
 }));
 
 vi.mock(
@@ -73,7 +66,6 @@ describe("AccountPreferencesForm", () => {
             }
         };
         vi.clearAllMocks();
-        panelMock.mockReturnValue({ isImpersonating: false });
     });
 
     afterEach(cleanup);

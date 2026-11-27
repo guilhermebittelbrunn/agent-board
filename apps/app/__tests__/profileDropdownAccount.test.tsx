@@ -170,3 +170,36 @@ describe("ProfileDropdown — identidade do GitHub", () => {
         expect(screen.getByText("conta@example.com")).toBeTruthy();
     });
 });
+
+describe("ProfileDropdown — itens da conta", () => {
+    const pages = globalTranslations["pt-br"].apps.app.pages;
+
+    it("leva Perfil e Preferências à aba certa da conta e oferece Sair", () => {
+        render(<ProfileDropdown />);
+        fireEvent.keyDown(
+            screen.getByRole("button", {
+                name: globalTranslations["pt-br"].apps.app.shared
+                    .profileDropdown.triggerLabel,
+            }),
+            { key: "Enter" }
+        );
+
+        const profile = screen.getByRole("menuitem", {
+            name: pages.common.account.tabs.profile,
+        });
+        const preferences = screen.getByRole("menuitem", {
+            name: pages.common.account.tabs.preferences,
+        });
+
+        expect(profile.getAttribute("href")).toBe("/pt-br/account?tab=profile");
+        expect(preferences.getAttribute("href")).toBe(
+            "/pt-br/account?tab=preferences"
+        );
+        expect(
+            screen.getByRole("menuitem", {
+                name: globalTranslations["pt-br"].apps.app.shared
+                    .profileDropdown.signOut,
+            })
+        ).toBeTruthy();
+    });
+});

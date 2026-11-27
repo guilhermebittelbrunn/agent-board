@@ -17,7 +17,6 @@ import { FormContainer } from "@/shared/components/ui/FormContainer";
 import { SettingsSection } from "@/shared/components/ui/SettingsSection";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
 import { isStorageEnabled } from "@/shared/lib/storageEnabled";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { useAccountMutations } from "../(hooks)/useAccountMutations";
 import {
     type AccountProfileFormValues,
@@ -30,7 +29,6 @@ type AccountProfileFormProps = {
 
 export function AccountProfileForm({ account }: AccountProfileFormProps) {
     const { dictionary } = getDictionary();
-    const { isImpersonating } = useAuthRequestPanel();
     const accountProfile = dictionary.apps.app.pages.common.account.profile;
     const { updateProfileMutation } = useAccountMutations();
     const { uploadFile, isUploading } = useFileUpload();
@@ -131,7 +129,7 @@ export function AccountProfileForm({ account }: AccountProfileFormProps) {
                         </FormContainer>
                         <Footer
                             confirmLabel={accountProfile.save}
-                            disabled={isImpersonating || isUploading}
+                            disabled={isUploading}
                             isLoading={updateProfileMutation.isPending}
                             showBack={false}
                             sticky={false}

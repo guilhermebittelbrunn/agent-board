@@ -1,4 +1,4 @@
-export const accountTabValues = ["profile", "security", "preferences"] as const;
+export const accountTabValues = ["profile", "preferences"] as const;
 
 export type AccountTabValue = (typeof accountTabValues)[number];
 

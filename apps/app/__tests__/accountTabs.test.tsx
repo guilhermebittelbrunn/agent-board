@@ -17,20 +17,18 @@ import {
 
 const TAB_LABELS = {
     profile: "Perfil",
-    security: "Segurança",
     preferences: "Preferências",
 };
 
 const SECTION_DESCRIPTIONS = {
     profile: "Descrição do perfil",
-    security: "Descrição da segurança",
     preferences: "Descrição das preferências",
 };
 
 const SECTION_NAV_LABEL = "Seções da conta";
 
-/** profile, security e preferences. */
-const ACCOUNT_TAB_COUNT = 3;
+/** profile e preferences. */
+const ACCOUNT_TAB_COUNT = 2;
 
 const { searchParamsMock } = vi.hoisted(() => ({
     searchParamsMock: vi.fn(() => new URLSearchParams("")),
@@ -62,19 +60,11 @@ vi.mock("@repo/internationalization/client", () => ({
     }),
 }));
 
-vi.mock("@/shared/components/ui/ImpersonationReadOnlyNotice", () => ({
-    ImpersonationReadOnlyNotice: () => null,
-}));
-
 const stub = (label: string) => () => <div>{`${label}-panel`}</div>;
 
 vi.mock(
     "@/app/[locale]/(authenticated)/(common)/(pages)/account/(components)/AccountProfileForm",
     () => ({ AccountProfileForm: stub("profile") })
-);
-vi.mock(
-    "@/app/[locale]/(authenticated)/(common)/(pages)/account/(components)/AccountSecurityForm",
-    () => ({ AccountSecurityForm: stub("security") })
 );
 vi.mock(
     "@/app/[locale]/(authenticated)/(common)/(pages)/account/(components)/AccountPreferencesForm",
@@ -117,7 +107,7 @@ const lastReplacedUrl = () => {
 };
 
 describe("AccountTabs — navegação vertical", () => {
-    it("expõe uma lista vertical com as três seções e um select com as mesmas opções", async () => {
+    it("expõe uma lista vertical com as duas seções e um select com as mesmas opções", async () => {
         useUrl("tab=profile");
         const AccountTabs = await loadAccountTabs();
 
@@ -140,25 +130,28 @@ describe("AccountTabs — navegação vertical", () => {
     });
 
     it("abre a seção com um h2 com o rótulo dela e a descrição", async () => {
-        useUrl("tab=security");
+        useUrl("tab=preferences");
         const AccountTabs = await loadAccountTabs();
 
         render(<AccountTabs account={undefined} />);
 
         expect(
-            screen.getByRole("heading", { level: 2, name: TAB_LABELS.security })
+            screen.getByRole("heading", {
+                level: 2,
+                name: TAB_LABELS.preferences,
+            })
         ).toBeTruthy();
-        expect(screen.getByText(SECTION_DESCRIPTIONS.security)).toBeTruthy();
-        expect(screen.getByText("security-panel")).toBeTruthy();
+        expect(screen.getByText(SECTION_DESCRIPTIONS.preferences)).toBeTruthy();
+        expect(screen.getByText("preferences-panel")).toBeTruthy();
     });
 });
 
 describe("AccountTabs — a seção acompanha a URL", () => {
     it("troca a seção quando a URL muda sem remontar o componente", async () => {
-        useUrl("tab=security");
+        useUrl("tab=profile");
         const AccountTabs = await loadAccountTabs();
         const { rerender } = render(<AccountTabs account={undefined} />);
-        expect(selectedTab()?.textContent).toBe(TAB_LABELS.security);
+        expect(selectedTab()?.textContent).toBe(TAB_LABELS.profile);
 
         useUrl("tab=preferences");
         rerender(<AccountTabs account={undefined} />);
@@ -173,16 +166,16 @@ describe("AccountTabs — a seção acompanha a URL", () => {
         render(<AccountTabs account={undefined} />);
         replaceStateSpy.mockClear();
 
-        const securityTab = screen.getByRole("tab", {
-            name: TAB_LABELS.security,
+        const profileTab = screen.getByRole("tab", {
+            name: TAB_LABELS.profile,
         });
         act(() => {
-            fireEvent.mouseDown(securityTab, { button: 0, ctrlKey: false });
+            fireEvent.mouseDown(profileTab, { button: 0, ctrlKey: false });
         });
 
         const url = new URL(lastReplacedUrl() ?? "", "http://localhost");
         expect(url.pathname).toBe("/pt-br/account");
-        expect(url.searchParams.get("tab")).toBe("security");
+        expect(url.searchParams.get("tab")).toBe("profile");
         expect(url.searchParams.get("from")).toBe("menu");
     });
 
@@ -210,16 +203,19 @@ describe("AccountTabs — a seção acompanha a URL", () => {
         expect(selectedTab()?.textContent).toBe(TAB_LABELS.profile);
     });
 
-    it("normaliza um tab inválido preservando os outros parâmetros", async () => {
-        useUrl("tab=xyz&plan=price_1");
-        const AccountTabs = await loadAccountTabs();
+    it.each(["xyz", "security"])(
+        "normaliza o tab %s para o perfil preservando os outros parâmetros",
+        async (tab) => {
+            useUrl(`tab=${tab}&plan=price_1`);
+            const AccountTabs = await loadAccountTabs();
 
-        render(<AccountTabs account={undefined} />);
+            render(<AccountTabs account={undefined} />);
 
-        const url = new URL(lastReplacedUrl() ?? "", "http://localhost");
-        expect(url.searchParams.get("tab")).toBe("profile");
-        expect(url.searchParams.get("plan")).toBe("price_1");
-    });
+            const url = new URL(lastReplacedUrl() ?? "", "http://localhost");
+            expect(url.searchParams.get("tab")).toBe("profile");
+            expect(url.searchParams.get("plan")).toBe("price_1");
+        }
+    );
 
     it("não regrava a URL quando o tab já é válido", async () => {
         useUrl("tab=preferences");

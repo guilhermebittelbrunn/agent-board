@@ -1,8 +1,4 @@
 import type { globalTranslations } from "@repo/internationalization/translations/global";
-import {
-    EXISTING_PASSWORD_MIN_LENGTH,
-    PASSWORD_MIN_LENGTH,
-} from "@repo/shared/utils/helpers/passwordPolicy";
 import { z } from "zod";
 
 type Dictionary = (typeof globalTranslations)[keyof typeof globalTranslations];
@@ -38,12 +34,6 @@ export type AccountProfileFormValues = {
     avatar: string;
 };
 
-export type AccountPasswordFormValues = {
-    currentPassword: string;
-    password: string;
-    confirmPassword: string;
-};
-
 export const accountThemeValues = ["light", "dark", "system"] as const;
 
 export type AccountPreferencesFormValues = {
@@ -74,28 +64,6 @@ export function buildAccountProfileSchema(dictionary: Dictionary) {
                 message: validation.avatarReference,
             }),
     });
-}
-
-export function buildAccountPasswordSchema(dictionary: Dictionary) {
-    const validation =
-        dictionary.apps.app.pages.common.account.security.validation;
-
-    return z
-        .object({
-            currentPassword: z
-                .string()
-                .min(1, validation.required)
-                .min(EXISTING_PASSWORD_MIN_LENGTH, validation.min),
-            password: z
-                .string()
-                .min(1, validation.required)
-                .min(PASSWORD_MIN_LENGTH, validation.newPasswordMin),
-            confirmPassword: z.string().min(1, validation.required),
-        })
-        .refine((values) => values.password === values.confirmPassword, {
-            message: validation.mismatch,
-            path: ["confirmPassword"],
-        });
 }
 
 export function buildAccountPreferencesSchema() {
