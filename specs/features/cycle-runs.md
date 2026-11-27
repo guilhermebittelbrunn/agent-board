@@ -18,8 +18,8 @@ updated: 2026-11-27
 > **Resumo**
 > - **O quê:** escolher uma ou mais specs em Tarefas, e o board leva cada uma da Análise até a PR sem parar para perguntar, decidindo pela política do repositório e registrando cada decisão.
 > - **Por quê:** é o `/cycle` dentro do board, para várias specs: dá para deixar o backlog andando e revisar as decisões depois.
-> - **Status:** `in-progress` · valor alto · esforço G · time · implementada na branch, aguardando PR (fatia 1 de 2)
-> - **Próximo passo:** decidir a aprovação (a fatia 1 rodou sem ela, a pedido do usuário); mergear a fatia 1 e depois `/analyze cycle-runs` para a fatia 2
+> - **Status:** `in-progress` · valor alto · esforço G · time · fatia 1 de 2 implementada na branch, na PR #12; spec inteira aprovada pelo usuário em 2026-11-27
+> - **Próximo passo:** mergear a PR #12; a fatia 2 entra depois da `cloud-routines-runner`, com `/analyze cycle-runs`
 
 ## Problema
 

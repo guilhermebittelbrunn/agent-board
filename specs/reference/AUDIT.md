@@ -21,7 +21,7 @@ Outras mudanças: `cloud-routines-runner` passou a registrar que o cadastro de U
 `common-panel.ts`, que não existe mais, pelo `session.ts`; o próximo passo de `spec-discovery` e `cycle-schedule`
 agora diz o que as bloqueia.
 
-## Rodada noturna: implementadas, aguardando PR
+## Rodada noturna: implementadas, na PR #12
 
 Cada item do corte de MVP foi procurado no código da branch. Nenhum dos itens do corte das quatro specs completas
 está ausente; a `cycle-runs` tem quatro itens deixados de propósito para a fatia 2.
@@ -200,9 +200,11 @@ Cada spec arquivada ganhou uma seção "Nota de entrega" com o detalhe. Resumo:
 - **A13 — G2 não medido.** As dez specs da fase 1 e as cinco da noite entraram pelo `/cycle` no terminal, não por
   cards do board. O G2 pede três features de Análise a Concluído no board. Com `pr-flow` e `cycle-runs` mergeadas,
   o board passa a ter o que falta para medir.
-- **A14 — Branch da noite sem PR e fora do padrão.** `guilhermebittelbrunn/chore-overnight-cycle-specs`, 81
-  commits, não bate com `<project>/<type>/<title>`; o usuário pediu para manter tudo nela durante a noite. O CI
-  nunca rodou sobre esses commits. Os cinco `review.md` recomendam abrir a PR a partir de uma branch no padrão.
+- **A14 — Branch da noite fora do padrão, PR aberta.** `guilhermebittelbrunn/chore-overnight-cycle-specs`, 82
+  commits, não bate com `<project>/<type>/<title>`; o usuário pediu para manter tudo nela durante a noite. A branch
+  foi enviada e a PR #12 está aberta. Medido em 2026-11-27 com `gh run view`: os seis jobs do CI passaram em
+  `26eaf1f` (`changes`, `verify`, `secrets`, `audit`, `coverage`, `e2e`). Falta o merge; só depois dele as cinco
+  specs podem ser arquivadas.
 - **A15 — Infra pendente das specs da noite.** `firestore.indexes.json` a publicar (`app-cleanup`), permissão
   `Pull requests: Read and write` e quatro eventos no GitHub App (`pr-flow`), `CREDENTIALS_ENCRYPTION_KEY`
   (`execution-credentials`). Tudo registrado no `docs/PRE-PRODUCTION.md`, itens 5 e 10 e "Chave das credenciais da

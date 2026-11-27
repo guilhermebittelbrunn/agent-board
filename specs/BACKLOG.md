@@ -8,28 +8,28 @@ a fonte do conteúdo. Contrato e frontmatter: [`README.md`](README.md). Que tela
 ## Ordem recomendada
 
 Nenhuma spec pode começar agora. As cinco da noite de 2026-11-27 estão implementadas na branch
-`guilhermebittelbrunn/chore-overnight-cycle-specs`, sem PR, push nem CI, e as três `proposed` restantes dependem
-de alguma delas. O primeiro passo é a tarefa direta 1 (abrir e mergear a PR da noite). Depois do merge, a ordem é
-esta:
+`guilhermebittelbrunn/chore-overnight-cycle-specs`, na PR #12, com o CI verde em `26eaf1f`, e as três `proposed`
+restantes dependem de alguma delas. O primeiro passo é a tarefa direta 1 (mergear a PR #12). Depois do merge, a
+ordem é esta:
 
 | # | spec | o quê | status | valor · esforço | próximo comando |
 |---|------|-------|--------|-----------------|-----------------|
 | 1 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | `proposed` | médio · M | aprovar → `/analyze cloud-routines-runner`, depois do merge |
-| 2 | [`cycle-runs`](features/cycle-runs.md) (fatia 2) | Pausar e retomar, "Mudar"/"Concordo", infra na tela, aviso de `depends_on` | `in-progress` | alto · G | aprovar → `/analyze cycle-runs`, depois do merge |
+| 2 | [`cycle-runs`](features/cycle-runs.md) (fatia 2) | Pausar e retomar, "Mudar"/"Concordo", infra na tela, aviso de `depends_on` | `in-progress` | alto · G | `/analyze cycle-runs`, depois do merge |
 | 3 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | `proposed` | médio · M | aprovar → `/analyze spec-discovery`, depois do merge |
 | 4 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | `proposed` | médio · P | depois da fatia 2 da `cycle-runs` |
 
 ## Em andamento
 
-Todas implementadas na branch da noite e aguardando PR. Nenhuma está em `main`.
+Todas implementadas na branch da noite, na PR #12 aberta. Nenhuma está em `main`.
 
 | spec | o quê | situação |
 |------|-------|----------|
 | [`spec-authoring`](features/spec-authoring.md) | Escrever spec no board, com as perguntas no card | Completa; `/test` 18 de 19 (PDF via MCP só com runner real) |
 | [`app-cleanup`](features/app-cleanup.md) | App só com o board, conta no menu do usuário e landing simples | Completa; `/test` 20 de 20 |
 | [`pr-flow`](features/pr-flow.md) | Abrir, acompanhar e concluir a PR | Completa; falta a permissão no GitHub App para uso real |
-| [`execution-credentials`](features/execution-credentials.md) | Cada membro dispara com a própria credencial | Completa; rodou sem aprovação formal, a pedido do usuário |
-| [`cycle-runs`](features/cycle-runs.md) | Várias specs da Análise à PR sem parar | Fatia 1 de 2; rodou sem aprovação formal, a pedido do usuário |
+| [`execution-credentials`](features/execution-credentials.md) | Cada membro dispara com a própria credencial | Completa; aprovada depois de rodar, em 2026-11-27 |
+| [`cycle-runs`](features/cycle-runs.md) | Várias specs da Análise à PR sem parar | Fatia 1 de 2; spec inteira aprovada em 2026-11-27 |
 
 ## Aguardando triagem
 
@@ -49,8 +49,8 @@ Todas implementadas na branch da noite e aguardando PR. Nenhuma está em `main`.
 
 ## Tarefas diretas
 
-1. Abrir a PR da noite a partir de uma branch com nome no padrão e mergear com o CI verde; o CI nunca rodou
-   sobre esses 81 commits. Ver [achado A14](reference/AUDIT.md#achados-e-pendências).
+1. Mergear a PR #12. Os seis jobs do CI (`changes`, `verify`, `secrets`, `audit`, `coverage`, `e2e`) passaram em
+   `26eaf1f`. O nome da branch continua fora do padrão. Ver [achado A14](reference/AUDIT.md#achados-e-pendências).
 2. Depois do merge: publicar `firestore.indexes.json` (item 10 do `docs/PRE-PRODUCTION.md`), definir
    `CREDENTIALS_ENCRYPTION_KEY` e conferir o GitHub App (item 5). Ver [A15](reference/AUDIT.md#achados-e-pendências).
 3. Selo "Ciclo" no card pendente de um ciclo em andamento. Ver [A16](reference/AUDIT.md#achados-e-pendências).
@@ -61,14 +61,8 @@ Todas implementadas na branch da noite e aguardando PR. Nenhuma está em `main`.
 
 ## Precisam de decisão
 
-- Aprovar `execution-credentials`, que já rodou? **Recomendação:** aprovar; o código está pronto e é o que destrava
-  a nuvem.
-- Aprovar `cycle-runs` e a fatia 2? **Recomendação:** aprovar a spec e seguir com a fatia 2 depois da
-  `cloud-routines-runner`.
 - Quem virou `viewer` pode apagar a própria credencial? Hoje o `DELETE` exige `trigger`. **Recomendação:** liberar
   o `DELETE` da própria linha para qualquer membro; apagar segredo próprio não gasta nada.
-- Nome da branch da noite fora do padrão `<project>/<type>/<title>`. **Recomendação:** abrir a PR a partir de uma
-  branch nova no padrão (por exemplo `feat/overnight-board-specs`), sem reescrever os commits.
 - Ciclo parado por falha: com `onFailure: stop` e duas specs ao mesmo tempo, o próximo ciclo da fila começa antes de a spec viva terminar
   a etapa. **Recomendação:** manter na fatia 1 e rever na fatia 2.
 - Contraste de 2,82:1 do ponto verde de checks no tema escuro, aceito no `/test` da `pr-flow`. **Recomendação:**

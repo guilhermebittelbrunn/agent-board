@@ -18,8 +18,8 @@ updated: 2026-11-27
 > **Resumo**
 > - **O quê:** cada membro dispara etapas com a própria credencial do Claude.
 > - **Por quê:** sem isso o papel de operador não serve e tudo roda na conta de uma pessoa só.
-> - **Status:** `in-progress` · valor alto · esforço M · confianca · implementada na branch, aguardando PR
-> - **Próximo passo:** decidir a aprovação (rodou sem ela, a pedido do usuário); depois abrir a PR da branch da noite e mergear com o CI verde
+> - **Status:** `in-progress` · valor alto · esforço M · confianca · implementada na branch, na PR #12; aprovada pelo usuário em 2026-11-27, depois de rodar
+> - **Próximo passo:** mergear a PR #12 (CI verde em `26eaf1f`) e arquivar no próximo `/spec --sync`
 
 ## Problema
 
