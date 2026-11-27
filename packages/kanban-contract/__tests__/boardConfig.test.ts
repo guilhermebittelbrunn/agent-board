@@ -6,6 +6,7 @@ import {
     parseBoardConfig,
     resolveBranchName,
 } from "../src/boardConfig";
+import { toBoardConfigIssues } from "../src/boardConfigIssues";
 
 const minimalConfig = {
     version: 1,
@@ -85,6 +86,48 @@ describe("parseBoardConfig", () => {
         });
 
         expect(result.success).toBe(false);
+    });
+
+    it("fills the spec authoring defaults when the block is absent", () => {
+        const result = parseBoardConfig(minimalConfig);
+
+        expect(result.data?.specAuthoring).toEqual({
+            command: "/spec",
+            agent: "estrategista-produto",
+            model: "opus",
+            effort: "high",
+            runners: ["local", "cloud"],
+            path: "specs/features/{slug}.md",
+        });
+    });
+
+    it("rejects a spec authoring path without the slug placeholder", () => {
+        const result = parseBoardConfig({
+            ...minimalConfig,
+            specAuthoring: { path: "specs/features/draft.md" },
+        });
+
+        expect(result.success).toBe(false);
+    });
+
+    it("reserves the spec stage key", () => {
+        const result = parseBoardConfig({
+            ...minimalConfig,
+            stages: [
+                ...minimalConfig.stages,
+                { key: "spec", column: "Spec", command: "/spec" },
+            ],
+        });
+
+        expect(result.success).toBe(false);
+        if (result.success) {
+            return;
+        }
+        expect(
+            toBoardConfigIssues(result.error, minimalConfig).map(
+                (issue) => issue.rule
+            )
+        ).toContain("stage_key_reserved");
     });
 
     it("rejects commands that are not slash commands", () => {

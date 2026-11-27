@@ -11,4 +11,5 @@ export * from "./identity";
 export * from "./roles";
 export * from "./run";
 export * from "./runner";
+export * from "./specAuthoring";
 export * from "./specBacklog";

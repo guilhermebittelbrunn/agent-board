@@ -3,7 +3,7 @@ import { z } from "zod";
 const SLASH_COMMAND = /^\/[a-z][a-z0-9-]*$/;
 const STAGE_KEY = /^[a-z][a-z0-9-]*$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const SLUG_PLACEHOLDER = "{slug}";
+export const SLUG_PLACEHOLDER = "{slug}";
 const DEFAULT_MAX_REWORK_LOOPS = 2;
 const MAX_REWORK_LOOPS = 5;
 const DEFAULT_MAX_TURNS_PER_STAGE = 200;
@@ -22,6 +22,23 @@ export const modelAliasSchema = z.enum(["opus", "sonnet", "haiku"]);
 export const effortSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
 export const runnerKindSchema = z.enum(["local", "cloud", "github-actions"]);
 export const stageApprovalSchema = z.enum(["none", "optional", "required"]);
+
+/** The stage that writes a spec in the Drafts column; no `stages[]` entry may take this key. */
+export const SPEC_STAGE_KEY = "spec";
+
+export const specAuthoringConfigSchema = z
+    .object({
+        command: z.string().regex(SLASH_COMMAND).default("/spec"),
+        agent: z.string().min(1).default("estrategista-produto"),
+        model: modelAliasSchema.default("opus"),
+        effort: effortSchema.default("high"),
+        runners: z.array(runnerKindSchema).min(1).default(["local", "cloud"]),
+        path: z
+            .string()
+            .includes(SLUG_PLACEHOLDER)
+            .default(`specs/features/${SLUG_PLACEHOLDER}.md`),
+    })
+    .prefault({});
 
 export const stageConfigSchema = z.object({
     key: z.string().regex(STAGE_KEY),
@@ -58,6 +75,7 @@ export const boardConfigSchema = z
             .prefault({}),
         featuresDir: z.string().min(1).default("docs/features"),
         stages: z.array(stageConfigSchema).min(1),
+        specAuthoring: specAuthoringConfigSchema,
         limits: z
             .object({
                 maxReworkLoops: z
@@ -100,6 +118,17 @@ export const boardConfigSchema = z
             }
         }
 
+        for (const [index, key] of stageKeys.entries()) {
+            if (key === SPEC_STAGE_KEY) {
+                ctx.addIssue({
+                    code: "custom",
+                    message: `Stage key "${key}" is reserved for spec authoring`,
+                    path: ["stages", index, "key"],
+                    params: { rule: "stage_key_reserved", key },
+                });
+            }
+        }
+
         for (const [index, stage] of config.stages.entries()) {
             if (stage.onRework === undefined) {
                 continue;
@@ -136,6 +165,7 @@ export const boardConfigSchema = z
 
 export type StageConfig = z.infer<typeof stageConfigSchema>;
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
+export type SpecAuthoringConfig = z.infer<typeof specAuthoringConfigSchema>;
 
 export function parseBoardConfig(input: unknown) {
     return boardConfigSchema.safeParse(input);

@@ -157,7 +157,8 @@ export function cardRunActions(
     if (card.activeRunId !== null) {
         return { rerun: false, stop: true, approve: false };
     }
-    if (card.lane !== "stage" || card.stageKey === null) {
+    const runsStages = card.lane === "stage" || card.lane === "drafts";
+    if (!runsStages || card.stageKey === null) {
         return NO_ACTIONS;
     }
     const approve = isAwaitingApproval(card);
