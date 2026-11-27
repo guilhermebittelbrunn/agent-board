@@ -74,6 +74,7 @@ const card = (slug: string, overrides: Partial<CardDTO> = {}): CardDTO => ({
     lastRun: null,
     pullRequest: null,
     pullRequestError: null,
+    cycleId: null,
     reworkLoops: 0,
     order: 0,
     branch: `feat/${slug}`,
@@ -387,6 +388,7 @@ describe("useBoardCardCrud", () => {
         const opened = {
             ...target,
             pullRequestError: null,
+            cycleId: null,
             pullRequest: { number: PR_NUMBER } as CardDTO["pullRequest"],
         };
         openPullRequestMock.mockResolvedValue(opened);

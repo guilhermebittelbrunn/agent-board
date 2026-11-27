@@ -58,6 +58,7 @@ export const runCard = (
     lastRun: null,
     pullRequest: null,
     pullRequestError: null,
+    cycleId: null,
     reworkLoops: 0,
     order: 0,
     branch: `feat/${slug}`,

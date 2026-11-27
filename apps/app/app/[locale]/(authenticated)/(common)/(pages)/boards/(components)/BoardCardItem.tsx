@@ -77,6 +77,24 @@ function PullRequestLine({
     return null;
 }
 
+/** The card runs inside a cycle, which decides for it until it leaves. */
+function CycleBadge({
+    card,
+    boardsDictionary,
+}: {
+    card: CardDTO;
+    boardsDictionary: BoardsDictionary;
+}) {
+    if (card.cycleId === null) {
+        return null;
+    }
+    return (
+        <Badge className="self-start" variant="secondary">
+            {boardsDictionary.board.card.cycleBadge}
+        </Badge>
+    );
+}
+
 export function BoardCardItem({
     card,
     href,
@@ -144,6 +162,7 @@ export function BoardCardItem({
                 </div>
             ) : null}
             {position === null ? runControls : null}
+            <CycleBadge boardsDictionary={boardsDictionary} card={card} />
             <PullRequestLine boardsDictionary={boardsDictionary} card={card} />
             {position === null && card.branch ? (
                 <span className="break-all font-mono text-muted-foreground text-xs">

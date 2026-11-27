@@ -53,6 +53,23 @@ export const COMMON_ROUTES = (
                     .credentials,
                 url: buildPath(`/boards/${encodeURIComponent(id)}/credentials`),
             }),
+            cycles: (id: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .cycles,
+                url: buildPath(`/boards/${encodeURIComponent(id)}/cycles`),
+            }),
+            newCycle: (id: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .newCycle,
+                url: buildPath(`/boards/${encodeURIComponent(id)}/cycles/new`),
+            }),
+            cycle: (id: string, cycleId: string) => ({
+                label: dictionary?.apps.app.pages.common.routes.platform.boards
+                    .cycle,
+                url: buildPath(
+                    `/boards/${encodeURIComponent(id)}/cycles/${encodeURIComponent(cycleId)}`
+                ),
+            }),
         },
         account: {
             root: {

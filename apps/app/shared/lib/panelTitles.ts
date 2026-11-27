@@ -33,6 +33,12 @@ export const PANEL_PAGE_TITLES = {
         dictionary.apps.app.pages.common.routes.platform.boards.members,
     "/boards/[id]/credentials": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.common.routes.platform.boards.credentials,
+    "/boards/[id]/cycles": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.cycles,
+    "/boards/[id]/cycles/new": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.newCycle,
+    "/boards/[id]/cycles/[cycleId]": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.cycle,
     "/account": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.common.account.title,
 } as const;

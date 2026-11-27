@@ -404,6 +404,7 @@ export function BoardClient() {
                         boardsDictionary={boardsDictionary}
                         links={{
                             board: routes.boards.detail(id).url,
+                            cycles: routes.boards.cycles(id).url,
                             members: routes.boards.members(id).url,
                             credentials: routes.boards.credentials(id).url,
                             settings: routes.boards.settings(id).url,
