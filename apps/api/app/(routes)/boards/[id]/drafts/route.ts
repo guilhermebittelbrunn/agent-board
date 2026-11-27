@@ -6,7 +6,7 @@ import {
     githubAppNotConfiguredResponse,
     githubErrorResponse,
 } from "@/(shared)/lib/github/github-errors";
-import { resolveExecutorFor } from "@/(shared)/lib/orchestrator/executor-choice";
+import { chooseExecutorFor } from "@/(shared)/lib/orchestrator/executor-choice";
 import { triggerStage } from "@/(shared)/lib/orchestrator/orchestrator";
 import { parseRequestJson } from "@/(shared)/lib/parse-request-json";
 import {
@@ -34,11 +34,18 @@ export const POST = requireBoardApi("trigger", async (req, ctx) => {
     if (!parsed.ok) {
         return parsed.response;
     }
-    if ((await resolveExecutorFor(ctx.profile.id)) === null) {
-        return errorResponse(
-            "RUN_EXECUTOR_UNAVAILABLE",
-            HTTP_STATUS.SERVICE_UNAVAILABLE
-        );
+    const choice = await chooseExecutorFor(
+        ctx.profile.id,
+        new Date(),
+        ctx.board.config.specAuthoring
+    );
+    if (!choice.ok) {
+        return choice.refusal === "stage_not_served"
+            ? errorResponse("RUN_NO_CREDENTIAL_FOR_STAGE", HTTP_STATUS.CONFLICT)
+            : errorResponse(
+                  "RUN_EXECUTOR_UNAVAILABLE",
+                  HTTP_STATUS.SERVICE_UNAVAILABLE
+              );
     }
     const github = getGithubClient();
     if (!github) {

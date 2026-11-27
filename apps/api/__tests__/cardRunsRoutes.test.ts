@@ -32,11 +32,11 @@ const {
     stopRunMock,
     getStageExecutorMock,
     updateStageSettingsMock,
-    resolveExecutorForMock,
+    chooseExecutorForMock,
     ensurePullRequestMock,
 } = vi.hoisted(() => ({
     ensurePullRequestMock: vi.fn(),
-    resolveExecutorForMock: vi.fn(),
+    chooseExecutorForMock: vi.fn(),
     triggerStageMock: vi.fn(),
     stopRunMock: vi.fn(),
     getStageExecutorMock: vi.fn(),
@@ -121,10 +121,16 @@ vi.mock("@/(shared)/lib/orchestrator/executor", () => ({
 vi.mock("@/(shared)/lib/orchestrator/executor-mode", () => ({
     resolveStageExecutorMode: () =>
         getStageExecutorMock() === null ? null : "fake",
+    chooseStageExecutorMode: () =>
+        getStageExecutorMock() === null
+            ? { ok: false, refusal: "no_executor" }
+            : { ok: true, executor: "fake" },
 }));
 
 vi.mock("@/(shared)/lib/orchestrator/executor-choice", () => ({
-    resolveExecutorFor: (...args: unknown[]) => resolveExecutorForMock(...args),
+    chooseExecutorFor: (...args: unknown[]) => chooseExecutorForMock(...args),
+    resolveExecutorFor: () =>
+        Promise.resolve(getStageExecutorMock() === null ? null : "fake"),
 }));
 
 const { POST: TRIGGER } = await import(
@@ -241,7 +247,7 @@ beforeEach(() => {
         stopRunMock,
         getStageExecutorMock,
         updateStageSettingsMock,
-        resolveExecutorForMock,
+        chooseExecutorForMock,
         ensurePullRequestMock,
     ]) {
         mock.mockReset();
@@ -249,8 +255,12 @@ beforeEach(() => {
     client = createGithubFakeClient(createGithubPermissionCache());
     getGithubClientMock.mockImplementation(() => client);
     getStageExecutorMock.mockReturnValue(FAKE_EXECUTOR);
-    resolveExecutorForMock.mockImplementation(() =>
-        Promise.resolve(getStageExecutorMock() === null ? null : "fake")
+    chooseExecutorForMock.mockImplementation(() =>
+        Promise.resolve(
+            getStageExecutorMock() === null
+                ? { ok: false, refusal: "no_executor" }
+                : { ok: true, executor: "fake" }
+        )
     );
     findBoardMock.mockResolvedValue(boardWith());
     resolveApiActorMock.mockImplementation((req: NextRequest) =>
@@ -378,9 +388,25 @@ describe("POST /boards/[id]/cards/[slug]/runs", () => {
         expect(triggerStageMock).not.toHaveBeenCalled();
     });
 
+    it("answers 409 RUN_NO_CREDENTIAL_FOR_STAGE when nothing the person owns serves the stage", async () => {
+        chooseExecutorForMock.mockResolvedValue({
+            ok: false,
+            refusal: "stage_not_served",
+        });
+
+        const response = await trigger({ stageKey: "analyze" });
+
+        expect(response.status).toBe(HTTP_STATUS.CONFLICT);
+        expect(await errorCode(response)).toBe("RUN_NO_CREDENTIAL_FOR_STAGE");
+        expect(triggerStageMock).not.toHaveBeenCalled();
+    });
+
     it("asks for the executor of the person who triggers, not a global one", async () => {
         getStageExecutorMock.mockReturnValue(null);
-        resolveExecutorForMock.mockResolvedValue("local");
+        chooseExecutorForMock.mockResolvedValue({
+            ok: true,
+            executor: "local",
+        });
         triggerStageMock.mockResolvedValue({
             ok: false,
             code: "CARD_RUN_ACTIVE",
@@ -389,7 +415,11 @@ describe("POST /boards/[id]/cards/[slug]/runs", () => {
 
         const response = await trigger({ stageKey: "analyze" });
 
-        expect(resolveExecutorForMock).toHaveBeenCalledWith("p-operator");
+        expect(chooseExecutorForMock).toHaveBeenCalledWith(
+            "p-operator",
+            expect.any(Date),
+            expect.objectContaining({ key: "analyze" })
+        );
         expect(response.status).not.toBe(HTTP_STATUS.SERVICE_UNAVAILABLE);
         expect(triggerStageMock).toHaveBeenCalled();
     });

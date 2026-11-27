@@ -1,7 +1,7 @@
+import { isEmulated } from "@repo/auth/emulator";
 import type { StageExecutor, StageExecutorKind } from "@repo/kanban-contract";
 import db from "@/(shared)/infra/database";
 import { cardEventRepository } from "@/(shared)/repositories/card-event.repository";
-import { resolveStageExecutorMode } from "./executor-mode";
 import {
     claimOutcome,
     createFakeExecutor,
@@ -36,7 +36,7 @@ export function getStageExecutor(
     if (kind === "local") {
         return localExecutor;
     }
-    if (resolveStageExecutorMode({ hasOnlineRunner: false }) !== "fake") {
+    if (!isEmulated()) {
         return null;
     }
     fakeExecutor ??= createFakeExecutor({

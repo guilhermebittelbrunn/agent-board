@@ -1,5 +1,6 @@
+import { stageRunnersOf } from "@repo/kanban-contract";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
-import { resolveExecutorFor } from "@/(shared)/lib/orchestrator/executor-choice";
+import { chooseExecutorFor } from "@/(shared)/lib/orchestrator/executor-choice";
 import { triggerStage } from "@/(shared)/lib/orchestrator/orchestrator";
 import { parseRequestJson } from "@/(shared)/lib/parse-request-json";
 import { toCardDTO } from "@/(shared)/mappers/card.mapper";
@@ -24,11 +25,21 @@ export const POST = requireBoardApi<CardRouteParams>(
         if (!parsed.ok) {
             return parsed.response;
         }
-        if ((await resolveExecutorFor(ctx.profile.id)) === null) {
-            return errorResponse(
-                "RUN_EXECUTOR_UNAVAILABLE",
-                HTTP_STATUS.SERVICE_UNAVAILABLE
-            );
+        const choice = await chooseExecutorFor(
+            ctx.profile.id,
+            new Date(),
+            stageRunnersOf(ctx.board.config, parsed.value.stageKey)
+        );
+        if (!choice.ok) {
+            return choice.refusal === "stage_not_served"
+                ? errorResponse(
+                      "RUN_NO_CREDENTIAL_FOR_STAGE",
+                      HTTP_STATUS.CONFLICT
+                  )
+                : errorResponse(
+                      "RUN_EXECUTOR_UNAVAILABLE",
+                      HTTP_STATUS.SERVICE_UNAVAILABLE
+                  );
         }
 
         const result = await triggerStage({

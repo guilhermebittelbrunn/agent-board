@@ -8,6 +8,7 @@ import {
     type RunTrigger,
     resolvePullRequestClosure,
     type StageOutcome,
+    stageRunnersOf,
 } from "@repo/kanban-contract";
 import type { BoardDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
@@ -35,7 +36,7 @@ import {
     toStageDispatch,
 } from "./decide";
 import { getStageExecutor } from "./executor";
-import { executorsForUsers, resolveExecutorFor } from "./executor-choice";
+import { chooseExecutorFor, executorsForRuns } from "./executor-choice";
 
 type Board = Pick<BoardDTO, "id" | "config" | "repository" | "stageSettings">;
 
@@ -301,9 +302,6 @@ export async function resumeAfterAnswer(input: {
     by: RunPerson;
     now?: Date;
 }): Promise<void> {
-    if ((await resolveExecutorFor(input.by.userId, input.now)) === null) {
-        return;
-    }
     const card = await cardRepository.findBySlug(input.board.id, input.slug);
     if (
         card === null ||
@@ -313,6 +311,14 @@ export async function resumeAfterAnswer(input: {
         card.activeRunId !== null ||
         card.pendingAsk !== null
     ) {
+        return;
+    }
+    const choice = await chooseExecutorFor(
+        input.by.userId,
+        input.now,
+        stageRunnersOf(input.board.config, card.stageKey)
+    );
+    if (!choice.ok) {
         return;
     }
     await triggerStage({
@@ -327,22 +333,29 @@ export async function resumeAfterAnswer(input: {
 
 /**
  * Starts what fits in the columns. Each run gets the executor of the person who triggered
- * it, so a runner only ever runs its owner's stages; a run whose person has no executor
- * ends right away with `no_runner`.
+ * it, so a runner only ever runs its owner's stages. A run whose person has no executor
+ * ends right away: `no_credential` when nothing they own can serve that stage, `no_runner`
+ * when an online runner would.
  */
 async function pumpBoard(board: Board, now: Date): Promise<void> {
     const live = await runRepository.listActiveByBoard(board.id);
-    const queuedBy = live
-        .filter((run) => run.status === "queued")
-        .map((run) => run.triggeredBy.userId);
-    if (queuedBy.length === 0) {
+    const queued = live.filter((run) => run.status === "queued");
+    if (queued.length === 0) {
         return;
     }
-    const byUser = await executorsForUsers(queuedBy, now);
+    const choices = await executorsForRuns(queued, board.config, now);
     const started = await runRepository.promote({
         boardId: board.id,
-        pick: (runs, stored) => pickPromotions(runs, stored.stageSettings),
-        executorFor: (run) => byUser.get(run.triggeredBy.userId) ?? null,
+        // A run queued after `live` was read has no choice yet; the pump of the request that
+        // queued it read it, so it stays queued here instead of starting with no executor.
+        pick: (runs, stored) =>
+            pickPromotions(runs, stored.stageSettings).filter((run) =>
+                choices.has(run.id)
+            ),
+        executorFor: (run) => {
+            const choice = choices.get(run.id);
+            return choice?.ok ? choice.executor : null;
+        },
         deadlineFor: (startedAt, stored) =>
             deadlineFor(startedAt, stored.config),
         now,
@@ -351,7 +364,12 @@ async function pumpBoard(board: Board, now: Date): Promise<void> {
         const executor =
             run.executor === null ? null : getStageExecutor(run.executor);
         if (executor === null) {
-            logEvent("orchestrator", "no_runner", {
+            const choice = choices.get(run.id);
+            const endReason =
+                choice && !choice.ok && choice.refusal === "stage_not_served"
+                    ? "no_credential"
+                    : "no_runner";
+            logEvent("orchestrator", endReason, {
                 boardId: board.id,
                 runId: run.id,
             });
@@ -359,7 +377,7 @@ async function pumpBoard(board: Board, now: Date): Promise<void> {
                 board,
                 runId: run.id,
                 outcome: "failed",
-                endReason: "no_runner",
+                endReason,
                 now,
             });
             continue;

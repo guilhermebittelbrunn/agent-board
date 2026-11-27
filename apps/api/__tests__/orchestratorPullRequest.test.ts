@@ -82,8 +82,8 @@ vi.mock("@/(shared)/lib/orchestrator/executor", () => ({
 }));
 
 vi.mock("@/(shared)/lib/orchestrator/executor-choice", () => ({
-    executorsForUsers: () => Promise.resolve(new Map()),
-    resolveExecutorFor: vi.fn(),
+    executorsForRuns: () => Promise.resolve(new Map()),
+    chooseExecutorFor: vi.fn(),
 }));
 
 const { completeRun, onPullRequestComment, settlePullRequest, triggerStage } =

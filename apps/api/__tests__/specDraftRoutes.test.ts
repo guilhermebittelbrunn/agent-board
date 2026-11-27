@@ -34,7 +34,7 @@ const {
     memberStore,
     cardStore,
     triggerStageMock,
-    resolveExecutorForMock,
+    chooseExecutorForMock,
     isStorageConfiguredMock,
     putObjectMock,
     readObjectMetadataMock,
@@ -47,7 +47,7 @@ const {
     memberStore: { current: null as FakeBoardMemberRepository | null },
     cardStore: { current: null as FakeCardRepository | null },
     triggerStageMock: vi.fn(),
-    resolveExecutorForMock: vi.fn(),
+    chooseExecutorForMock: vi.fn(),
     isStorageConfiguredMock: vi.fn(),
     putObjectMock: vi.fn(),
     readObjectMetadataMock: vi.fn(),
@@ -118,7 +118,7 @@ vi.mock("@/(shared)/lib/orchestrator/orchestrator", () => ({
 }));
 
 vi.mock("@/(shared)/lib/orchestrator/executor-choice", () => ({
-    resolveExecutorFor: (...args: unknown[]) => resolveExecutorForMock(...args),
+    chooseExecutorFor: (...args: unknown[]) => chooseExecutorForMock(...args),
 }));
 
 const { POST: CREATE_DRAFT } = await import(
@@ -259,7 +259,7 @@ beforeEach(() => {
         getGithubClientMock,
         findBoardMock,
         triggerStageMock,
-        resolveExecutorForMock,
+        chooseExecutorForMock,
         isStorageConfiguredMock,
         putObjectMock,
         readObjectMetadataMock,
@@ -269,7 +269,7 @@ beforeEach(() => {
     }
     client = createGithubFakeClient(createGithubPermissionCache());
     getGithubClientMock.mockImplementation(() => client);
-    resolveExecutorForMock.mockResolvedValue("fake");
+    chooseExecutorForMock.mockResolvedValue({ ok: true, executor: "fake" });
     isStorageConfiguredMock.mockReturnValue(true);
     findBoardMock.mockResolvedValue(BOARD);
     resolveApiActorMock.mockImplementation((req: NextRequest) =>
@@ -361,13 +361,34 @@ describe("POST /boards/[id]/drafts", () => {
     });
 
     it("creates nothing without an executor", async () => {
-        resolveExecutorForMock.mockResolvedValue(null);
+        chooseExecutorForMock.mockResolvedValue({
+            ok: false,
+            refusal: "no_executor",
+        });
 
         const response = await create({ text: REQUEST_TEXT, attachments: [] });
 
         expect(response.status).toBe(HTTP_STATUS.SERVICE_UNAVAILABLE);
         expect(await errorCode(response)).toBe("RUN_EXECUTOR_UNAVAILABLE");
         expect(cards.documents.size).toBe(0);
+    });
+
+    it("creates nothing when no credential of the person serves the spec stage", async () => {
+        chooseExecutorForMock.mockResolvedValue({
+            ok: false,
+            refusal: "stage_not_served",
+        });
+
+        const response = await create({ text: REQUEST_TEXT, attachments: [] });
+
+        expect(response.status).toBe(HTTP_STATUS.CONFLICT);
+        expect(await errorCode(response)).toBe("RUN_NO_CREDENTIAL_FOR_STAGE");
+        expect(cards.documents.size).toBe(0);
+        expect(chooseExecutorForMock).toHaveBeenCalledWith(
+            PEOPLE.operator.id,
+            expect.any(Date),
+            expect.objectContaining({ runners: expect.any(Array) })
+        );
     });
 
     it("refuses an attachment of another person or with a malformed path", async () => {

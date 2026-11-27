@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveStageExecutorMode } from "@/(shared)/lib/orchestrator/executor-mode";
+import {
+    chooseStageExecutorMode,
+    resolveStageExecutorMode,
+} from "@/(shared)/lib/orchestrator/executor-mode";
 
 const EMULATOR_VARIABLES = [
     "FIRESTORE_EMULATOR_HOST",
@@ -43,5 +46,33 @@ describe("resolveStageExecutorMode", () => {
         expect(resolveStageExecutorMode({ hasOnlineRunner: true })).toBe(
             "local"
         );
+    });
+});
+
+describe("chooseStageExecutorMode", () => {
+    it("refuses a stage that does not accept the local runner, even with one online", () => {
+        for (const variable of EMULATOR_VARIABLES) {
+            vi.stubEnv(variable, "");
+        }
+        expect(
+            chooseStageExecutorMode({
+                hasOnlineRunner: true,
+                stageRunners: ["cloud"],
+            })
+        ).toEqual({ ok: false, refusal: "stage_not_served" });
+    });
+
+    it("accepts every runner when the stage is not given", () => {
+        for (const variable of EMULATOR_VARIABLES) {
+            vi.stubEnv(variable, "");
+        }
+        expect(chooseStageExecutorMode({ hasOnlineRunner: true })).toEqual({
+            ok: true,
+            executor: "local",
+        });
+        expect(chooseStageExecutorMode({ hasOnlineRunner: false })).toEqual({
+            ok: false,
+            refusal: "no_executor",
+        });
     });
 });
