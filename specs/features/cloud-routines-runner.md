@@ -45,6 +45,11 @@ quem as criou.
 - [ ] Guia no board para o membro criar uma tarefa por etapa (prompt padrão que lê os parâmetros do bloco de
       disparo e roda `/<comando> <slug> --board <card>`), com o connector MCP `kanban` incluído.
 - [ ] Cadastro da URL e do token de disparo como credencial do tipo `tarefa agendada`.
+- [ ] Cadastro também para a etapa `spec`: hoje a rota `PUT …/credentials/scheduled-tasks/<etapa>` só aceita
+      etapas de `config.stages` e a tabela de Minhas credenciais não tem linha para ela, enquanto a escolha do
+      executor já lê `specAuthoring.runners`. Um board com `specAuthoring.runners: [cloud]` recusa o rascunho
+      com `RUN_NO_CREDENTIAL_FOR_STAGE` sem lugar para cadastrar. Resolver a etapa por `stageRunnersOf` na rota e
+      acrescentar a linha.
 - [ ] Adapter que dispara com `text` contendo só campos esperados (card, slug, etapa, branch, modelo) e
       guarda a URL da sessão no `run`.
 - [ ] Erros de limite (429) e de autenticação (401) viram mensagem clara no card.
