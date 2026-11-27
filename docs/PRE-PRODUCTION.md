@@ -297,6 +297,9 @@ uma execução vencida continua `running` no banco até a próxima leitura; a te
 leitura aplica o prazo antes de responder. A etapa seguinte de um card que estourou o prazo de madrugada só começa
 quando alguém abre o board. Gatilho para reavaliar: o primeiro ciclo noturno que travar por isso.
 
+Com runner local, o ciclo não depende mais disso para prazos: o runner avisa o `finish` com `exit: "deadline"` e o
+board fecha a execução vencida na hora (spec `cycle-runs`). Continua dependendo para um `run` que nenhum runner pegou.
+
 **Como verificar:** no emulador, `pnpm --filter api fake-executor script <boardId> <slug> silent`, disparar a etapa,
 esperar o card ficar Rodando e rodar `pnpm --filter api fake-executor expire <boardId> <slug>`. O card continua
 Rodando no Firestore até o quadro ser aberto; ao abrir, vira "Falhou" com "O agente não respondeu em 45 min.".

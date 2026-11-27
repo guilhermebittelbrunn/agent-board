@@ -54,7 +54,7 @@ pessoas diferentes que saem do mesmo endereço não dividem o mesmo balde.
 | `post_update` | `cardId`, `stage`, `markdown` | Adiciona um evento à linha do tempo do card |
 | `ask` | `cardId`, `stage`, `questions[]` (1–4, cada uma com 2–4 opções e recomendação opcional; pergunta até 1.000 caracteres, cabeçalho até 24, rótulo da opção até 120, descrição até 500) | Guarda as perguntas; o card mostra o selo *aguardando você* |
 | `attach_artifact` | `cardId`, `stage`, `path` (relativo à raiz do repositório, até 1.024 caracteres, sem `..`), `commitSha` | Liga um arquivo versionado (plano, handoff, revisão, critérios) ao card |
-| `complete_stage` | `cardId`, `stage`, `outcome`, `summary` | Encerra a execução; o orquestrador aplica `resolveTransition` com o `outcome` |
+| `complete_stage` | `cardId`, `stage`, `outcome`, `summary`, `decisions?` (até 20; cada uma com `decision` até 500 caracteres, `rule` ∈ `policy` · `spec` · `repo_pattern` · `least_impact` e `product`) | Encerra a execução; o orquestrador aplica `resolveTransition` com o `outcome`. As decisões ficam no evento `report` e aparecem na tela do ciclo, as de `product: true` em "Para revisar" |
 | `get_attachment` | `cardId`, `stage`, `attachmentId` (UUID) | Devolve um arquivo anexado ao pedido do card (`request.attachments` do `get_card`). Só acha anexos do próprio card |
 | `create_card` | `boardId`, `title`, `specMarkdown`, `parentCardId?` | Ainda não disponível: valida e confere o board, e responde `501 AGENT_TOOL_NOT_AVAILABLE`. Cards nascem da sincronização das specs do repositório, e um card sem arquivo de spec ficaria órfão |
 
@@ -66,7 +66,7 @@ Os tipos estão em `packages/kanban-contract/src/agentResults.ts`.
 
 | Ferramenta | `data` |
 |------------|--------|
-| `get_card` | `AgentCardView`: `card` (id, slug, título, coluna, etapa, estado, voltas, branch), `run` (id, etapa, comando, modelo, esforço, turnos, branch, prazo), `repository` (dono, nome, branch base), `spec` (caminho, ref, sha e corpo sem frontmatter; `null` nos dois últimos se o GitHub não respondeu), `request` (o pedido escrito no board, com os anexos sem o caminho no bucket; `null` para card do repositório), `pendingAsk`, `answers` (respostas de pessoas com a pergunta que fecham, de todas as etapas), `artifacts` e `pullRequest` (`number`, `url`, `draft`, `state` da PR que o board abriu para o card; `null` antes da etapa de PR). `card.origin` diz se o card nasceu no board (`board`) ou na sincronização (`repository`), e `spec.ref` é a branch onde a spec está: a do card para um rascunho ou card aprovado ainda não mergeado |
+| `get_card` | `AgentCardView`: `card` (id, slug, título, coluna, etapa, estado, voltas, branch), `run` (id, etapa, comando, modelo, esforço, turnos, branch, prazo), `repository` (dono, nome, branch base), `spec` (caminho, ref, sha e corpo sem frontmatter; `null` nos dois últimos se o GitHub não respondeu), `request` (o pedido escrito no board, com os anexos sem o caminho no bucket; `null` para card do repositório), `pendingAsk`, `answers` (respostas de pessoas com a pergunta que fecham, de todas as etapas), `artifacts` e `pullRequest` (`number`, `url`, `draft`, `state` da PR que o board abriu para o card; `null` antes da etapa de PR). `card.cycleId` vem preenchido quando a etapa roda dentro de um ciclo. `card.origin` diz se o card nasceu no board (`board`) ou na sincronização (`repository`), e `spec.ref` é a branch onde a spec está: a do card para um rascunho ou card aprovado ainda não mergeado |
 | `get_attachment` | `AgentAttachmentContent`: id, nome, tipo, tamanho e `base64`. Pelo MCP, imagem volta como conteúdo `image`, texto como `text` e PDF como `resource` com `blob` |
 | `post_update`, `ask`, `attach_artifact` | `{ "eventId" }` |
 | `complete_stage` | `{ "ignored" }`: `true` quando o `run` já tinha fechado |
@@ -81,6 +81,7 @@ Os tipos estão em `packages/kanban-contract/src/agentResults.ts`.
 | `AGENT_CARD_MISMATCH` | 403 | `cardId` (ou `boardId` no `create_card`) de outro `run` |
 | `AGENT_STAGE_MISMATCH` | 403 | `stage` diferente da etapa do `run` |
 | `AGENT_RUN_CLOSED` | 409 | Qualquer ferramenta menos `complete_stage` depois de o `run` fechar |
+| `AGENT_ASK_IN_CYCLE` | 409 | `ask` num `run` de ciclo: ninguém responde antes de o ciclo terminar, então o agente decide e registra em `decisions` |
 | `AGENT_TOOL_NOT_AVAILABLE` | 501 | `create_card` |
 | `AGENT_ATTACHMENT_NOT_FOUND` | 404 | `get_attachment` com id que não está no pedido do card, ou objeto que sumiu do bucket |
 | `STORAGE_NOT_CONFIGURED` | 503 | `get_attachment` sem Cloud Storage configurado |
@@ -133,11 +134,12 @@ Regras que o board aplica:
 - "Parar" chega à máquina pelo heartbeat, a cada 15 segundos.
 
 O que o runner faz por `run`: clona ou atualiza o repositório, cria um worktree na branch do card, avisa o início com
-`post_update`, roda `environment.install`, roda `claude -p "<comando> <slug> --board <card>"` com o modelo, o esforço e
+`post_update`, roda `environment.install`, roda `claude -p "<comando> <slug> --board <card>"` (com `--cycle <ciclo>` no fim quando o `run` é de um ciclo) com o modelo, o esforço e
 o limite de turnos da etapa, e conta os turnos da sessão principal. Quando a sessão termina sem ter fechado a etapa
 (Ctrl+C, limite de turnos, erro ou saída sem `complete_stage`), o runner chama `complete_stage` com `failed` e o
 motivo. Se o agente já tinha fechado, essa chamada volta `{ "ignored": true }`. Parada no board e prazo vencido são
-fechados pelo próprio board. Por último, `finish`, e o worktree é apagado.
+fechados pelo próprio board. Por último, `finish`, e o worktree é apagado. Um `finish` com `exit: "deadline"` de um
+`run` de ciclo faz o board aplicar o prazo na hora, para o ciclo seguir sem ninguém abrir a tela.
 
 Permissões da sessão: o padrão é `--permission-mode acceptEdits` com a lista `permissions.allow` do
 `.claude/settings.json` do repositório. O que estiver fora da lista é recusado, e a etapa tende a falhar. A opção
