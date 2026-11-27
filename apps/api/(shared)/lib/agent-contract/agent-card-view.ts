@@ -149,5 +149,14 @@ export async function buildAgentCardView(input: {
         pendingAsk: card.pendingAsk,
         answers: answeredQuestionsOf(events),
         artifacts: artifactsOf(events),
+        pullRequest:
+            card.pullRequest === null
+                ? null
+                : {
+                      number: card.pullRequest.number,
+                      url: card.pullRequest.url,
+                      draft: card.pullRequest.draft,
+                      state: card.pullRequest.state,
+                  },
     };
 }

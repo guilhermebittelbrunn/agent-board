@@ -194,3 +194,97 @@ describe("cardMapper", () => {
         expect(toCardDTO(card)).not.toHaveProperty("movedByUserId");
     });
 });
+
+describe("cardMapper pull request", () => {
+    const stored = {
+        number: 12,
+        url: "https://github.com/acme/app/pull/12",
+        title: "Busca",
+        draft: true,
+        state: "open",
+        headRef: "feat/x",
+        baseRef: "main",
+        headSha: "sha-1",
+        commits: 3,
+        openedAt: Timestamp.fromDate(new Date(AT)),
+        openedByBoard: true,
+        dispatchAs: { userId: "p-secret-id", login: "octo" },
+        closedAt: null,
+        closedByLogin: null,
+        checks: [
+            {
+                app: "github-actions",
+                name: "CI",
+                conclusion: "failure",
+                headSha: "sha-1",
+                at: Timestamp.fromDate(new Date(AT)),
+            },
+            { name: "broken" },
+        ],
+        reviews: [
+            {
+                login: "qa",
+                state: "approved",
+                at: Timestamp.fromDate(new Date(AT)),
+            },
+            { login: "bad", state: "pending" },
+        ],
+        commentRunsAt: [Timestamp.fromDate(new Date(AT))],
+        unhandledCommentAt: Timestamp.fromDate(new Date(AT)),
+    };
+
+    it("reads an old card without pull request as null", () => {
+        const card = cardMapper.toDTO({ id: "b__x", boardId: "b", slug: "x" });
+
+        expect(card.pullRequest).toBeNull();
+        expect(card.pullRequestError).toBeNull();
+    });
+
+    it("turns the timestamps into ISO and drops malformed checks and reviews", () => {
+        const card = cardMapper.toDTO({
+            id: "b__x",
+            boardId: "b",
+            slug: "x",
+            pullRequest: stored,
+            pullRequestError: {
+                code: "GITHUB_APP_PERMISSION_MISSING",
+                at: Timestamp.fromDate(new Date(AT)),
+            },
+        });
+
+        expect(card.pullRequest).toMatchObject({
+            openedAt: AT,
+            checks: [{ app: "github-actions", at: AT }],
+            reviews: [{ login: "qa", state: "approved", at: AT }],
+            commentRunsAt: [AT],
+            unhandledCommentAt: AT,
+        });
+        expect(card.pullRequest?.checks).toHaveLength(1);
+        expect(card.pullRequest?.reviews).toHaveLength(1);
+        expect(card.pullRequestError).toEqual({
+            code: "GITHUB_APP_PERMISSION_MISSING",
+            at: AT,
+        });
+    });
+
+    it("keeps who runs the comments in the API and derives the summaries", () => {
+        const dto = toCardDTO(
+            cardMapper.toDTO({
+                id: "b__x",
+                boardId: "b",
+                slug: "x",
+                pullRequest: stored,
+            })
+        );
+
+        expect(dto.pullRequest).toMatchObject({
+            checksSummary: "failure",
+            reviewsSummary: "approved",
+            pendingComment: true,
+        });
+        expect(dto.pullRequest).not.toHaveProperty("dispatchAs");
+        expect(dto.pullRequest).not.toHaveProperty("commentRunsAt");
+        expect(dto.pullRequest).not.toHaveProperty("unhandledCommentAt");
+        expect(JSON.stringify(dto)).not.toContain("p-secret-id");
+    });
+});

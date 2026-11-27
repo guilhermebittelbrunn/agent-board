@@ -6,18 +6,28 @@ import {
     type CardLastRun,
     type CardOrigin,
     type CardPendingAsk,
+    type CardPullRequest,
     type CardState,
     isAttachmentType,
+    PULL_REQUEST_REVIEW_STATES,
+    PULL_REQUEST_STATES,
+    type PullRequestCheck,
+    type PullRequestReview,
+    type PullRequestReviewState,
+    type PullRequestState,
     RUN_END_REASONS,
     RUN_STATUSES,
     type RunEndReason,
     type RunStatus,
     STAGE_OUTCOMES,
     type StageOutcome,
+    summarizeChecks,
+    summarizeReviews,
 } from "@repo/kanban-contract";
 import type {
     CardAttachmentDTO,
     CardDTO,
+    CardPullRequestErrorDTO,
     CardRequestDTO,
     CardSpecApprovalDTO,
 } from "@repo/sdk/src/types";
@@ -37,8 +47,9 @@ export type CardRequestRecord = Omit<CardRequestDTO, "attachments"> & {
 };
 
 /** The stored card as the API sees it; `CardDTO` is what leaves the API. */
-export type CardRecord = Omit<CardDTO, "request"> & {
+export type CardRecord = Omit<CardDTO, "request" | "pullRequest"> & {
     request: CardRequestRecord | null;
+    pullRequest: CardPullRequest | null;
     movedByUserId: string | null;
 };
 
@@ -67,6 +78,8 @@ const PERSISTED_KEYS = [
     "branch",
     "activeRunId",
     "lastRun",
+    "pullRequest",
+    "pullRequestError",
     "movedAt",
     "movedByUserId",
     "syncedAt",
@@ -182,6 +195,115 @@ function toLastRun(value: unknown): CardLastRun | null {
     };
 }
 
+const instantList = (value: unknown): string[] =>
+    Array.isArray(value)
+        ? value
+              .filter((item) => item != null)
+              .map((item) => normalizeFirestoreInstant(item))
+        : [];
+
+function toCheck(value: unknown): PullRequestCheck | null {
+    const check = asRecord(value);
+    const app = textOrNull(check.app);
+    const conclusion = textOrNull(check.conclusion);
+    if (app === null || conclusion === null) {
+        return null;
+    }
+    return {
+        app,
+        name: String(check.name ?? app),
+        conclusion,
+        headSha: String(check.headSha ?? ""),
+        at: normalizeFirestoreInstant(check.at),
+    };
+}
+
+function toReview(value: unknown): PullRequestReview | null {
+    const review = asRecord(value);
+    const login = textOrNull(review.login);
+    const state = review.state as PullRequestReviewState;
+    if (login === null || !PULL_REQUEST_REVIEW_STATES.includes(state)) {
+        return null;
+    }
+    return { login, state, at: normalizeFirestoreInstant(review.at) };
+}
+
+const listOf = <T>(value: unknown, map: (item: unknown) => T | null): T[] =>
+    Array.isArray(value)
+        ? value.map(map).filter((item): item is T => item !== null)
+        : [];
+
+function toPullRequest(value: unknown): CardPullRequest | null {
+    const pr = asRecord(value);
+    if (typeof pr.number !== "number" || !Number.isInteger(pr.number)) {
+        return null;
+    }
+    const dispatchAs = asRecord(pr.dispatchAs);
+    return {
+        number: pr.number,
+        url: String(pr.url ?? ""),
+        title: String(pr.title ?? ""),
+        draft: pr.draft === true,
+        state: PULL_REQUEST_STATES.includes(pr.state as PullRequestState)
+            ? (pr.state as PullRequestState)
+            : "open",
+        headRef: String(pr.headRef ?? ""),
+        baseRef: String(pr.baseRef ?? ""),
+        headSha: textOrNull(pr.headSha),
+        commits:
+            typeof pr.commits === "number" && Number.isFinite(pr.commits)
+                ? pr.commits
+                : null,
+        openedAt: normalizeFirestoreInstant(pr.openedAt),
+        openedByBoard: pr.openedByBoard !== false,
+        dispatchAs: {
+            userId: String(dispatchAs.userId ?? ""),
+            login: String(dispatchAs.login ?? ""),
+        },
+        closedAt: instantOrNull(pr.closedAt),
+        closedByLogin: textOrNull(pr.closedByLogin),
+        checks: listOf(pr.checks, toCheck),
+        reviews: listOf(pr.reviews, toReview),
+        commentRunsAt: instantList(pr.commentRunsAt),
+        unhandledCommentAt: instantOrNull(pr.unhandledCommentAt),
+    };
+}
+
+const toDate = (iso: string): Date => new Date(iso);
+
+/** The stored shape: every instant as a `Date`, which Firestore keeps as a `Timestamp`. */
+export function pullRequestDocument(
+    pullRequest: CardPullRequest
+): Record<string, unknown> {
+    return {
+        ...pullRequest,
+        openedAt: toDate(pullRequest.openedAt),
+        closedAt:
+            pullRequest.closedAt === null ? null : toDate(pullRequest.closedAt),
+        checks: pullRequest.checks.map((check) => ({
+            ...check,
+            at: toDate(check.at),
+        })),
+        reviews: pullRequest.reviews.map((review) => ({
+            ...review,
+            at: toDate(review.at),
+        })),
+        commentRunsAt: pullRequest.commentRunsAt.map(toDate),
+        unhandledCommentAt:
+            pullRequest.unhandledCommentAt === null
+                ? null
+                : toDate(pullRequest.unhandledCommentAt),
+    };
+}
+
+function toPullRequestError(value: unknown): CardPullRequestErrorDTO | null {
+    const error = asRecord(value);
+    const code = textOrNull(error.code);
+    return code === null
+        ? null
+        : { code, at: normalizeFirestoreInstant(error.at) };
+}
+
 class CardMapper extends Mapper<CardFirestoreRow, CardRecord> {
     toDTO(row: CardFirestoreRow): CardRecord {
         const { id, ...record } = row;
@@ -219,6 +341,8 @@ class CardMapper extends Mapper<CardFirestoreRow, CardRecord> {
             branch: textOrNull(record.branch),
             activeRunId: textOrNull(record.activeRunId),
             lastRun: toLastRun(record.lastRun),
+            pullRequest: toPullRequest(record.pullRequest),
+            pullRequestError: toPullRequestError(record.pullRequestError),
             movedAt: instantOrNull(record.movedAt),
             movedByUserId: textOrNull(record.movedByUserId),
             syncedAt: normalizeFirestoreInstant(record.syncedAt),
@@ -244,10 +368,32 @@ class CardMapper extends Mapper<CardFirestoreRow, CardRecord> {
 
 export const cardMapper = new CardMapper();
 
+function toPullRequestDTO(
+    pullRequest: CardPullRequest | null
+): CardDTO["pullRequest"] {
+    if (pullRequest === null) {
+        return null;
+    }
+    const {
+        dispatchAs: _dispatchAs,
+        commentRunsAt: _commentRunsAt,
+        unhandledCommentAt,
+        ...visible
+    } = pullRequest;
+    return {
+        ...visible,
+        checksSummary: summarizeChecks(pullRequest.checks, pullRequest.headSha),
+        reviewsSummary: summarizeReviews(pullRequest.reviews),
+        pendingComment:
+            pullRequest.state === "open" && unhandledCommentAt !== null,
+    };
+}
+
 export function toCardDTO(card: CardRecord): CardDTO {
-    const { movedByUserId: _movedBy, request, ...dto } = card;
+    const { movedByUserId: _movedBy, request, pullRequest, ...dto } = card;
     return {
         ...dto,
+        pullRequest: toPullRequestDTO(pullRequest),
         request:
             request === null
                 ? null

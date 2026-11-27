@@ -2,10 +2,12 @@ import {
     type CardRecord,
     cardIdFor,
     cardMapper,
+    pullRequestDocument,
 } from "@/(shared)/mappers/card.mapper";
 import type {
     CardMovePatch,
     CardMoveResult,
+    CardPullRequestPatch,
     CardSyncWrite,
     DraftWriteRefusal,
 } from "@/(shared)/repositories/card.repository";
@@ -130,6 +132,42 @@ export function createFakeCardRepository() {
                         ? { ok: true, card: moved }
                         : { ok: false, code: "CARD_NOT_FOUND" }
                 );
+            },
+            findByPullRequest: (boardId: string, number: number) =>
+                Promise.resolve(
+                    listByBoard(boardId).find(
+                        (card) => card.pullRequest?.number === number
+                    ) ?? null
+                ),
+            updatePullRequest(
+                id: string,
+                update: (card: CardRecord) => CardPullRequestPatch | null
+            ): Promise<CardRecord | null> {
+                const current = read(id);
+                if (current === null) {
+                    return Promise.resolve(null);
+                }
+                const patch = update(current);
+                if (patch !== null) {
+                    documents.set(id, {
+                        ...documents.get(id),
+                        ...(patch.pullRequest === undefined
+                            ? {}
+                            : {
+                                  pullRequest:
+                                      patch.pullRequest === null
+                                          ? null
+                                          : pullRequestDocument(
+                                                patch.pullRequest
+                                            ),
+                              }),
+                        ...(patch.pullRequestError === undefined
+                            ? {}
+                            : { pullRequestError: patch.pullRequestError }),
+                        updatedAt: new Date(),
+                    });
+                }
+                return Promise.resolve(read(id));
             },
             isIdTaken: (id: string) => Promise.resolve(documents.has(id)),
             createDraft(id: string, document: StoredCard) {

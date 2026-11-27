@@ -566,8 +566,38 @@ describe("get_card", () => {
                 { questionEventId: question, stageKey: "analyze", answers },
             ],
             artifacts: [{ path: "docs/plan.md", commitSha: SHA }],
+            pullRequest: null,
         });
         expect(JSON.stringify(view)).not.toContain(RUN_SECRET);
+    });
+
+    it("shows the card's pull request on get_card, without who runs the comments", async () => {
+        cards.documents.set(CARD_ID, {
+            ...cards.documents.get(CARD_ID),
+            pullRequest: {
+                number: 12,
+                url: "https://github.com/agent-board-demo/sample-app/pull/12",
+                title: "Busca",
+                draft: true,
+                state: "open",
+                headRef: `feat/${SLUG}`,
+                baseRef: "main",
+                openedAt: new Date("2026-11-27T10:00:00.000Z"),
+                dispatchAs: { userId: "p-secret-id", login: "octo" },
+            },
+        });
+
+        const view = await dataOf<Record<string, unknown>>(
+            await call("get_card", { cardId: CARD_ID })
+        );
+
+        expect(view.pullRequest).toEqual({
+            number: 12,
+            url: "https://github.com/agent-board-demo/sample-app/pull/12",
+            draft: true,
+            state: "open",
+        });
+        expect(JSON.stringify(view)).not.toContain("p-secret-id");
     });
 
     it("returns the spec body from GitHub without its frontmatter", async () => {

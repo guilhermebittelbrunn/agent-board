@@ -1,3 +1,4 @@
+import type { CardPullRequest } from "@repo/kanban-contract";
 import { isUsableDocumentId } from "@/(shared)/lib/pagination";
 import db from "../infra/database";
 import {
@@ -5,6 +6,7 @@ import {
     type CardRecord,
     cardIdFor,
     cardMapper,
+    pullRequestDocument,
 } from "../mappers/card.mapper";
 import { BaseRepository } from "./base.repository";
 
@@ -17,7 +19,14 @@ export type CardMovePatch = {
     lane: "tasks" | "done";
     /** Only when the card goes back to Tasks, where it takes the end of the queue. */
     order?: number;
-    movedByUserId: string;
+    /** `null` when the board moved the card itself (a merged or closed pull request). */
+    movedByUserId: string | null;
+};
+
+/** What a pull request update writes; `null` from the updater leaves the card untouched. */
+export type CardPullRequestPatch = {
+    pullRequest?: CardPullRequest | null;
+    pullRequestError?: { code: string; at: Date } | null;
 };
 
 export type CardMoveResult =
@@ -70,6 +79,57 @@ class CardRepository extends BaseRepository<CardRecord> {
         }
         const card = await this.findById(id);
         return card?.boardId === boardId ? card : null;
+    }
+
+    async findByPullRequest(
+        boardId: string,
+        number: number
+    ): Promise<CardRecord | null> {
+        const cards = await this.listByBoard(boardId);
+        return (
+            cards.find((card) => card.pullRequest?.number === number) ?? null
+        );
+    }
+
+    /**
+     * Reads the card and writes what `update` decides in one transaction, so two webhook
+     * deliveries for the same pull request cannot overwrite each other's change.
+     */
+    async updatePullRequest(
+        id: string,
+        update: (card: CardRecord) => CardPullRequestPatch | null
+    ): Promise<CardRecord | null> {
+        if (!isUsableDocumentId(id)) {
+            return null;
+        }
+        const ref = this.db.collection(this.table).doc(id);
+        const written = await this.db.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(ref);
+            const data = snapshot.data();
+            if (!(snapshot.exists && data) || data.deletedAt != null) {
+                return false;
+            }
+            const patch = update(this.toDTO(snapshot.id, data));
+            if (patch === null) {
+                return true;
+            }
+            transaction.update(ref, {
+                ...(patch.pullRequest === undefined
+                    ? {}
+                    : {
+                          pullRequest:
+                              patch.pullRequest === null
+                                  ? null
+                                  : pullRequestDocument(patch.pullRequest),
+                      }),
+                ...(patch.pullRequestError === undefined
+                    ? {}
+                    : { pullRequestError: patch.pullRequestError }),
+                updatedAt: new Date(),
+            });
+            return true;
+        });
+        return written ? this.findById(id) : null;
     }
 
     async applySync(writes: CardSyncWrite[]): Promise<void> {
