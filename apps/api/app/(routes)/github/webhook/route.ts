@@ -4,6 +4,10 @@ import { githubWebhookSecret } from "@/(shared)/lib/github/github-app-config";
 import { githubAppNotConfiguredResponse } from "@/(shared)/lib/github/github-errors";
 import { applyWebhookEvent } from "@/(shared)/lib/github/github-webhook-events";
 import { isValidWebhookSignature } from "@/(shared)/lib/github/github-webhook-signature";
+import {
+    handlePullRequestWebhook,
+    isPullRequestWebhook,
+} from "@/(shared)/lib/pull-request/pull-request-webhook";
 import { readCappedBody } from "@/(shared)/lib/read-capped-body";
 import { env } from "@/env";
 
@@ -69,11 +73,27 @@ export async function POST(req: Request) {
         );
     }
 
+    let handled = outcome.handled;
+    if (!handled && isPullRequestWebhook(event)) {
+        const result = await handlePullRequestWebhook(event, payload, {
+            delivery,
+        });
+        if (!result.ok) {
+            logEvent("github", "webhook-pull-request-refused", {
+                event,
+                delivery,
+                code: result.code,
+            });
+            return errorResponse(result.code, result.status);
+        }
+        handled = result.handled;
+    }
+
     logEvent("github", "webhook-received", {
         event,
         delivery,
         action: outcome.action,
-        handled: outcome.handled,
+        handled,
     });
-    return Response.json({ data: { handled: outcome.handled } });
+    return Response.json({ data: { handled } });
 }

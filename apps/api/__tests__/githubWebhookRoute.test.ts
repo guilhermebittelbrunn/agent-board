@@ -10,9 +10,23 @@ import {
     vi,
 } from "vitest";
 
-const { envMock, invalidateRepositoryMock } = vi.hoisted(() => ({
-    envMock: { GITHUB_WEBHOOK_SECRET: undefined as string | undefined },
-    invalidateRepositoryMock: vi.fn(),
+const { envMock, invalidateRepositoryMock, handlePullRequestMock } = vi.hoisted(
+    () => ({
+        envMock: { GITHUB_WEBHOOK_SECRET: undefined as string | undefined },
+        invalidateRepositoryMock: vi.fn(),
+        handlePullRequestMock: vi.fn(),
+    })
+);
+
+vi.mock("@/(shared)/lib/pull-request/pull-request-webhook", () => ({
+    isPullRequestWebhook: (event: string) =>
+        [
+            "pull_request",
+            "pull_request_review",
+            "issue_comment",
+            "check_suite",
+        ].includes(event),
+    handlePullRequestWebhook: handlePullRequestMock,
 }));
 
 vi.mock("@/env", () => ({ env: envMock }));
@@ -56,6 +70,8 @@ let warn: MockInstance<typeof console.warn>;
 beforeEach(() => {
     envMock.GITHUB_WEBHOOK_SECRET = SECRET;
     invalidateRepositoryMock.mockReset();
+    handlePullRequestMock.mockReset();
+    handlePullRequestMock.mockResolvedValue({ ok: true, handled: false });
     warn = vi.spyOn(console, "warn").mockImplementation(() => {
         // asserted where it matters
     });
@@ -192,5 +208,55 @@ describe("POST /github/webhook", () => {
         const logged = JSON.stringify(warn.mock.calls);
         expect(logged).not.toContain("private-name");
         expect(logged).not.toContain(SECRET);
+    });
+
+    it.each([
+        "pull_request",
+        "pull_request_review",
+        "issue_comment",
+        "check_suite",
+    ])("hands %s to the pull request handler", async (event) => {
+        handlePullRequestMock.mockResolvedValue({ ok: true, handled: true });
+        const payload = { action: "closed", number: 12 };
+
+        const response = await POST(delivery(event, JSON.stringify(payload)));
+
+        expect(response.status).toBe(HTTP_STATUS.OK);
+        expect(await response.json()).toEqual({ data: { handled: true } });
+        expect(handlePullRequestMock).toHaveBeenCalledWith(event, payload, {
+            delivery: "delivery-1",
+        });
+    });
+
+    it("answers 503 GITHUB_WEBHOOK_PROCESSING_FAILED when the card could not be written", async () => {
+        handlePullRequestMock.mockResolvedValue({
+            ok: false,
+            code: "GITHUB_WEBHOOK_PROCESSING_FAILED",
+            status: HTTP_STATUS.SERVICE_UNAVAILABLE,
+        });
+
+        const response = await POST(
+            delivery("pull_request", JSON.stringify({ action: "closed" }))
+        );
+
+        expect(response.status).toBe(HTTP_STATUS.SERVICE_UNAVAILABLE);
+        expect(await response.json()).toEqual({
+            error: { code: "GITHUB_WEBHOOK_PROCESSING_FAILED" },
+        });
+    });
+
+    it("checks the signature before handing a pull request event over", async () => {
+        const response = await POST(
+            delivery("pull_request", "{}", { signature: "sha256=bad" })
+        );
+
+        expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
+        expect(handlePullRequestMock).not.toHaveBeenCalled();
+    });
+
+    it("does not hand ping to the pull request handler", async () => {
+        await POST(delivery("ping", "{}"));
+
+        expect(handlePullRequestMock).not.toHaveBeenCalled();
     });
 });
