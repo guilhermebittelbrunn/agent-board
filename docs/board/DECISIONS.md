@@ -128,8 +128,8 @@ preview. Os dois têm mitigação barata se entrarem desde o MVP.
 | Custos no board | Fora do escopo: nenhuma tela mostra valor, teto de gasto ou painel de custos; `runs` grava modelo, turnos e tempo |
 | Onde a spec nasce | No repositório (`specs/`) ou no board, escrita por um agente na branch do card (spec `spec-authoring`) |
 | Rodar o backlog sem ninguém | Ciclo com várias specs (`cycle-runs`), agendável (`cycle-schedule`) |
-| O que ficou do core | `apps/app`, `apps/api`, `apps/e2e`; auth, admin de usuários com impersonação, notificações no app, upload de arquivos, design system, SDK; o pipeline `.claude` e `specs/` |
-| O que saiu do core | Landing, preview de e-mail, cobrança e modo de produto, organizações e convites, trilha de auditoria, e-mail transacional, en/es, cadastro, recuperação, verificação, link por e-mail, MFA, tela de sessões, métodos vinculados, troca de e-mail, onboarding, kickoff e `/deliver` |
+| O que ficou do core | `apps/app`, `apps/api`, `apps/e2e`; auth, conta (perfil com avatar e preferências), upload de arquivos, analytics com consentimento, design system, SDK; o pipeline `.claude` e `specs/` |
+| O que saiu do core | Landing de produto (a atual é uma página só, com a animação do board), preview de e-mail, cobrança e modo de produto, organizações e convites, trilha de auditoria, e-mail transacional, en/es, cadastro, recuperação, verificação, link por e-mail, MFA, tela de sessões, métodos vinculados, troca de e-mail, onboarding, kickoff e `/deliver`; e, depois, área admin, impersonação, notificações, sidebar, aba Segurança da conta e o CRUD de exemplo `entity` (spec `app-cleanup`) |
 | Escopo dos dados | Por pessoa (`userId`) até a spec `board-members`; depois, por board, com guard de papel |
 | Idioma | Só pt-br, mantendo o segmento `[locale]` e a regra "sem string solta" |
 | Identidade | Conta do GitHub (spec `github-sign-in`); e-mail/senha só no emulador |

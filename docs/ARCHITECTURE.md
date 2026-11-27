@@ -8,9 +8,10 @@ As convenções de implementação ficam em [`AGENTS.md`](../AGENTS.md) e nos `C
 ## Propósito
 
 Ferramenta pessoal, não produto: o agent-board é um fork enxuto do next-boilerplate (Turborepo + pnpm +
-Next.js + Firebase) que mantém só o que acelera o desenvolvimento do board. Ficou o painel, a API, a
-autenticação, o design system, notificações no app e upload de arquivos; saíram landing, e-mail, cobrança,
-organizações, trilha de auditoria, fluxos de conta de MVP e os idiomas além do pt-br. O princípio herdado
+Next.js + Firebase) que mantém só o que acelera o desenvolvimento do board. Ficou o painel do board, a API, a
+autenticação, o design system e upload de arquivos; saíram e-mail, cobrança, organizações, trilha de
+auditoria, área admin, impersonação, notificações, fluxos de conta de MVP e os idiomas além do pt-br. A
+landing atual é uma página só, pública, com a animação do board. O princípio herdado
 continua valendo: **genérico no pacote, específico no app**.
 
 > ⚠️ Ligar o **upload de arquivo** exige o plano **Blaze** do Firebase (cartão de crédito): o Cloud Storage
@@ -22,9 +23,9 @@ continua valendo: **genérico no pacote, específico no app**.
 ```
 ┌──────────────┐        Monorepo (Turborepo + pnpm)
 │   apps/app   │
-│ (board,      │
-│  conta,      │
-│  admin)      │
+│ (landing,    │
+│  board,      │
+│  conta)      │
 │    :3000     │
 └──────┬───────┘
        │  @repo/sdk (axios facade)
@@ -35,18 +36,18 @@ continua valendo: **genérico no pacote, específico no app**.
 └──────────────┘
 ```
 
-- **`apps/app`** — painel autenticado: o board, a conta do usuário e a **área admin** (gestão de usuários + impersonação).
+- **`apps/app`** — a landing pública em `/{locale}` e o painel autenticado: as telas do board e a conta, que fica no menu do avatar do cabeçalho.
 - **`apps/api`** — API HTTP em Next no servidor. Valida na borda, aplica guards e fala com o Firestore e o bucket. É o único ponto que toca persistência; o orquestrador e o contrato dos agentes nascem aqui.
 - **`apps/e2e`** — suíte Playwright que sobe emuladores, API e painel.
 
 ## Fluxo de dados (front → API → Firestore)
 
 1. O front **nunca** chama a API direto. Usa o `apiClient` (`apps/app/shared/lib/client.ts`), instância de `Client` do `@repo/sdk`.
-2. O `Client` (axios) tem uma **action por recurso** (`apiClient.entity.list()`, `.create(body)`, …) e injeta headers de contexto de auth (`BaseClient.setAuthRequestContext`): `userId`, `requestUserId`, `userRole`, `x-role`.
-3. Na `apps/api`, o handler é embrulhado por um **guard** (`requireCommonPanelApi` / `requireAdminApi`) que:
+2. O `Client` (axios) tem uma **action por recurso** (`apiClient.boardMember.list(boardId)`, `.invite(boardId, body)`, …) e carrega só o `Authorization: Bearer`, escrito pelo `ApiAuthProvider`.
+3. Na `apps/api`, o handler é embrulhado por um **guard** (`requireSessionApi`, ou `requireBoardApi` por cima dele nas rotas de board) que:
    - valida o `Authorization: Bearer <token>` via `@repo/auth/server` (`getCurrentUser` → Firebase Admin `verifyIdToken`),
-   - resolve o perfil Firestore do ator e o **subject** (titular ou usuário personificado),
-   - injeta `ctx.subjectProfile`, `ctx.authRequest` no handler.
+   - resolve o perfil Firestore da pessoa (`403 AUTH_PROFILE_NOT_FOUND` sem perfil),
+   - injeta `ctx.user` e `ctx.profile` no handler; o guard de board acrescenta `ctx.board`, `ctx.member` e `ctx.access`.
 4. O handler **valida o input** (Zod, `parseCreateX`/`parseUpdateX`), monta o patch (`omitUndefined`), resolve `[id]` (`resolveIdFromContext`) e chama o **repositório**.
 5. O **repositório** estende `BaseRepository<DTO>` (Firestore) e usa um **mapper** para normalizar (`Timestamp`→ISO, opcionais) entre o documento persistido e o `DTO` exposto pelo `@repo/sdk`. Soft delete via `deletedAt`.
 6. A resposta volta como `{ data }` ou, em erro, `{ error: { code } }` com status HTTP correto.
@@ -55,30 +56,24 @@ continua valendo: **genérico no pacote, específico no app**.
 
 ## Escopo de dados
 
-Todo registro do painel comum pertence ao perfil que o criou: o documento grava `userId` (o id do documento
-de perfil, não o uid do Firebase Auth) e o repositório filtra por ele num helper privado (`ownedBy`,
-`findOwnedBy` em `entity.repository.ts`). O handler repassa `ctx.subjectProfile.id` e responde 404 ao `null`;
+Registro que é da pessoa (runner, avatar) pertence ao perfil que o criou: o documento grava `userId` (o id
+do documento de perfil, não o uid do Firebase Auth) e o repositório filtra por ele (ex.: `revokeOwned` em
+`runner.repository.ts`). O handler repassa `ctx.profile.id` e responde 404 quando o repositório não acha;
 ele nunca compara ids por conta própria. Fotos e avatar ficam em `uploads/<profileId>/`.
 
 O board troca esse escopo por outro: boards, cards e execuções pertencem a um **board**, e quem alcança cada
 um é decidido pelo papel efetivo do membro (o menor entre o papel no board e a permissão no repositório do
-GitHub). O guard composto que resolve esse papel nasce na spec `board-members`; o modelo está em
+GitHub). Quem resolve esse papel é o `requireBoardApi`; o modelo está em
 [`docs/board/ACCESS.md`](board/ACCESS.md).
 
-## Autenticação e impersonação (admin)
+## Autenticação
 
 - **Provider**: Firebase. No servidor, `@repo/auth/server` inicializa o Admin SDK (`FIREBASE_ADMIN_*`) e expõe uma API estilo Clerk (`auth()`, `currentUser()`, `getCurrentUser(token)`). O token vem do cookie `access-token`.
 - **Login**: GitHub pelo popup do Firebase; a API lê o `login` no Firebase e grava em `user.github`. E-mail/senha só existe no emulador (seed, E2E e QA local) e o servidor recusa fora dele. Detalhe em [`SECURITY.md`](SECURITY.md).
-- **Admin impersona usuário comum**: o SDK carrega `requestUserId`/`x-role` e o guard `requireCommonPanelApi` resolve o `subjectProfile` como o usuário personificado, só para leitura. Ao trocar o usuário em `PanelNavbarControls`, o `setImpersonatedUser` grava os cookies e chama `router.refresh()`.
+- **Sem papel global**: não há admin nem impersonação. Toda pessoa com perfil usa as mesmas telas, e o que ela pode fazer num board vem do papel efetivo naquele board.
 - **Regra**: autorização é **sempre** repetida no servidor (guards). UI oculta nunca é a única proteção.
 
 Detalhes em [`AUTH-PANEL.md`](AUTH-PANEL.md) e [`SECURITY.md`](SECURITY.md).
-
-## Notificações no app
-
-Avisos para a pessoa (`notification`, escopo pelo perfil) com sino no navbar, contagem de não lidas e
-paginação. Um aviso carrega um tipo e parâmetros, nunca texto pronto: o dicionário do leitor transforma em
-palavras. O board vai usá-los para "seu card espera resposta" e "etapa falhou".
 
 ## Internacionalização
 

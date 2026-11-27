@@ -64,15 +64,9 @@ coringa. Detalhe em [`SECURITY.md`](SECURITY.md#cors-allowlist-sem-coringa).
       Secret do OAuth App. O Client Secret fica só no Firebase, não vai para variável de ambiente
 - [x] Email/Password e Google **desligados** no mesmo lugar
 - [x] Domínio do painel em Authentication → Settings → Authorized domains
-- [x] Quem opera os boards fica com o perfil `common`, que é como todo login pelo GitHub nasce. Não
-      promova essa conta a `admin`
 
-Boards, cards e execuções ficam no painel comum, e a API dele (`requireCommonPanelApi`, base do
-`requireBoardApi`) só aceita perfil `common`. Um admin que abre `/<locale>/boards` volta para o painel
-admin, e no painel comum só entra personificando outro usuário comum, em modo leitura. Agindo como ele
-mesmo, a API responde `403 AUTH_REQUEST_IMPERSONATION_REQUIRED`. Com o login só por GitHub, cada pessoa
-tem uma conta, então promover o único usuário a `admin` deixa o board sem ninguém que consiga criar um
-board. O painel admin hoje só gerencia usuários. Se precisar dele, use outra conta do GitHub.
+O app não tem papel global: toda conta com perfil usa as mesmas telas, e o acesso a cada board vem do papel
+efetivo nele. Um perfil antigo com `type: "admin"` gravado entra normalmente; nenhum guard lê esse campo.
 
 **Por quê.** A tela de login de produção só tem o botão "Entrar com GitHub". O popup é do Firebase, que
 precisa do OAuth App para falar com o GitHub. A API lê o `login` da pessoa no próprio Firebase
@@ -84,16 +78,10 @@ emulador (`POST /auth/sign-in` e `/api/auth/session` respondem `403 AUTH_SIGN_IN
 API trata a credencial como anônima). Desligar os provedores no console é a primeira barreira; o código é
 a segunda.
 
-`POST /users` (o admin cria conta pelo painel) continua criando conta com e-mail e senha. Com
-Email/Password desligado, essa conta não consegue entrar. O convite por login do GitHub fica para a spec
-`board-members`.
-
 **Como verificar.**
 
 1. Abrir `https://<painel>/pt-br/sign-in`: só o botão do GitHub e as duas notas, sem campo de e-mail.
-2. Entrar pelo popup e abrir o menu de perfil: a segunda linha mostra `@<seu-login>`. Por enquanto isso
-   só vale para o perfil `common`. Para admin, o menu chama `GET /account`, que fica atrás do guard do
-   painel comum e responde `403 COMMON_PANEL_FORBIDDEN`, e a linha não aparece.
+2. Entrar pelo popup e abrir o menu de perfil: a segunda linha mostra `@<seu-login>`.
 3. No Firestore, o documento `user` da conta tem `github.id` (só dígitos) e `github.login`.
 4. Senha recusada no servidor:
 
@@ -197,17 +185,17 @@ A chave restrita responde **403**; **400** quer dizer que ela aceita chamada de 
 - [ ] Um coletor de erro no `reportRequestError` (`onRequestError` dos apps), se quiser alerta em vez de log
 - [ ] Retenção de log da plataforma conferida no painel do provedor
 
-### 10. Retenção das notificações
+### 10. Índices e dados órfãos depois da limpeza do app
 
-- [ ] Política de TTL em `notification.expiresAt` ligada (exige faturamento ativo)
+- [ ] `firebase deploy --only firestore:indexes` no projeto de produção, depois do merge que tirou os
+      recursos herdados do core (CRUD `entity`, notificações e a área admin)
+- [ ] Os índices de `entity`, `notification` e os dois de `user` (`deletedAt` + `type`, `deletedAt` +
+      `lastAccessAt`) apagados no console, ou com `--force` no deploy
 
-```bash
-gcloud firestore fields ttls update expiresAt \
-  --collection-group=notification --enable-ttl --project=<id>
-```
-
-Cada notificação nasce com `expiresAt` em 90 dias. Sem a TTL nada quebra: a lista é paginada e a contagem
-para em 100.
+O `firestore.indexes.json` agora declara só o índice de `user` (`reference_id` + `deletedAt`). Um deploy
+sem `--force` não apaga índice que existe no projeto e saiu do arquivo: os antigos ficam na lista, sem custo
+de leitura. Os documentos de `entity` e `notification` e os campos `type` e `lastAccessAt` dos perfis também
+ficam no banco, sem leitor. Limpar esses dados é um script avulso, fora do código do app.
 
 ### 11. Backup do Firestore
 

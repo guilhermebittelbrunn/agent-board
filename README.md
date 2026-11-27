@@ -60,7 +60,7 @@ A fila: [`specs/BACKLOG.md`](specs/BACKLOG.md).
 
 | Onde | O quê |
 |------|-------|
-| `apps/app` (3000) | UI: boards (lista, importação, quadro, detalhe do card, membros, configuração, runners), login pelo GitHub, conta (perfil, senha, tema), notificações, admin de usuários com impersonação e o CRUD de referência `entity` com upload |
+| `apps/app` (3000) | UI: landing pública com a animação do board, boards (lista, importação, quadro, detalhe do card, membros, configuração, runners), login pelo GitHub e conta (perfil com avatar e preferências) no menu do avatar |
 | `apps/api` (3002) | API HTTP: guards → repositórios Firestore → DTOs; orquestrador (fila e transições), contrato dos agentes (`/agent/tools/*` e `/mcp`), rotas do runner e webhook do GitHub |
 | `apps/runner` | CLI do runner local: `register` com o código gerado no board e `start` para buscar trabalho |
 | `apps/e2e` | Playwright contra `api` + `app` com os emuladores |
@@ -79,7 +79,7 @@ cp apps/api/.env.example apps/api/.env
 cp apps/app/.env.example apps/app/.env
 
 pnpm emulators   # terminal 1: Auth + Firestore + Storage emulados (deixe rodando)
-pnpm seed        # terminal 2: contas admin@example.com e user@example.com, senha demo1234
+pnpm seed        # terminal 2: contas user@example.com e user2@example.com, senha demo1234
 pnpm dev         # terminal 2: app em http://localhost:3000, api em :3002
 ```
 

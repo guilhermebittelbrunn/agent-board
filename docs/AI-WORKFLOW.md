@@ -58,7 +58,7 @@ Digite `/` no Claude Code para invocar. Cada skill encapsula o passo a passo já
 ### Criadas para este repo (scaffolding)
 
 - **`/new-crud`** — scaffold de um **CRUD vertical completo** (SDK → API → hooks → UI → i18n), seguindo o
-  recurso de referência `entity`. Use para "criar o recurso X de ponta a ponta".
+  recurso de referência `boardMember`. Use para "criar o recurso X de ponta a ponta".
 - **`/new-api-route`** — cria uma **rota HTTP** em `apps/api` (validação Zod, guard, repositório+mapper
   Firestore, `error.code` traduzível). Use para endpoints isolados.
 - **`/i18n-sync`** — adiciona/valida **chaves de tradução** (pt-br) + `apiErrors`. Use sempre que criar
@@ -209,7 +209,7 @@ Informal, para mudanças pequenas:
 
 1. Descreva o recurso. Se for CRUD, peça `/new-crud`.
 2. As regras do escopo (`apps/*/CLAUDE.md`, `packages/CLAUDE.md`) carregam automaticamente; aponte o
-   recurso de referência `entity`.
+   recurso de referência `boardMember`.
 3. Ao concluir: `pnpm turbo run lint typecheck test test:emulator` — é o mesmo comando que o CI roda em toda PR
    ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)), cobre lint, tipos e testes de uma vez, e é
    cacheado. (⚠️ `turbo build` depende de `test`, e o `build` **não** está no CI.)

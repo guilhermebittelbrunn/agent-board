@@ -36,7 +36,7 @@ Usado pelos **dois** apps: `apps/api` (guards verificam o ID token) e `apps/app`
 | `FIREBASE_ADMIN_PROJECT_ID` | sim* | Firebase Console → Project settings → Service accounts |
 | `FIREBASE_ADMIN_CLIENT_EMAIL` | sim | idem (gerar chave privada de service account) |
 | `FIREBASE_ADMIN_PRIVATE_KEY` | sim | idem — manter `\n` escapados; o código faz `replace(/\\n/g, "\n")` |
-| `FIREBASE_WEB_API_KEY` | sim | Web API key (Identity Toolkit: leitura da conta no login com GitHub, login por senha no emulador, troca de senha e criação de usuário pelo admin). Faz fallback p/ `NEXT_PUBLIC_FIREBASE_API_KEY` |
+| `FIREBASE_WEB_API_KEY` | sim | Web API key (Identity Toolkit: leitura da conta no login com GitHub e login por senha no emulador). Faz fallback p/ `NEXT_PUBLIC_FIREBASE_API_KEY` |
 | `FIREBASE_STORAGE_BUCKET` | **não** | Bucket do Cloud Storage (ex.: `<project-id>.firebasestorage.app`). **Chave do upload de arquivo**: vazia, `POST /files` responde `STORAGE_NOT_CONFIGURED` (503) e o painel mantém o campo de URL. Faz fallback p/ `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`. ⚠️ Exige plano **Blaze** — ver [`PRE-PRODUCTION.md`](PRE-PRODUCTION.md) |
 
 \* `FIREBASE_ADMIN_PROJECT_ID` cai para `NEXT_PUBLIC_FIREBASE_PROJECT_ID` se omitido (mesmo projeto).
@@ -253,13 +253,13 @@ o botão de merge tem de ficar bloqueado.
 
 ## Testes E2E (Playwright)
 
-A suíte vive em `apps/e2e` e percorre, num Chromium de verdade e contra o emulador: login (comum, admin,
-senha errada, deep link com `?redirect=`, popup do GitHub servido pelo emulador), CRUD de `entity`, troca de painel do admin, usuário comum barrado
-no `/admin`, as seções da conta e o foco que não fica escondido sob as barras fixas. Nas telas percorridas
+A suíte vive em `apps/e2e` e percorre, num Chromium de verdade e contra o emulador: a landing levando ao login,
+login (chegada em `/boards`, senha errada, deep link com `?redirect=`, popup do GitHub servido pelo emulador) e as
+seções da conta abertas pelo menu do avatar. Nas telas percorridas
 ela roda o axe e falha em violação `critical` ou `serious`.
 
 A suíte tem dois projetos. O `chromium` roda tudo em desktop. O `mobile` (Chromium com o perfil do Pixel 7 e
-viewport de 390 × 844) roda só os fluxos que alguém precisa completar no celular: login e CRUD de `entity`.
+viewport de 390 × 844) roda só o fluxo que alguém precisa completar no celular: a landing e o login até `/boards`.
 No celular, cada `expectAccessible` também reprova a rota que rola na horizontal (`scrollWidth` do documento
 maior que o `clientWidth`, critério 1.4.10 da WCAG).
 
@@ -369,7 +369,7 @@ scripts `dev` **e** nas URLs cruzadas de cada `.env` — hoje não é suportado.
 
 ## Firestore
 
-- O modelo de dados (coleções `user`, `entity`, …) é acessado **só** pela API, que se autentica com a service account via Admin SDK e por isso **ignora** as security rules. O arquivo de rules ([`firestore.rules`](../firestore.rules)) está escrito em `deny-all`. Contexto em [`docs/SECURITY.md`](SECURITY.md).
+- O modelo de dados (coleções `user`, `board`, `card`, …) é acessado **só** pela API, que se autentica com a service account via Admin SDK e por isso **ignora** as security rules. O arquivo de rules ([`firestore.rules`](../firestore.rules)) está escrito em `deny-all`. Contexto em [`docs/SECURITY.md`](SECURITY.md).
 - ⛔ **Escrito no arquivo ≠ publicado.** Enquanto o `deploy` abaixo não rodar, qualquer pessoa com a chave pública do projeto lê e grava a base direto, ignorando os guards da API. Publicar é obrigatório em todo ambiente, inclusive dev.
 - Provisione o Firestore no Firebase Console (modo de produção) e publique rules **e** índices:
 
@@ -506,11 +506,13 @@ Duas travas impedem o modo de teste de tocar um repositório real: o runner recu
 `--repo-base file://…`, e o agente de teste recusa push para remoto que não comece com `file://`. O token do runner
 fica em `<home>/config.json` (`0600`); não copie para relatório, cite `kbl_<runnerId>_***`.
 
-| e-mail | papel | dados |
-|--------|-------|-------|
-| `admin@example.com` | admin | acesso à área `/admin` |
-| `user@example.com` | comum | 4 `entity` (um de cada tipo + um desabilitado) |
-| `user2@example.com` | comum | 2 `entity` — existem para testar posse: abrir um registro deles logado como `user@example.com` tem de dar 404 |
+| e-mail | para quê |
+|--------|----------|
+| `user@example.com` | a conta do login por senha, do E2E e do QA local |
+| `user2@example.com` | uma segunda pessoa, para testar posse e o compartilhamento de um board |
+
+As duas contas entram sem identidade do GitHub, então `/boards` abre vazio para elas. Para criar e abrir
+boards no emulador, entre com GitHub pelo popup do emulador (abaixo).
 
 **`pnpm seed` apaga e repovoa**: reset e seed são o mesmo comando, então rodá-lo duas vezes devolve
 exatamente o mesmo estado, sem duplicata. O estado vive **só** nos emuladores e morre com o processo —
@@ -564,37 +566,3 @@ emuladores existirem — o código não tem default algum, quem é opinativo é 
   que já estão rodando, mas só se Firestore (8080) **e** Storage (9199) responderem. Um `pnpm emulators`
   iniciado antes do Storage entrar no script responde só no 8080, e a suíte recusa com uma mensagem pedindo
   para reiniciá-lo. Com nenhum dos dois de pé, ela sobe os próprios emuladores e os derruba no fim.
-
-## Primeiro admin (bootstrap de desenvolvimento)
-
-Não há cadastro público, e a rota que cria usuários exige um admin autenticado — então o primeiro admin de
-um ambiente novo não nasce pelo produto.
-
-**No emulador** o `pnpm seed` já entrega `admin@example.com`, e não é preciso mais nada. Para criar outro,
-ou para um projeto real:
-
-```bash
-# contra o emulador — não precisa de service account nem de flag
-pnpm --filter api create-dev-admin <email> <senha>
-
-# contra um projeto Firebase REAL — exige o service account e consentimento explícito
-DEV_ADMIN_EMAIL=... DEV_ADMIN_PASSWORD=... pnpm --filter api create-dev-admin --allow-real-project
-```
-
-O script cria (ou reaproveita) o usuário no Firebase Auth e grava/promove o documento correspondente na
-coleção `user` com `type: "admin"`. A senha vem por argumento ou variável de ambiente e **nunca** é gravada
-em arquivo nem impressa pelo script.
-
-É **idempotente e serve para recuperar acesso**: se o e-mail já existir, o script define a senha informada
-nessa conta e promove o perfil a admin. Rodar de novo é a forma de voltar a entrar quando a senha se perdeu.
-
-> Prefira a forma com variável de ambiente: o `pnpm` ecoa a linha de comando que executa, então a senha
-> passada por argumento aparece no terminal e no histórico do shell.
-
-> ⚠️ **Sem nenhum host de emulador configurado, o script recusa rodar** e explica como prosseguir. Criar um
-> administrador com senha conhecida num projeto real é irreversível, então isso exige `--allow-real-project`
-> (ou `DEV_ADMIN_ALLOW_REAL_PROJECT=1`) escrito à mão.
-
-> ⚠️ **Num projeto real, a conta criada pelo script não entra.** Fora do emulador o servidor só aceita login
-> pelo GitHub. Para ter um admin em produção, entre pelo GitHub e grave `type: "admin"` à mão no documento
-> `user` dessa conta ([`PRE-PRODUCTION.md`](PRE-PRODUCTION.md), item 4).

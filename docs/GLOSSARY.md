@@ -11,15 +11,15 @@ board (board, card, etapa, runner, papel efetivo) está na seção [Board](#boar
 - **Slice vertical** — a unidade de trabalho: uma feature atravessando `packages/sdk` (contrato) →
   `apps/api` (rota) → `apps/app` (UI) → `packages/internationalization` (textos). É também a
   ordem de implementação e de commit.
-- **`entity`** — o **recurso de referência**, um CRUD completo que existe só para servir de molde. Todo
-  recurso novo espelha esse slice. Sai quando o board tiver o primeiro CRUD próprio.
+- **`boardMember`** — o **recurso de referência**: os membros do board atravessam o slice inteiro (SDK,
+  rota sob `requireBoardApi`, repositório com mapper, tela, i18n). Todo recurso novo espelha esse slice.
 - **DTO** — o tipo exposto pela API e consumido pelo front, declarado em `packages/sdk/src/types/`.
   É **o contrato**: mudar um DTO afeta API e todos os apps.
 - **Entity (persistência)** — o documento como está gravado no Firestore, mais o `id`. **Não** existe
   camada de domínio: `Entity` é o documento; `DTO` é o contrato. A tradução entre os dois é o mapper.
 - **Mapper** — classe em `apps/api/(shared)/mappers/` que estende `Mapper<Entity, DTO>`: `toDTO` normaliza
   (`Timestamp` → ISO, string opcional → `null`) e `toPersistence` filtra as chaves graváveis. Exporta
-  **uma instância** (ex.: `entityMapper`).
+  **uma instância** (ex.: `boardMemberMapper`).
 - **`BaseRepository<DTO>`** — CRUD genérico sobre uma coleção do Firestore. Estampa
   `createdAt`/`updatedAt`/`deletedAt`, faz **soft delete** e aceita o mapper como 3º argumento do `super`.
   ⚠️ Não tem paginação, `orderBy` nem filtros compostos — filtro/ordenação hoje é feito em memória no
@@ -37,24 +37,14 @@ board (board, card, etapa, runner, papel efetivo) está na seção [Board](#boar
 
 - **Guard** — wrapper de handler em `apps/api/app/(guards)/` que autentica e autoriza **antes** da lógica.
   Retorna uma `Response` de erro em vez de lançar exceção.
-  - **`requireCommonPanelApi`** — usuário comum; injeta `ctx.subjectProfile`; é ciente de impersonação.
-  - **`requireAdminApi`** — só admin; **não** tem `subjectProfile`.
-- **Actor × subject** — o **actor** é quem está autenticado (o dono do token); o **subject**
-  (`ctx.subjectProfile`) é o usuário **em contexto**. São diferentes quando um admin está personificando.
-  Toda regra de ownership usa o **subject**.
-- **Impersonação** — admin operando a área comum "no lugar de" um usuário. O SDK envia headers de contexto
-  (`x-user-id`, `x-request-user-id`, `x-user-role`, `x-request-role`) e o guard resolve o `subjectProfile`.
-  No front, trocar o usuário exige `window.location.reload()`; leituras RSC são puladas quando
-  `isImpersonating()`.
+  - **`requireSessionApi`** — exige sessão e perfil; injeta `ctx.user` e `ctx.profile`.
+  - **`requireBoardApi`** — compõe sobre o de sessão e exige o papel efetivo no board.
 - **Ownership** — regra de que um recurso pertence a um usuário (campo `userId` no documento). Violação
   responde **404**, não 403 — para não vazar a existência do recurso.
 - **Session cookie × ID token** — o front autentica chamadas do SDK com `Authorization: Bearer <ID token>`;
   o Next (proxy, RSC, rotas de sessão) usa o **cookie `access-token`**, que guarda um *session cookie* do
   Firebase. A API aceita os dois.
-- **Contexto do SDK** — `common` | `admin`: define quais headers de papel o cliente envia.
-- **Painel comum × painel admin** — os dois grupos de rota autenticadas de `apps/app`:
-  `(common)` (URL `/{locale}/…`) e `(admin)/admin` (URL `/{locale}/admin/…`).
-- **`requireSession` / `requireAdmin`** — guardas server-side de `apps/app/lib/server/`, que redirecionam
+- **`requireSession`** — guarda server-side de `apps/app/lib/server/`, que redireciona para o sign-in
   antes de renderizar. **Espelham** — não substituem — os guards da API.
 
 ## Produto e configuração
@@ -69,8 +59,8 @@ board (board, card, etapa, runner, papel efetivo) está na seção [Board](#boar
 ## Front-end
 
 - **Grupos de rota** — pastas entre parênteses que **não** entram na URL:
-  `(authenticated)`/`(unauthenticated)` (guarda), `(common)`/`(admin)` (área), `(pages)` (isola os
-  `page.tsx` de `paths.ts`/`routes.tsx`/`sidebar.tsx`), e `(hooks)`/`(components)`/`(validations)`
+  `(landing)`/`(authenticated)`/`(unauthenticated)` (guarda), `(common)` (a área com cabeçalho),
+  `(pages)` (isola os `page.tsx` do `paths.ts`), e `(hooks)`/`(components)`/`(validations)`
   (colocação por rota).
 - **Prefetch RSC** — o Server Component pré-carrega a query (`prefetchQuery` + `HydrationBoundary`) usando
   a **mesma `queryKey`** do hook client, para a hidratação casar.

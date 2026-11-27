@@ -4,41 +4,38 @@ Modelo de segurança do agent-board e como mantê-lo. Leia junto com [`docs/ARCH
 
 ## Autenticação
 
-- **Provider**: Firebase. Em produção o usuário entra só pelo popup do GitHub (`GithubAuthProvider`) e obtém um **ID token**, sincronizado num cookie de sessão. A app manda à API apenas esse ID token (`POST /auth/sign-in/github`); o access token do GitHub fica no SDK do Firebase. A API confere que o método foi `github.com`, lê `rawId`, `screenName`, nome e foto com `accounts:lookup` usando o próprio ID token, confere o `rawId` com a claim `firebase.identities`, valida o formato com `githubIdentitySchema` (`@repo/kanban-contract`) e grava em `user.github` só quando algo mudou. O `login` nunca vem do corpo da requisição. O primeiro login cria o perfil como `common`.
+- **Provider**: Firebase. Em produção o usuário entra só pelo popup do GitHub (`GithubAuthProvider`) e obtém um **ID token**, sincronizado num cookie de sessão. A app manda à API apenas esse ID token (`POST /auth/sign-in/github`); o access token do GitHub fica no SDK do Firebase. A API confere que o método foi `github.com`, lê `rawId`, `screenName`, nome e foto com `accounts:lookup` usando o próprio ID token, confere o `rawId` com a claim `firebase.identities`, valida o formato com `githubIdentitySchema` (`@repo/kanban-contract`) e grava em `user.github` só quando algo mudou. O `login` nunca vem do corpo da requisição. O primeiro login cria o perfil, sem papel global: o que a pessoa pode fazer em cada board vem do papel efetivo nele.
 - **Métodos aceitos** (`packages/auth/sign-in-method.ts`): `github.com` e `custom` (a adoção da sessão entre apps, que só nasce de um cookie válido) sempre; `password` só com emulador configurado. O filtro roda ao gravar o cookie (`/api/auth/session` → `403 AUTH_SIGN_IN_METHOD_DISABLED`) e ao resolver a credencial na API (método recusado vira anônimo → `401`). `POST /auth/sign-in` responde `403 AUTH_SIGN_IN_METHOD_DISABLED` fora do emulador antes de ler o corpo. O seed, o E2E e o QA local entram com senha no emulador.
-- **Política de senha**: mínimo de 8 e máximo de 1024 caracteres para toda senha **definida** (troca na área de conta e criação pelo admin), sem regra de composição e sem aparar espaços. Quem confere uma senha que já existe (login e senha atual na troca) segue aceitando 6. As três constantes vivem em `packages/shared/utils/helpers/passwordPolicy.ts`; a API responde `400 AUTH_PASSWORD_TOO_SHORT` para senha nova curta.
+- **Política de senha**: mínimo de 8 e máximo de 1024 caracteres para toda senha **definida** (`newPasswordSchema`), sem regra de composição e sem aparar espaços. Quem confere uma senha que já existe (o login por senha do emulador) segue aceitando 6. As três constantes vivem em `packages/shared/utils/helpers/passwordPolicy.ts`; a API responde `400 AUTH_PASSWORD_TOO_SHORT` para senha nova curta.
 - **No servidor** (`@repo/auth/server`), o Firebase **Admin SDK** verifica o token (`verifyIdToken`) a partir do cookie `access-token` ou do header `Authorization: Bearer`. Falhas benignas (token expirado/ inválido) viram "sem sessão", não erro 500.
-- **Identity Toolkit REST** (`FIREBASE_WEB_API_KEY`) é usado no servidor para a leitura da conta no login com GitHub (`accounts:lookup`), o login por senha no emulador, a conferência da senha atual na troca de senha e a criação de usuário pelo admin (`POST /users`).
+- **Identity Toolkit REST** (`FIREBASE_WEB_API_KEY`) é usado no servidor na leitura da conta do login com GitHub (`accounts:lookup`) e no login por senha do emulador.
 - **`POST /auth/sign-in`** valida o corpo com Zod e responde `400 VALIDATION_FAILED` para corpo ausente, JSON inválido, e-mail inválido ou senha com menos de 6 caracteres, sem chamar o Identity Toolkit. Toda recusa do provedor (senha errada, conta inexistente, conta desativada) vira o mesmo `400 AUTH_INVALID_CREDENTIALS`, que não diz se o e-mail existe nem ecoa a mensagem do provedor; o limite do provedor vira `429 USERS_AUTH_RATE_LIMITED`.
-- **Troca de senha** (`POST /account/password`) confere a senha atual e encerra todas as sessões da conta; se o Firebase recusar a revogação, a senha fica gravada e a rota responde `500 AUTH_SESSIONS_NOT_REVOKED`. Conta que só entra pelo GitHub não tem senha para trocar (`400 ACCOUNT_PASSWORD_UNSUPPORTED`).
 
 ## Autorização (guards da API)
 
-São **20** arquivos de rota em `apps/api/app/(routes)/`. **Catorze** exportam o handler embrulhado num
-guard, que roda **antes** da lógica; **seis** exportam handler nu (medido com
-`find "apps/api/app/(routes)" -name route.ts` e `grep -LE "require(CommonPanel|Admin)Api"`):
+São **42** arquivos de rota em `apps/api/app/(routes)/`. **Trinta e quatro** exportam o handler embrulhado
+num guard, que roda **antes** da lógica; **oito** exportam handler nu (medido com
+`find "apps/api/app/(routes)" -name route.ts` e `grep -LE "require(Session|Board|Agent|Runner)Api"`):
 
 | grupo | quantas | por que não tem guard |
 |-------|---------|------------------------|
 | `/auth/*` — `me`, `session`, `sign-in`, `sign-in/github` | 4 | é a superfície **anterior à sessão**: um guard que exige sessão recusaria justamente quem vem criar uma. `/auth/me` e `/auth/session` resolvem a credencial por dentro (`resolveApiActor`, `resolveApiCredential`). Sem credencial ativa, ou com conta que não existe mais no Auth, `/auth/me` responde `401 AUTH_INVALID_TOKEN`, o mesmo código dos guards |
 | `/health`, `/health/ready` | 2 | sondas de plataforma, precisam responder sem credencial |
+| `/github/webhook` | 1 | chamada pelo GitHub; a assinatura HMAC do corpo é a credencial |
+| `/runner/register` | 1 | o código de uso único é a credencial; fica na lista estrita do rate limit |
 
-As **catorze** rotas de negócio — `account` ×2, `entities` ×3, `files`, `notifications/*` ×4 e `users` ×4 —
-passam por um dos dois guards:
+As rotas com guard usam um destes:
 
-- `requireCommonPanelApi` — exige um usuário comum válido; resolve `ctx.subjectProfile` (titular **ou** usuário personificado). Todo registro do painel comum é do perfil que o criou (`userId`), e o escopo é sempre `ctx.subjectProfile.id`.
-- `requireAdminApi` — exige perfil admin.
-  - `PUT` e `DELETE /users/:id` recusam com `403 USERS_SELF_LOCKOUT_FORBIDDEN` desativar, rebaixar (`type` diferente de `ADMIN`) ou arquivar a própria conta, comparando o `reference_id` do perfil alvo com o uid de quem chama. Nenhum admin tira o próprio acesso pelo painel, mas isso não garante que sobre um admin ativo: dois admins que desativam um ao outro em pedidos simultâneos passam pelo guard antes de qualquer gravação.
+- `requireSessionApi` (8 rotas: `account`, `files`, `boards`, `boards/preview`, `boards/repositories`, `runners` ×3) — exige sessão e perfil; injeta `ctx.profile`. Registro da pessoa grava `userId` e o escopo é sempre `ctx.profile.id`. Sem perfil, `403 AUTH_PROFILE_NOT_FOUND`.
+- `requireBoardApi` (21 rotas sob `boards/[id]`) — compõe sobre o de sessão e exige o papel efetivo no board (owner/maintainer/operator/viewer, limitado pela permissão no GitHub); o modelo está em [`docs/board/ACCESS.md`](board/ACCESS.md).
+- `requireAgentApi` e `requireRunnerApi` (5 rotas) — chamadas por um agente ou pelo runner, autenticadas pelo token da execução ou do runner, sem sessão de pessoa.
 
-Os papéis do board (owner/maintainer/operator/viewer, limitados pela permissão no GitHub) chegam com a spec
-`board-members`, como um guard composto sobre o `requireCommonPanelApi`; o modelo está em
-[`docs/board/ACCESS.md`](board/ACCESS.md).
+O guard de sessão:
+1. Valida o Bearer token (Firebase Admin).
+2. Resolve o perfil Firestore da pessoa (`userRepository.findByReferenceId(uid)`).
+3. Não lê nenhum cabeçalho `x-*` nem o campo `type` do perfil: não existe papel global nem impersonação.
 
-Os guards:
-1. Validam o Bearer token (Firebase Admin).
-2. Resolvem o perfil Firestore do **ator** (`userRepository.findByReferenceId(uid)`).
-3. Resolvem o **subject** e validam o contexto de impersonação em `resolveAuthRequestContext` — os headers `x-role` / `requestUserId` enviados pelo SDK **não são confiados cegamente**: são validados server-side (papel, posse, permissão de painel).
-4. Checam o **escopo** do recurso pelo repositório: `entityRepository.findOwnedBy(id, ctx.subjectProfile.id)` devolve `null` para registro de outra pessoa → 404.
+O escopo do recurso é checado pelo repositório: `runnerRepository.revokeOwned(id, ctx.profile.id, …)` devolve `false` para runner de outra pessoa → 404.
 
 > Ao criar rotas, repita a checagem mesmo que o front já restrinja a navegação. Ver [`apps/api/CLAUDE.md`](../apps/api/CLAUDE.md) e a skill `/new-api-route`.
 
@@ -73,7 +70,7 @@ Com as rules publicadas, uma leitura direta com a chave pública do projeto deve
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' \
-  "https://firestore.googleapis.com/v1/projects/<projectId>/databases/(default)/documents/entity?key=<NEXT_PUBLIC_FIREBASE_API_KEY>"
+  "https://firestore.googleapis.com/v1/projects/<projectId>/databases/(default)/documents/user?key=<NEXT_PUBLIC_FIREBASE_API_KEY>"
 ```
 
 Esperado **403** (`PERMISSION_DENIED`). Com rules permissivas o mesmo comando devolve **200 com os dados** — é a medida da vulnerabilidade. Não salve o corpo da resposta: ele contém dados reais.
@@ -97,12 +94,12 @@ Mesma postura do Firestore — **a API é a única autoridade** — com uma dife
   tag. No WebP a orientação se perde. A remoção copia os blocos da imagem sem decodificar pixel, por lista de
   permissão: bloco desconhecido sai. Arquivo cuja estrutura ela não consegue percorrer recebe
   `415 UPLOAD_FILE_TYPE_NOT_ALLOWED`. Objetos gravados antes dessa regra continuam com o EXIF original.
-- Foto de entidade e avatar aceitam só um objeto do bucket do próprio dono ou
+- O avatar aceita só um objeto do bucket do próprio dono ou
   uma URL `https://lh3.googleusercontent.com/...`, o único host externo aceito para foto gravada
-  (`EXTERNAL_IMAGE_HOSTS` em `apps/api/(shared)/lib/entity-photo.ts`, espelho de
+  (`EXTERNAL_IMAGE_HOSTS` em `apps/api/(shared)/lib/photo-reference.ts`, espelho de
   `apps/app/proxy.ts`). O `img-src` do painel libera também `https://avatars.githubusercontent.com`, só
   para o avatar do GitHub que o Firebase devolve e o menu de perfil exibe; foto gravada não aceita esse host. URL `http`, com porta, com credencial ou de outro host recebe `400
-  ENTITY_PHOTO_INVALID` ou `400 ACCOUNT_AVATAR_INVALID`. O valor que já está gravado e volta sem mudança
+  ACCOUNT_AVATAR_INVALID`. O valor que já está gravado e volta sem mudança
   continua aceito, para que um registro antigo com URL externa siga salvável. Nenhum código do servidor busca
   essas URLs. Um CDN próprio exige editar a constante e a CSP juntas.
 - A leitura sai por **URL assinada V4, expirável (15 min)**, emitida só depois do check de posse do
@@ -183,9 +180,9 @@ Refletir a origem **após** conferir a allowlist é a implementação canônica 
 | `POST`, `PUT`, `PATCH` ou `DELETE` em qualquer outro caminho | `standard` | IP + sujeito | 60 / 60 s |
 | `GET`, `HEAD` e `OPTIONS` fora da lista estrita | nenhum | — | — |
 
-A **lista estrita** tem **4 caminhos**, casados por igualdade exata (`STRICT_RATE_LIMITED_PATHS`, `apps/api/proxy.ts`): `/auth/sign-in`, `/auth/sign-in/github`, `/files` e `/account/password`. Cada um gasta cota do Identity Toolkit ou grava no bucket.
+A **lista estrita** tem **4 caminhos**, casados por igualdade exata (`STRICT_RATE_LIMITED_PATHS`, `apps/api/proxy.ts`): `/auth/sign-in`, `/auth/sign-in/github`, `/files` e `/runner/register`. Os dois primeiros gastam cota do Identity Toolkit, `/files` grava no bucket e `/runner/register` confere um código de uso único.
 
-O **orçamento padrão** casa por método, não por caminho: uma rota mutável nova nasce limitada sem ninguém mexer no proxy, e o vizinho de um caminho estrito (`/auth/sign-in/apple`, `/files/x`) cai nele. A chave soma o IP e o **sujeito**, um hash SHA-256 truncado do `sub` do JWT que chega em `Authorization: Bearer` (`apps/api/(shared)/lib/rate-limit-subject.ts`). Sem bearer, ou com um bearer que não é JWT, o sujeito é `"anonymous"` e a chave fica só o IP. O token é decodificado **sem verificação**: um `sub` forjado só compra um balde novo para uma requisição que o guard recusa em seguida, e por isso o valor nunca serve para autorizar. O hash existe porque o valor vai para o Arcjet, e um identificador estável de conta não tem por que sair daqui. Somar o sujeito ao IP evita que um escritório atrás de um NAT divida um orçamento só. Personificando, o sujeito é o admin, porque o bearer é dele.
+O **orçamento padrão** casa por método, não por caminho: uma rota mutável nova nasce limitada sem ninguém mexer no proxy, e o vizinho de um caminho estrito (`/auth/sign-in/apple`, `/files/x`) cai nele. A chave soma o IP e o **sujeito**, um hash SHA-256 truncado do `sub` do JWT que chega em `Authorization: Bearer` (`apps/api/(shared)/lib/rate-limit-subject.ts`). Sem bearer, ou com um bearer que não é JWT, o sujeito é `"anonymous"` e a chave fica só o IP. O token é decodificado **sem verificação**: um `sub` forjado só compra um balde novo para uma requisição que o guard recusa em seguida, e por isso o valor nunca serve para autorizar. O hash existe porque o valor vai para o Arcjet, e um identificador estável de conta não tem por que sair daqui. Somar o sujeito ao IP evita que um escritório atrás de um NAT divida um orçamento só.
 
 Estouro, nos dois orçamentos, devolve `429 AUTH_RATE_LIMITED` + `Retry-After`. Ficam fora dos dois `/auth/me` (autenticada, hot path, e `GET`), `/health` e `/health/ready`.
 
@@ -226,7 +223,7 @@ O teto limita o que o handler acumula e parseia, e não o que a plataforma receb
 
 ## Checklist ao revisar mudanças sensíveis
 
-- [ ] Rota nova tem guard (`requireCommonPanelApi`/`requireAdminApi`, ou o guard de papel do board) e checa posse ou escopo.
+- [ ] Rota nova tem guard (`requireSessionApi` ou `requireBoardApi`) e checa posse ou escopo.
 - [ ] Nenhum header de auth do cliente é confiado sem validação server-side.
 - [ ] Erros expõem só `error.code` (sem stack trace/PII).
 - [ ] Acesso a dados via API; cliente não toca Firestore direto.
