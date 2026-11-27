@@ -114,6 +114,7 @@ export const commonBoardsPageTranslations = {
         nav: {
             label: "Seções do board",
             board: "Quadro",
+            cycles: "Ciclos",
             settings: "Configuração",
             members: "Membros",
             credentials: "Minhas credenciais",
@@ -188,6 +189,7 @@ export const commonBoardsPageTranslations = {
                 moved: "{title} movido para {column}.",
                 reordered: "{title} agora está na posição {position}.",
                 orphan: "Spec removida",
+                cycleBadge: "Ciclo",
                 reworkLoop: "Volta {loop} de {max}",
                 triggered: "{title}: {column} disparada.",
                 queued: "{title} entrou na fila de {column}.",
@@ -334,6 +336,157 @@ export const commonBoardsPageTranslations = {
             confirm: "Disparar {column}",
             confirmRerun: "Rodar de novo",
             confirmApprove: "Aprovar e seguir",
+        },
+        cycles: {
+            loadError: "Não foi possível carregar os ciclos.",
+            list: {
+                title: "Ciclos",
+                description:
+                    "Um ciclo leva as specs escolhidas da Análise até Testando ou até a PR, sem parar para perguntar. As decisões que o agente tomar sozinho ficam anotadas no ciclo.",
+                newCycle: "Novo ciclo",
+                empty: "Nenhum ciclo ainda.",
+                specsCount: "{count} specs",
+                specsCountOne: "1 spec",
+                columns: {
+                    startedAt: "Início",
+                    specs: "Specs",
+                    status: "Status",
+                    startedBy: "Iniciado por",
+                },
+                queuedAt: "Na fila desde {date}",
+            },
+            status: {
+                queued: "Na fila",
+                running: "Rodando",
+                finished: "Terminado",
+                stopped: "Parado",
+            },
+            endReason: {
+                completed: "Todas as specs saíram do ciclo.",
+                stopped: "Parado por {login}.",
+                item_failed: "Parou porque uma spec falhou.",
+            },
+            itemStatus: {
+                pending: "aguardando a vez",
+                running: "rodando",
+                done: "pronta",
+                waiting_input: "aguardando você",
+                failed: "falhou",
+                skipped: "pulada",
+                stopped: "parada",
+            },
+            until: {
+                testing: "até Testando",
+                pull_request: "até abrir a PR",
+            },
+            concurrency: {
+                one: "uma por vez",
+                two: "até 2 ao mesmo tempo",
+            },
+            new: {
+                title: "Novo ciclo",
+                description:
+                    "Leva cada spec escolhida da Análise até a PR sem parar para perguntar. Quando precisa decidir, o agente segue a política do repositório e anota a decisão no relatório do ciclo.",
+                queuedNotice:
+                    "Já existe um ciclo rodando. Este entra na fila e começa quando ele terminar.",
+                viewCurrent: "Ver ciclo atual",
+                specs: {
+                    title: "Specs do ciclo",
+                    hint: "Toque para escolher. O ciclo segue a ordem em que você escolheu.",
+                    empty: "Nenhuma spec pronta em Tarefas. Só entram specs aprovadas que não estão rodando nem em outro ciclo.",
+                    position: "{position}ª no ciclo",
+                },
+                until: {
+                    label: "Até onde vai",
+                    testing: "Até Testando",
+                    pull_request: "Até abrir a PR",
+                },
+                concurrency: {
+                    label: "Specs ao mesmo tempo",
+                    one: "Uma por vez",
+                    two: "Até 2",
+                    runnersWarning:
+                        "Duas specs ao mesmo tempo precisam de dois runners seus online. Agora você tem {count}.",
+                },
+                onFailure: {
+                    label: "Se uma spec falhar",
+                    skip: "Pular para a próxima",
+                    stop: "Parar o ciclo",
+                },
+                footer: "Roda nos seus runners. As PRs abrem como o board.yml manda; o merge é seu.",
+                submit: "Iniciar ciclo com {count} specs",
+                submitOne: "Iniciar ciclo com 1 spec",
+                cancel: "Cancelar",
+                created: "Ciclo iniciado.",
+                queued: "Ciclo na fila.",
+                validation: {
+                    specsRequired: "Escolha pelo menos uma spec.",
+                    specsMax: "Um ciclo leva no máximo {max} specs.",
+                },
+            },
+            detail: {
+                title: "Ciclo de {date}",
+                queuedTitle: "Ciclo na fila desde {date}",
+                summary:
+                    "{count} specs · {concurrency} · {until} · iniciado por {login}",
+                summaryOne:
+                    "1 spec · {concurrency} · {until} · iniciado por {login}",
+                notFound: "Ciclo não encontrado.",
+                back: "Ciclos",
+                counters: {
+                    pullRequests: "specs com PR aberta",
+                    done: "specs prontas",
+                    decisions: "decisões tomadas sem você",
+                    review: "decisões de produto para revisar",
+                    elapsed: "rodando até agora",
+                    total: "duração",
+                },
+                elapsed: {
+                    minutes: "{minutes} min",
+                    hours: "{hours} h {minutes} min",
+                },
+                stop: {
+                    button: "Parar o ciclo",
+                    title: "Parar o ciclo?",
+                    description:
+                        "As etapas em andamento são interrompidas e as specs que ainda não começaram ficam de fora. Os cards ficam onde estão, e o que os agentes já enviaram para as branches continua lá.",
+                    cancel: "Continuar rodando",
+                    confirm: "Parar o ciclo",
+                    done: "Ciclo parado.",
+                },
+                progress: {
+                    title: "Andamento",
+                    spec: "Spec",
+                    done: "feita",
+                    pending: "—",
+                    pullRequest: "#{number}",
+                    pullRequestDraft: "#{number} rascunho",
+                    reworkLoop: "{state} · volta {loop}",
+                    queuedHint: "O andamento aparece quando o ciclo começar.",
+                },
+                decisions: {
+                    title: "Decisões tomadas sem você",
+                    empty: "Nenhuma decisão registrada ainda.",
+                    where: "{spec} · {stage}",
+                    rule: {
+                        policy: "Política do repositório",
+                        spec: "Recomendação da spec",
+                        repo_pattern: "Padrão do repositório",
+                        least_impact: "Menor impacto",
+                    },
+                },
+                review: {
+                    title: "Para revisar",
+                    description:
+                        "Decisões de produto que o agente tomou sozinho e marcou para você conferir.",
+                    empty: "Nenhuma decisão de produto para revisar.",
+                },
+                activity: {
+                    title: "Atividade",
+                    empty: "Nenhuma atividade ainda.",
+                    where: "{time} · {spec} · {stage}",
+                },
+            },
         },
         stop: {
             title: "Parar {column}?",

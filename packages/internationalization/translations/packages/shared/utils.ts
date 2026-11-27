@@ -129,6 +129,13 @@ export const sharedUtilsTranslations = {
                 "O anexo passa do tamanho máximo de 3 MB.",
             SPEC_DRAFT_SLUG_UNAVAILABLE:
                 "Já existem specs com nomes parecidos com este pedido. Mude o começo do texto e tente de novo.",
+            CYCLE_NOT_FOUND: "Ciclo não encontrado.",
+            CYCLE_SPECS_INVALID:
+                "Alguma spec escolhida não está pronta em Tarefas ou já está rodando. Atualize a página e escolha de novo.",
+            CYCLE_SPEC_BUSY: "Alguma spec escolhida já está em outro ciclo.",
+            CYCLE_RUNNERS_UNAVAILABLE:
+                "Duas specs ao mesmo tempo precisam de dois runners seus online.",
+            CYCLE_NOT_ACTIVE: "Este ciclo já terminou.",
             RUN_EXECUTOR_UNAVAILABLE:
                 "Nenhum runner seu está online. Inicie o runner e tente de novo.",
             RUN_NO_CREDENTIAL_FOR_STAGE:
@@ -153,6 +160,8 @@ export const sharedUtilsTranslations = {
             AGENT_CARD_MISMATCH: "Este token não vale para este card.",
             AGENT_STAGE_MISMATCH: "Este token não vale para esta etapa.",
             AGENT_RUN_CLOSED: "Esta execução já terminou.",
+            AGENT_ASK_IN_CYCLE:
+                "Dentro de um ciclo o agente não pergunta: decida pela política do repositório e registre a decisão.",
             AGENT_ATTACHMENT_NOT_FOUND: "Este anexo não pertence a este card.",
             AGENT_TOOL_NOT_AVAILABLE:
                 "Esta ferramenta ainda não está disponível.",
