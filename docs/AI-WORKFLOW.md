@@ -5,7 +5,7 @@ quando usar cada coisa. O mesmo pipeline constrói o agent-board (dogfooding) e 
 repositórios importados.
 
 > **Vai executar uma tarefa?** O fluxo de trabalho (`/spec → /analyze → /develop → /review → /test`,
-> fechando com `/spec --sync`) está em [`TASK-PIPELINE.md`](TASK-PIPELINE.md). Este documento cobre o
+> fechando com `/spec --sync <slug>` na mesma branch) está em [`TASK-PIPELINE.md`](TASK-PIPELINE.md). Este documento cobre o
 > **ferramental**.
 
 ## O que está configurado
@@ -17,7 +17,7 @@ repositórios importados.
 | Regras por escopo | `apps/*/CLAUDE.md`, `packages/CLAUDE.md` | `CLAUDE.md` aninhados, **auto-carregados** ao trabalhar em cada pasta. |
 | Regras globais de conduta | `.claude/rules/*.md` | Sempre em contexto: commits/branches e comentários no código. |
 | Pipeline de tarefas | [`TASK-PIPELINE.md`](TASK-PIPELINE.md) | Comandos, subagents, `STATE.md`, gates, épicos. |
-| Backlog de funcionalidades | [`specs/`](../specs/README.md) | O que **ainda falta** no board, com status auditado contra o código. Entrada do ciclo — a spec entregue **sai daqui** e é arquivada em `docs/features/<slug>/spec.md`. |
+| Backlog de funcionalidades | [`specs/`](../specs/README.md) | O que **ainda falta** no board, com status auditado contra o código. Entrada do ciclo — a spec entregue **sai daqui** na própria branch da feature e é arquivada em `docs/features/<slug>/spec.md`. |
 | Roteiro de análise | [`feature-analysis-guide.md`](feature-analysis-guide.md) | Checklist de tech lead + formato dos critérios de aceite (§9.1). |
 | Checklist de revisão | [`review-checklist.md`](review-checklist.md) | **Fonte única** das invariantes que uma revisão cobra. |
 | Glossário | [`GLOSSARY.md`](GLOSSARY.md) | Vocabulário do repo (guard, subject, DTO/mapper, slice, card, etapa, runner…). |
@@ -53,7 +53,9 @@ Digite `/` no Claude Code para invocar. Cada skill encapsula o passo a passo já
 
 - **`/spec-audit`** — reconcilia `specs/` com a realidade do **código** (não com o `status` gravado):
   confere o corte de MVP de cada spec, cruza com `docs/features/*/STATE.md`, aplica transições, detecta
-  **deriva** e regressão, e regrava o `BACKLOG.md` (a fila) e o `reference/AUDIT.md` (a evidência). É o motor do `/spec --sync` — o passo que fecha o loop.
+  **deriva** e regressão, e regrava o `BACKLOG.md` (a fila) e o `reference/AUDIT.md` (a evidência). É o motor do `/spec --sync`. Tem
+  dois modos: **fechamento** (`--sync <slug>`), que arquiva a spec da feature na própria branch depois do
+  `/test`, e **auditoria completa** (`--sync`), que confere o backlog inteiro.
 
 ### Criadas para este repo (scaffolding)
 
@@ -201,7 +203,29 @@ Estes arquivos são carregados em toda sessão — por isso são curtos:
 ## Fluxo recomendado para uma feature
 
 Formal, com rastreio em disco → use o [pipeline](TASK-PIPELINE.md):
-`/spec → /analyze → /develop → /review → /test` (+ `/observe`), fechando com `/spec --sync`.
+`/spec → /analyze → /develop → /review → /test → /spec --sync <slug>` (+ `/observe`), e só então a PR.
+
+### Fechar a spec na mesma branch
+
+O último passo de toda feature que nasceu de uma spec é **`/spec --sync <slug>` na branch da feature**,
+depois do `/test` e antes da PR. Ele confere no código da branch que o corte de MVP foi entregue, move a
+spec para `docs/features/<slug>/spec.md`, tira a spec da fila do `BACKLOG.md` e marca o que a entrega libera.
+O movimento vira o commit `docs(specs): archive <id>` na mesma branch.
+
+Por que aqui e não no começo do ciclo seguinte: antes, o arquivamento esperava a PR ser mergeada e só
+acontecia na auditoria da rodada seguinte, então cada feature nova começava refazendo a leitura do que a
+anterior tinha entregado. Fechando na própria branch, o merge leva para `main`, de uma vez, o código, a spec
+arquivada e a fila atualizada. A branch seguinte só olha o `BACKLOG.md` e pega a próxima tarefa.
+
+Algumas regras que vêm junto:
+
+- `test` em `blocked` não fecha: defeito aberto não é entrega.
+- Feature que entregou só uma fatia do corte não arquiva. A spec fica `in-progress` com a nota do que falta.
+- `depends_on` só conta como satisfeito quando a spec está arquivada **em `main`**. Arquivada numa branch
+  ainda aberta, ela não libera ninguém, porque o código dela ainda não está na base.
+- Se a PR for fechada sem merge, nada chega a `main` e o backlog de lá continua coerente.
+- Duas branches fechando em paralelo editam linhas diferentes do `BACKLOG.md`. No merge, mantenha as duas
+  mudanças; a próxima auditoria completa reordena a fila.
 
 Autônomo, quando você não vai acompanhar → **`/cycle`** (abaixo).
 
@@ -221,8 +245,8 @@ Informal, para mudanças pequenas:
 ## `/cycle` — o ciclo inteiro numa tacada
 
 [`/cycle`](../.claude/commands/cycle.md) roda `/spec --sync`, escolhe a próxima spec do
-[`BACKLOG.md`](../specs/BACKLOG.md) e a leva por `/analyze → /develop → /review → /test` **sem parar para
-perguntar**. Existe para uma situação específica: **você não vai estar na frente da tela**.
+[`BACKLOG.md`](../specs/BACKLOG.md) e a leva por `/analyze → /develop → /review → /test`, fechando com
+`/spec --sync <slug>` na mesma branch, **sem parar para perguntar**. Existe para uma situação específica: **você não vai estar na frente da tela**.
 
 ```bash
 /cycle                      # audita o backlog e ataca a spec recomendada
@@ -347,8 +371,9 @@ depois um job só, e só então paralelize.
 
 ## Mantendo a base de IA saudável
 
-- **Rode `/spec --sync` ao fim de cada entrega.** É o passo que impede o backlog de virar ficção: ele
-  confere no código o que foi entregue, em vez de acreditar no `status` gravado. Backlog que ninguém audita
+- **Feche cada entrega com `/spec --sync <slug>` na própria branch**, e rode o `/spec --sync` completo de
+  vez em quando. É o que impede o backlog de virar ficção: ele confere no código o que foi entregue, em vez
+  de acreditar no `status` gravado. Backlog que ninguém audita
   é pior que backlog nenhum, porque parece confiável.
 - Nota de pesquisa vencida (`revalidate_after`) → revalide **só o que mudou** (preço, versão, prevalência),
   não a nota inteira.
