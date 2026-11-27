@@ -15,9 +15,13 @@ export type AgentPermissions =
     | { mode: "acceptEdits"; allow: string[] }
     | { mode: "skip" };
 
-/** Only the expected fields: the spec and the answers reach the agent through `get_card`. */
+/**
+ * Only the expected fields: the spec and the answers reach the agent through `get_card`.
+ * `--cycle` tells the agent nobody answers before the cycle ends, so it decides on its own.
+ */
 export function buildPrompt(job: RunnerJob): string {
-    return `${job.command} ${job.slug} --board ${job.cardId}`;
+    const prompt = `${job.command} ${job.slug} --board ${job.cardId}`;
+    return job.cycleId === null ? prompt : `${prompt} --cycle ${job.cycleId}`;
 }
 
 export function buildAgentArgs(

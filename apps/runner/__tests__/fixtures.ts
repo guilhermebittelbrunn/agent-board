@@ -24,5 +24,6 @@ export const jobFixture = (overrides: Partial<RunnerJob> = {}): RunnerJob => ({
     install: null,
     deadlineAt: new Date(Date.now() + STAGE_TIMEOUT_MS).toISOString(),
     runToken: `kbr_run1_${SECRET}`,
+    cycleId: null,
     ...overrides,
 });
