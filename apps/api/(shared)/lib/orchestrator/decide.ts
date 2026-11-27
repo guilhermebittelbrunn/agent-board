@@ -2,9 +2,13 @@ import {
     type BoardConfig,
     type CardLane,
     type CardLastRun,
+    type CardPosition,
     type CardPullRequest,
     type CardState,
+    type CycleItemResult,
     canRunPrComment,
+    cycleHoldStageKey,
+    cycleItemResult,
     findStageConfig,
     isAwaitingApproval,
     pruneCommentRuns,
@@ -24,6 +28,7 @@ import {
     type CardRecord,
     pullRequestDocument,
 } from "@/(shared)/mappers/card.mapper";
+import type { CycleRecord } from "@/(shared)/mappers/cycle.mapper";
 import type { NewRun, RunRecord } from "@/(shared)/mappers/run.mapper";
 
 export type OrchestratorRefusal = { ok: false; code: string; status: number };
@@ -111,6 +116,7 @@ export function newRunFor(input: {
     branch: string;
     trigger: RunTrigger;
     by: RunPerson;
+    cycleId: string | null;
     command?: string;
 }): NewRun {
     const { card, stage } = input;
@@ -127,6 +133,7 @@ export function newRunFor(input: {
         branch: input.branch,
         trigger: input.trigger,
         triggeredBy: input.by,
+        cycleId: input.cycleId,
     };
 }
 
@@ -147,6 +154,7 @@ export function planTrigger(
         by: RunPerson;
         now: Date;
         trigger?: RunTrigger;
+        cycleId?: string;
     }
 ): TriggerPlan {
     if (card === null) {
@@ -166,6 +174,9 @@ export function planTrigger(
     if (input.trigger === "pr_comment" && comment === null) {
         return refuse("CARD_NOT_IN_PULL_REQUEST_STAGE", HTTP_STATUS.CONFLICT);
     }
+    // Any start that is not the cycle's own takes the card out of the cycle: a person who
+    // acts on the card takes it back.
+    const cycleId = input.trigger === "cycle" ? (input.cycleId ?? null) : null;
     return {
         ok: true,
         run: newRunFor({
@@ -175,6 +186,7 @@ export function planTrigger(
             branch: decision.branch,
             trigger: input.trigger ?? decision.trigger,
             by: input.by,
+            cycleId,
             command: comment?.command,
         }),
         card: {
@@ -183,6 +195,7 @@ export function planTrigger(
             state: "queued",
             branch: decision.branch,
             pendingAsk: null,
+            cycleId,
             movedAt: input.now,
             movedByUserId: input.by.userId,
             updatedAt: input.now,
@@ -277,6 +290,8 @@ export type CompletionPlan = {
         trigger: "transition" | "pr_comment";
         command?: string;
     } | null;
+    /** How the card's cycle item ended with this result; `null` outside a cycle or while it goes on. */
+    cycleItem: CycleItemResult | null;
 };
 
 /**
@@ -290,6 +305,52 @@ function specDraftStateAfter(outcome: StageOutcome): CardState {
     return outcome === "needs_input" ? "waiting_input" : "failed";
 }
 
+type CompletionCycle = Pick<CycleRecord, "status" | "options">;
+
+/**
+ * Inside a cycle that is no longer running nothing new starts: the card stays on the stage
+ * that just ended, idle after a success, waiting for a person otherwise.
+ */
+function haltedByCycle(
+    position: CardPosition,
+    run: Pick<RunRecord, "stageKey">,
+    outcome: StageOutcome
+): CardPosition {
+    return {
+        stageKey: run.stageKey,
+        state: outcome === "success" ? "idle" : "waiting_input",
+        reworkLoops: position.reworkLoops,
+    };
+}
+
+/** A running cycle skips approvals and holds the card on the stage its `until` names. */
+function cycleTransition(
+    cycle: CompletionCycle | null,
+    config: BoardConfig
+): { cycle?: { holdStageKey: string | null } } {
+    if (cycle?.status !== "running") {
+        return {};
+    }
+    return {
+        cycle: { holdStageKey: cycleHoldStageKey(config, cycle.options.until) },
+    };
+}
+
+function withCycleItem(
+    plan: Omit<CompletionPlan, "cycleItem">,
+    cycle: CompletionCycle | null,
+    halted: boolean
+): CompletionPlan {
+    if (cycle === null) {
+        return { ...plan, cycleItem: null };
+    }
+    const result = cycleItemResult(plan.card, plan.next !== null);
+    return {
+        ...plan,
+        cycleItem: halted && result !== null ? "stopped" : result,
+    };
+}
+
 /**
  * Where a stage result takes the card. This is the only caller of `resolveTransition` in
  * the API: an agent's report, a timeout and a failed dispatch all come through here.
@@ -301,33 +362,43 @@ export function planCompletion(input: {
     config: BoardConfig;
     stageSettings: BoardStageSettingsDTO;
     now: Date;
+    cycle?: CompletionCycle | null;
 }): CompletionPlan {
     const { card, run, config } = input;
+    const cycle = input.cycle ?? null;
     if (run.stageKey === SPEC_STAGE_KEY) {
-        return {
-            card: {
-                lane: "drafts",
-                stageKey: SPEC_STAGE_KEY,
-                state: specDraftStateAfter(input.outcome),
-                reworkLoops: card.reworkLoops,
+        return withCycleItem(
+            {
+                card: {
+                    lane: "drafts",
+                    stageKey: SPEC_STAGE_KEY,
+                    state: specDraftStateAfter(input.outcome),
+                    reworkLoops: card.reworkLoops,
+                },
+                next: null,
             },
-            next: null,
-        };
+            cycle,
+            false
+        );
     }
     const known = config.stages.some((stage) => stage.key === run.stageKey);
     if (!known) {
-        return {
-            card: {
-                lane: "stage",
-                stageKey: run.stageKey,
-                state: "failed",
-                reworkLoops: card.reworkLoops,
+        return withCycleItem(
+            {
+                card: {
+                    lane: "stage",
+                    stageKey: run.stageKey,
+                    state: "failed",
+                    reworkLoops: card.reworkLoops,
+                },
+                next: null,
             },
-            next: null,
-        };
+            cycle,
+            false
+        );
     }
 
-    const position = resolveTransition({
+    const resolved = resolveTransition({
         config,
         current: {
             stageKey: run.stageKey,
@@ -337,7 +408,15 @@ export function planCompletion(input: {
         outcome: input.outcome,
         approvalGateEnabled:
             input.stageSettings[run.stageKey]?.approvalGate ?? false,
+        ...cycleTransition(cycle, config),
     });
+    const halted =
+        cycle !== null &&
+        cycle.status !== "running" &&
+        resolved.state === "queued";
+    const position = halted
+        ? haltedByCycle(resolved, run, input.outcome)
+        : resolved;
 
     const ranStage = config.stages.find((stage) => stage.key === run.stageKey);
     const settled =
@@ -348,49 +427,61 @@ export function planCompletion(input: {
             ? prCommentFollowUp(card, ranStage, config, input.now)
             : null;
     if (followUp !== null && ranStage !== undefined) {
-        return {
-            card: {
-                lane: "stage",
-                stageKey: run.stageKey,
-                state: "queued",
-                reworkLoops: position.reworkLoops,
-                pullRequest: followUp.pullRequest,
+        return withCycleItem(
+            {
+                card: {
+                    lane: "stage",
+                    stageKey: run.stageKey,
+                    state: "queued",
+                    reworkLoops: position.reworkLoops,
+                    pullRequest: followUp.pullRequest,
+                },
+                next: {
+                    stage: ranStage,
+                    trigger: "pr_comment",
+                    command: followUp.command,
+                },
             },
-            next: {
-                stage: ranStage,
-                trigger: "pr_comment",
-                command: followUp.command,
-            },
-        };
+            cycle,
+            halted
+        );
     }
 
     if (position.stageKey === null) {
-        return {
-            card: {
-                lane: "done",
-                stageKey: null,
-                state: "idle",
-                reworkLoops: position.reworkLoops,
+        return withCycleItem(
+            {
+                card: {
+                    lane: "done",
+                    stageKey: null,
+                    state: "idle",
+                    reworkLoops: position.reworkLoops,
+                },
+                next: null,
             },
-            next: null,
-        };
+            cycle,
+            halted
+        );
     }
     const nextStage =
         position.state === "queued"
             ? config.stages.find((stage) => stage.key === position.stageKey)
             : undefined;
-    return {
-        card: {
-            lane: "stage",
-            stageKey: position.stageKey,
-            state: position.state,
-            reworkLoops: position.reworkLoops,
+    return withCycleItem(
+        {
+            card: {
+                lane: "stage",
+                stageKey: position.stageKey,
+                state: position.state,
+                reworkLoops: position.reworkLoops,
+            },
+            next:
+                nextStage === undefined
+                    ? null
+                    : { stage: nextStage, trigger: "transition" },
         },
-        next:
-            nextStage === undefined
-                ? null
-                : { stage: nextStage, trigger: "transition" },
-    };
+        cycle,
+        halted
+    );
 }
 
 export type RunClose = {
@@ -485,5 +576,6 @@ export function toStageDispatch(
             name: board.repository.name,
         },
         triggeredBy: run.triggeredBy,
+        cycleId: run.cycleId,
     };
 }

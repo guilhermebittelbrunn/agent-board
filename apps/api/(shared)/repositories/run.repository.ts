@@ -1,11 +1,16 @@
 import type {
+    CycleItemResult,
     RunPerson,
     RunTrigger,
     StageExecutorKind,
 } from "@repo/kanban-contract";
 import type { BoardDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
-import type { DocumentSnapshot } from "firebase-admin/firestore";
+import type {
+    DocumentReference,
+    DocumentSnapshot,
+    Transaction,
+} from "firebase-admin/firestore";
 import {
     type CompletionPlan,
     lastRunOf,
@@ -23,6 +28,11 @@ import {
     cardMapper,
     pullRequestDocument,
 } from "../mappers/card.mapper";
+import {
+    CYCLE_TABLE,
+    type CycleRecord,
+    cycleMapper,
+} from "../mappers/cycle.mapper";
 import {
     newRunDocument,
     RUN_TABLE,
@@ -45,6 +55,9 @@ export type FinishedNextRun = {
     triggeredBy: RunPerson;
 };
 
+/** The card left its cycle with this result; the caller records it on the cycle. */
+export type FinishedCycleItem = { id: string; result: CycleItemResult };
+
 export type FinishResult =
     | { ignored: true }
     | {
@@ -52,6 +65,7 @@ export type FinishResult =
           cardId: string;
           nextRunId: string | null;
           next: FinishedNextRun | null;
+          cycle: FinishedCycleItem | null;
       };
 
 export type SetTokenResult = { ok: true; expiresAt: string } | { ok: false };
@@ -60,7 +74,7 @@ export type RunWithToken = { run: RunRecord; token: RunTokenState };
 
 export type StopResult =
     | OrchestratorRefusal
-    | { ok: true; cardId: string; runId: string };
+    | { ok: true; cardId: string; runId: string; cycleId: string | null };
 
 const BOARD_TABLE = "board";
 
@@ -106,6 +120,23 @@ class RunRepository extends BaseRepository<RunRecord> {
 
     private cardRef(cardId: string) {
         return this.db.collection(CARD_TABLE).doc(cardId);
+    }
+
+    private async readCycle(
+        transaction: Transaction,
+        cycleId: string
+    ): Promise<CycleRecord | null> {
+        if (!isUsableDocumentId(cycleId)) {
+            return null;
+        }
+        const snapshot = await transaction.get(
+            this.db.collection(CYCLE_TABLE).doc(cycleId)
+        );
+        const data = snapshot.data();
+        if (!(snapshot.exists && data)) {
+            return null;
+        }
+        return cycleMapper.toDTO({ id: snapshot.id, ...data });
     }
 
     /** Only equality filters, so no composite index; a board has tens of live runs at most. */
@@ -208,7 +239,11 @@ class RunRepository extends BaseRepository<RunRecord> {
     async finishOnCard(input: {
         runId: string;
         close: RunClose;
-        plan: (card: CardRecord, run: RunRecord) => CompletionPlan;
+        plan: (
+            card: CardRecord,
+            run: RunRecord,
+            cycle: CycleRecord | null
+        ) => CompletionPlan;
         config: BoardDTO["config"];
         now: Date;
     }): Promise<FinishResult> {
@@ -228,6 +263,10 @@ class RunRepository extends BaseRepository<RunRecord> {
                 const run = this.toDTO(runSnap.id, runData);
                 const cardRef = this.cardRef(run.cardId);
                 const card = liveCard(await transaction.get(cardRef));
+                const cycle =
+                    card?.cycleId == null
+                        ? null
+                        : await this.readCycle(transaction, card.cycleId);
 
                 transaction.update(runRef, {
                     ...close,
@@ -241,51 +280,86 @@ class RunRepository extends BaseRepository<RunRecord> {
                         cardId: run.cardId,
                         nextRunId: null,
                         next: null,
+                        cycle: null,
                     };
                 }
 
-                const planned = input.plan(card, run);
-                const { pullRequest, ...position } = planned.card;
-                const plan = { ...planned, card: position };
-                let nextRunId: string | null = null;
-                if (plan.next !== null) {
-                    transaction.set(
-                        nextRef,
-                        newRunDocument(
-                            newRunFor({
-                                card,
-                                stage: plan.next.stage,
-                                config: input.config,
-                                branch: run.branch,
-                                trigger: plan.next.trigger,
-                                by: run.triggeredBy,
-                                command: plan.next.command,
-                            }),
-                            now
-                        )
-                    );
-                    nextRunId = nextRef.id;
-                }
-                const moved =
-                    plan.card.lane !== card.lane ||
-                    plan.card.stageKey !== card.stageKey;
-                transaction.update(cardRef, {
-                    ...plan.card,
-                    activeRunId: nextRunId,
-                    ...(nextRunId === null ? {} : { pendingAsk: null }),
-                    lastRun: lastRunOf(run, close, now),
-                    ...(moved ? { movedAt: now } : {}),
-                    ...pullRequestPatch(pullRequest),
-                    updatedAt: now,
+                return this.applyCompletion(transaction, {
+                    card,
+                    run,
+                    cycle,
+                    planned: input.plan(card, run, cycle),
+                    close,
+                    config: input.config,
+                    nextRef,
+                    now,
                 });
-                return {
-                    ignored: false,
-                    cardId: run.cardId,
-                    nextRunId,
-                    next: finishedNextRun(plan.next, nextRunId, run),
-                };
             }
         );
+    }
+
+    /** The writes of `finishOnCard` once the plan is decided on the card it read. */
+    private applyCompletion(
+        transaction: Transaction,
+        input: {
+            card: CardRecord;
+            run: RunRecord;
+            cycle: CycleRecord | null;
+            planned: CompletionPlan;
+            close: RunClose;
+            config: BoardDTO["config"];
+            nextRef: DocumentReference;
+            now: Date;
+        }
+    ): FinishResult {
+        const { card, run, cycle, planned, now } = input;
+        const { pullRequest, ...position } = planned.card;
+        // A cycle document that is gone cannot hold the card either.
+        const leavesCycle =
+            card.cycleId !== null &&
+            (cycle === null || planned.cycleItem !== null);
+        const next = planned.next;
+        if (next !== null) {
+            transaction.set(
+                input.nextRef,
+                newRunDocument(
+                    newRunFor({
+                        card,
+                        stage: next.stage,
+                        config: input.config,
+                        branch: run.branch,
+                        trigger: next.trigger,
+                        by: run.triggeredBy,
+                        cycleId: leavesCycle ? null : card.cycleId,
+                        command: next.command,
+                    }),
+                    now
+                )
+            );
+        }
+        const nextRunId = next === null ? null : input.nextRef.id;
+        const moved =
+            position.lane !== card.lane || position.stageKey !== card.stageKey;
+        transaction.update(this.cardRef(card.id), {
+            ...position,
+            activeRunId: nextRunId,
+            ...(nextRunId === null ? {} : { pendingAsk: null }),
+            lastRun: lastRunOf(run, input.close, now),
+            ...(moved ? { movedAt: now } : {}),
+            ...pullRequestPatch(pullRequest),
+            ...(leavesCycle ? { cycleId: null } : {}),
+            updatedAt: now,
+        });
+        return {
+            ignored: false,
+            cardId: run.cardId,
+            nextRunId,
+            next: finishedNextRun(next, nextRunId, run),
+            cycle:
+                cycle !== null && planned.cycleItem !== null
+                    ? { id: cycle.id, result: planned.cycleItem }
+                    : null,
+        };
     }
 
     /** A person interrupting a run: the card stays in its column, idle, with who stopped it. */
@@ -340,6 +414,7 @@ class RunRepository extends BaseRepository<RunRecord> {
                 transaction.update(cardRef, {
                     state: "idle",
                     activeRunId: null,
+                    cycleId: null,
                     lastRun: lastRunOf(
                         { id: card.activeRunId, stageKey: card.stageKey ?? "" },
                         close,
@@ -347,7 +422,12 @@ class RunRepository extends BaseRepository<RunRecord> {
                     ),
                     updatedAt: now,
                 });
-                return { ok: true, cardId, runId: card.activeRunId };
+                return {
+                    ok: true,
+                    cardId,
+                    runId: card.activeRunId,
+                    cycleId: card.cycleId,
+                };
             }
         );
     }

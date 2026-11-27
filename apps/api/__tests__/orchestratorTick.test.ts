@@ -25,6 +25,10 @@ const { store, fake, local, executorsMock } = vi.hoisted(() => ({
     executorsMock: vi.fn(),
 }));
 
+vi.mock("@/(shared)/lib/orchestrator/cycle", () => ({
+    onCycleItemSettled: vi.fn(),
+}));
+
 vi.mock("@/(shared)/repositories/run.repository", () => ({
     runRepository: {
         listActiveByBoard: () =>
@@ -46,6 +50,7 @@ vi.mock("@/(shared)/repositories/run.repository", () => ({
                 cardId: run.cardId,
                 nextRunId: null,
                 next: null,
+                cycle: null,
             });
         },
         promote: (input: {

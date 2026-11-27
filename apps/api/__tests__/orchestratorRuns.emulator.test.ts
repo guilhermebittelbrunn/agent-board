@@ -24,6 +24,10 @@ const { completeRun, settlePullRequest, stopRun, tick, triggerStage } =
 const { FAKE_RUN_DURATION_MS } = await import(
     "@/(shared)/lib/orchestrator/fake-executor"
 );
+const { createCycle } = await import("@/(shared)/lib/orchestrator/cycle");
+const { cycleRepository } = await import(
+    "@/(shared)/repositories/cycle.repository"
+);
 
 const RUN_ID = randomUUID();
 const parsed = parseBoardConfig(SAMPLE_BOARD_CONFIGS.valid);
@@ -138,7 +142,7 @@ async function driveUntilSettled(board: BoardDTO, cardId: string, start: Date) {
 
 afterAll(async () => {
     for (const boardId of usedBoards) {
-        for (const collection of ["card", "run", "cardEvent"]) {
+        for (const collection of ["card", "run", "cardEvent", "cycle"]) {
             const snapshot = await db()
                 .collection(collection)
                 .where("boardId", "==", boardId)
@@ -415,5 +419,146 @@ describe("orchestrator against the Firestore emulator", () => {
             activeRunId: null,
             lastRun: { outcome: "failed", endReason: "timeout" },
         });
+    });
+
+    it("runs a cycle one spec at a time past the approval gate and closes it", async () => {
+        const board = await createBoard({
+            analyze: { wipLimit: null, approvalGate: true },
+        });
+        const first = await createCard(board.id, "cycle-first");
+        const second = await createCard(board.id, "cycle-second");
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const created = await createCycle({
+            board,
+            input: {
+                slugs: ["cycle-first", "cycle-second"],
+                options: {
+                    until: "pull_request",
+                    concurrency: 1,
+                    onFailure: "skip",
+                },
+            },
+            by: OCTO,
+            now: start,
+        });
+        if (!created.ok) {
+            throw new Error(created.code);
+        }
+        const cycleId = created.cycle.id;
+
+        const MAX_READS = 40;
+        let now = start;
+        for (let read = 0; read < MAX_READS; read += 1) {
+            const cycle = await cycleRepository.findById(cycleId);
+            if (cycle?.status !== "running") {
+                break;
+            }
+            now = new Date(now.getTime() + FAKE_RUN_DURATION_MS);
+            await tick(board, now);
+        }
+
+        const cycle = await cycleRepository.findById(cycleId);
+        expect(cycle).toMatchObject({
+            status: "finished",
+            endReason: "completed",
+            items: [
+                { slug: "cycle-first", status: "done" },
+                { slug: "cycle-second", status: "done" },
+            ],
+        });
+        for (const cardId of [first, second]) {
+            expect(await cardRepository.findById(cardId)).toMatchObject({
+                lane: "stage",
+                stageKey: "pr",
+                state: "idle",
+                cycleId: null,
+                pullRequest: { state: "open" },
+            });
+        }
+        const firstRuns = await runsOf(first);
+        const secondRuns = await runsOf(second);
+        expect(firstRuns.every((run) => run.cycleId === cycleId)).toBe(true);
+        const lastOfFirst = Math.max(
+            ...firstRuns.map((run) => run.finishedAt.toMillis())
+        );
+        const firstOfSecond = Math.min(
+            ...secondRuns.map((run) => run.queuedAt.toMillis())
+        );
+        expect(firstOfSecond).toBeGreaterThanOrEqual(lastOfFirst);
+        const boardDoc = await db().collection("board").doc(board.id).get();
+        expect(boardDoc.data()?.runningCycleId).toBeNull();
+        const reports = await db()
+            .collection("cardEvent")
+            .where("cycleId", "==", cycleId)
+            .where("type", "==", "report")
+            .get();
+        expect(reports.size).toBe(2 * config.stages.length);
+        expect(
+            reports.docs.some((docSnap) =>
+                (docSnap.data().decisions ?? []).some(
+                    (decision: { product: boolean }) => decision.product
+                )
+            )
+        ).toBe(true);
+    });
+
+    it("lets only one of two cycles created at once run, and starts the other after it", async () => {
+        const board = await createBoard();
+        await createCard(board.id, "queue-a");
+        await createCard(board.id, "queue-b");
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const options = {
+            until: "testing" as const,
+            concurrency: 1 as const,
+            onFailure: "skip" as const,
+        };
+        const results = await Promise.all(
+            ["queue-a", "queue-b"].map((slug) =>
+                createCycle({
+                    board,
+                    input: { slugs: [slug], options },
+                    by: OCTO,
+                    now: start,
+                })
+            )
+        );
+        const cycles = results.map((result) => {
+            if (!result.ok) {
+                throw new Error(result.code);
+            }
+            return result.cycle;
+        });
+        expect(cycles.map((cycle) => cycle.status).sort()).toEqual([
+            "queued",
+            "running",
+        ]);
+        const queued = cycles.find((cycle) => cycle.status === "queued");
+        const boardDoc = await db().collection("board").doc(board.id).get();
+        expect(boardDoc.data()?.runningCycleId).toBe(
+            cycles.find((cycle) => cycle.status === "running")?.id
+        );
+
+        const MAX_READS = 40;
+        let now = start;
+        for (let read = 0; read < MAX_READS; read += 1) {
+            const stored = await cycleRepository.findById(queued?.id ?? "");
+            if (stored?.status === "finished") {
+                break;
+            }
+            now = new Date(now.getTime() + FAKE_RUN_DURATION_MS);
+            await tick(board, now);
+        }
+        const stored = await Promise.all(
+            cycles.map((cycle) => cycleRepository.findById(cycle.id))
+        );
+        expect(stored.map((cycle) => cycle?.status)).toEqual([
+            "finished",
+            "finished",
+        ]);
+        for (const slug of ["queue-a", "queue-b"]) {
+            expect(
+                await cardRepository.findById(`${board.id}__${slug}`)
+            ).toMatchObject({ stageKey: "test", state: "idle", cycleId: null });
+        }
     });
 });

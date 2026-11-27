@@ -26,6 +26,7 @@ import type { RunRecord } from "@/(shared)/mappers/run.mapper";
 import { cardRepository } from "@/(shared)/repositories/card.repository";
 import { cardEventRepository } from "@/(shared)/repositories/card-event.repository";
 import { runRepository } from "@/(shared)/repositories/run.repository";
+import { onCycleItemSettled } from "./cycle";
 import {
     deadlineFor,
     findExpired,
@@ -64,6 +65,7 @@ export async function triggerStage(input: {
     stageKey: string;
     by: RunPerson;
     trigger?: RunTrigger;
+    cycleId?: string;
     now?: Date;
 }): Promise<TriggerResult> {
     const now = input.now ?? new Date();
@@ -76,6 +78,7 @@ export async function triggerStage(input: {
                 by: input.by,
                 now,
                 trigger: input.trigger,
+                cycleId: input.cycleId,
             })
     );
     if (!queued.ok) {
@@ -120,7 +123,7 @@ export async function completeRun(input: {
             stoppedBy: null,
         },
         config: board.config,
-        plan: (card, run) =>
+        plan: (card, run, cycle) =>
             planCompletion({
                 card,
                 run,
@@ -128,6 +131,7 @@ export async function completeRun(input: {
                 config: board.config,
                 stageSettings: board.stageSettings,
                 now,
+                cycle,
             }),
         now,
     });
@@ -145,6 +149,14 @@ export async function completeRun(input: {
     }
     await settlePullRequest(board, result.cardId);
     await pumpBoard(board, now);
+    if (result.cycle !== null) {
+        await onCycleItemSettled(board, {
+            cycleId: result.cycle.id,
+            cardId: result.cardId,
+            result: result.cycle.result,
+            now,
+        });
+    }
     return { ignored: false };
 }
 
@@ -286,6 +298,14 @@ export async function stopRun(input: {
         await getStageExecutor(run.executor)?.cancel(stopped.runId);
     }
     await pumpBoard(input.board, now);
+    if (stopped.cycleId !== null) {
+        await onCycleItemSettled(input.board, {
+            cycleId: stopped.cycleId,
+            cardId: stopped.cardId,
+            result: "stopped",
+            now,
+        });
+    }
     const card = await cardRepository.findById(stopped.cardId);
     return card
         ? { ok: true, card }
@@ -411,6 +431,7 @@ const toActiveRunView = (run: RunRecord): ActiveRunView => ({
     slug: run.slug,
     stageKey: run.stageKey,
     command: run.command,
+    cycleId: run.cycleId,
     startedAt: new Date(run.startedAt ?? run.queuedAt),
 });
 
@@ -445,6 +466,7 @@ async function recordReport(
                     ...ref,
                     outcome: report.outcome,
                     summary: report.summary,
+                    decisions: report.decisions,
                 },
             },
             ctx
@@ -455,6 +477,7 @@ async function recordReport(
             await cardEventRepository.appendAgentEvent(card, {
                 ...event.write,
                 runId: run.id,
+                cycleId: run.cycleId,
             });
         }
     }

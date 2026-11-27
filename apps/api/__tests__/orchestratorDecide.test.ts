@@ -48,6 +48,7 @@ const card = (overrides: Partial<CardRecord> = {}): CardRecord => ({
     lastRun: null,
     pullRequest: null,
     pullRequestError: null,
+    cycleId: null,
     movedAt: null,
     movedByUserId: null,
     syncedAt: NOW.toISOString(),
@@ -71,6 +72,7 @@ const run = (overrides: Partial<RunRecord> = {}): RunRecord => ({
     branch: "feat/search-cards",
     trigger: "drag",
     triggeredBy: OCTO,
+    cycleId: null,
     executor: null,
     status: "queued",
     active: true,
@@ -288,6 +290,7 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
     });
 
@@ -315,6 +318,7 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
     });
 
@@ -344,6 +348,7 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
     });
 
@@ -368,6 +373,7 @@ describe("planCompletion", () => {
                 reworkLoops: 2,
             },
             next: null,
+            cycleItem: null,
         });
     });
 
@@ -380,6 +386,7 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
         expect(complete("failed", "develop").card).toMatchObject({
             stageKey: "develop",
@@ -396,7 +403,105 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
+    });
+});
+
+describe("cycles in the trigger and the completion", () => {
+    const triggerInput = { stageKey: "analyze", config, by: OCTO, now: NOW };
+    const cycleOf = (
+        status: "running" | "stopped",
+        until: "testing" | "pull_request" = "pull_request"
+    ) => ({
+        status,
+        options: { until, concurrency: 1 as const, onFailure: "skip" as const },
+    });
+    const completeIn = (
+        outcome: Parameters<typeof planCompletion>[0]["outcome"],
+        stageKey: string,
+        cycle: ReturnType<typeof cycleOf> | null,
+        approvalGate = false
+    ) =>
+        planCompletion({
+            card: { state: "running", reworkLoops: 0, pullRequest: null },
+            run: { stageKey },
+            outcome,
+            config,
+            now: NOW,
+            stageSettings: approvalGate
+                ? { [stageKey]: { wipLimit: null, approvalGate: true } }
+                : {},
+            cycle,
+        });
+
+    it("links the card and the run to the cycle that starts it", () => {
+        const plan = planTrigger(card(), {
+            ...triggerInput,
+            trigger: "cycle",
+            cycleId: "c1",
+        });
+        expect(plan).toMatchObject({
+            ok: true,
+            card: { cycleId: "c1" },
+            run: { cycleId: "c1", trigger: "cycle" },
+        });
+    });
+
+    it("takes the card out of the cycle on a person's start", () => {
+        const plan = planTrigger(card({ cycleId: "c1" }), triggerInput);
+        expect(plan).toMatchObject({
+            ok: true,
+            card: { cycleId: null },
+            run: { cycleId: null },
+        });
+    });
+
+    it("skips the approval gate inside a running cycle and keeps the item", () => {
+        const plan = completeIn("success", "analyze", cycleOf("running"), true);
+        expect(plan.card).toMatchObject({
+            stageKey: "develop",
+            state: "queued",
+        });
+        expect(plan.next?.stage.key).toBe("develop");
+        expect(plan.cycleItem).toBeNull();
+    });
+
+    it("stops on Testing with until testing and closes the item as done", () => {
+        const plan = completeIn(
+            "success",
+            "test",
+            cycleOf("running", "testing")
+        );
+        expect(plan.card).toMatchObject({ stageKey: "test", state: "idle" });
+        expect(plan.next).toBeNull();
+        expect(plan.cycleItem).toBe("done");
+    });
+
+    it("closes the item as done when the card waits on the pull request stage", () => {
+        const plan = completeIn("success", "pr", cycleOf("running"));
+        expect(plan.card).toMatchObject({ stageKey: "pr", state: "idle" });
+        expect(plan.cycleItem).toBe("done");
+    });
+
+    it("reports failed and waiting_input as the item's result", () => {
+        expect(
+            completeIn("failed", "develop", cycleOf("running")).cycleItem
+        ).toBe("failed");
+        expect(
+            completeIn("needs_input", "develop", cycleOf("running")).cycleItem
+        ).toBe("waiting_input");
+    });
+
+    it("starts nothing after a stage of a stopped cycle", () => {
+        const plan = completeIn("success", "develop", cycleOf("stopped"));
+        expect(plan.card).toMatchObject({ stageKey: "develop", state: "idle" });
+        expect(plan.next).toBeNull();
+        expect(plan.cycleItem).toBe("stopped");
+    });
+
+    it("leaves the result alone outside a cycle", () => {
+        expect(completeIn("success", "develop", null).cycleItem).toBeNull();
     });
 });
 
@@ -474,6 +579,7 @@ describe("the spec stage of a draft", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
         expect(completeWith("needs_input").card.state).toBe("waiting_input");
         expect(completeWith("needs_rework").card.state).toBe("failed");
@@ -574,6 +680,7 @@ describe("toStageDispatch", () => {
                 "slug",
                 "stageKey",
                 "triggeredBy",
+                "cycleId",
             ].sort()
         );
     });

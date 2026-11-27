@@ -8,6 +8,10 @@ const { findBySlugMock, enqueueMock, chooseMock } = vi.hoisted(() => ({
     chooseMock: vi.fn(),
 }));
 
+vi.mock("@/(shared)/lib/orchestrator/cycle", () => ({
+    onCycleItemSettled: vi.fn(),
+}));
+
 vi.mock("@/(shared)/repositories/card.repository", () => ({
     cardRepository: {
         findBySlug: (...args: unknown[]) => findBySlugMock(...args),

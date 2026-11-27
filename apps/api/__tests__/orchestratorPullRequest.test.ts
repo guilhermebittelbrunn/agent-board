@@ -21,6 +21,10 @@ const { cardStore, calls, appendMock, ensureMock, finishMock } = vi.hoisted(
     })
 );
 
+vi.mock("@/(shared)/lib/orchestrator/cycle", () => ({
+    onCycleItemSettled: vi.fn(),
+}));
+
 vi.mock("@/(shared)/repositories/card.repository", () => ({
     cardRepository: new Proxy(
         {},
@@ -308,6 +312,7 @@ describe("completeRun", () => {
         const id = seed("search-cards", { stageKey: "test" }, null);
         finishMock.mockResolvedValue({
             ignored: false,
+            cycle: null,
             cardId: id,
             nextRunId: "run-pr",
             next: {
@@ -339,6 +344,7 @@ describe("completeRun", () => {
         const id = seed("search-cards");
         finishMock.mockResolvedValue({
             ignored: false,
+            cycle: null,
             cardId: id,
             nextRunId: "run-mediate",
             next: {
@@ -364,6 +370,7 @@ describe("completeRun", () => {
         const id = seed("search-cards", {}, pullRequest({ state: "merged" }));
         finishMock.mockResolvedValue({
             ignored: false,
+            cycle: null,
             cardId: id,
             nextRunId: null,
             next: null,
@@ -393,6 +400,7 @@ describe("completeRun", () => {
             );
             finishMock.mockResolvedValue({
                 ignored: false,
+                cycle: null,
                 cardId: id,
                 nextRunId: null,
                 next: null,
@@ -419,6 +427,7 @@ describe("completeRun", () => {
         ensureMock.mockRejectedValue(new Error("firestore down"));
         finishMock.mockResolvedValue({
             ignored: false,
+            cycle: null,
             cardId: id,
             nextRunId: "run-pr",
             next: {
