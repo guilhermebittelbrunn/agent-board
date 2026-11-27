@@ -13,99 +13,13 @@ if (refusal) {
 }
 
 const USERS_COLLECTION = "user";
-const ENTITIES_COLLECTION = "entity";
-const NOTIFICATIONS_COLLECTION = "notification";
-const NOTIFICATION_RETENTION_DAYS = 90;
-const MS_PER_DAY = 86_400_000;
-const MS_PER_MINUTE = 60_000;
 const SEED_PASSWORD = "demo1234";
-const EMAIL_COLUMN_WIDTH = 20;
-const TYPE_COLUMN_WIDTH = 7;
 
+/** A second account exists so a board can be shared and a stranger's 404 can be exercised. */
 const ACCOUNTS = [
-    { email: "admin@example.com", type: "admin" },
-    { email: "user@example.com", type: "common" },
-    { email: "user2@example.com", type: "common" },
+    { email: "user@example.com" },
+    { email: "user2@example.com" },
 ];
-
-/**
- * Deliberately covers the edges the panel has to render: every EntityType, a disabled
- * record, an empty description, and null genre/birthdate. `photo` stays null because
- * the seed uploads no object, and a path to a missing one would render a broken image.
- */
-const ENTITIES_BY_OWNER = {
-    "user@example.com": [
-        {
-            name: "Acme Franchise",
-            description: "Flagship unit downtown",
-            type: "franchise",
-            genre: null,
-            birthdate: null,
-            enabled: true,
-        },
-        {
-            name: "Joana Ribeiro",
-            description: "Recurring customer",
-            type: "customer",
-            genre: "female",
-            birthdate: "1990-04-17",
-            enabled: true,
-        },
-        {
-            name: "Marcos Pereira",
-            description: "",
-            type: "collaborator",
-            genre: "male",
-            birthdate: "1985-11-02",
-            enabled: true,
-        },
-        {
-            name: "Retired Unit",
-            description: "Kept for history, switched off",
-            type: "franchise",
-            genre: null,
-            birthdate: null,
-            enabled: false,
-        },
-    ],
-    // A second owner exists so that the owner scope (a 404 on someone else's record) can
-    // be exercised without creating an account by hand.
-    "user2@example.com": [
-        {
-            name: "Other Owner Shop",
-            description: "Belongs to the second common user",
-            type: "franchise",
-            genre: null,
-            birthdate: null,
-            enabled: true,
-        },
-        {
-            name: "Alex Moreira",
-            description: "Belongs to the second common user",
-            type: "customer",
-            genre: "other",
-            birthdate: "2000-01-30",
-            enabled: true,
-        },
-    ],
-};
-
-const SEEDED_WELCOME_NOTIFICATIONS = 24;
-
-/**
- * Newest first. 25 for one owner so the bell pages through three loads of 10, including
- * a type no build knows, which must render the generic copy. The second common account
- * gets none, for the empty state.
- */
-const NOTIFICATIONS_BY_OWNER = {
-    "user@example.com": [
-        { type: "legacyTypeRemoved", read: false },
-        ...Array.from({ length: SEEDED_WELCOME_NOTIFICATIONS }, (_, index) => ({
-            type: "welcome",
-            read: index % 2 === 0,
-        })),
-    ],
-};
 
 async function wipe() {
     const auth = await fetch(
@@ -124,11 +38,7 @@ async function wipe() {
     }
 }
 
-/**
- * The account has to exist in Auth before the profile is written: the admin listing
- * joins the two by `reference_id` and drops any profile whose uid it cannot find.
- */
-async function createAccount(auth, db, { email, type }) {
+async function createAccount(auth, db, { email }) {
     const user = await auth.createUser({
         email,
         password: SEED_PASSWORD,
@@ -137,56 +47,14 @@ async function createAccount(auth, db, { email, type }) {
     });
 
     const now = new Date();
-    const profile = await db.collection(USERS_COLLECTION).add({
+    await db.collection(USERS_COLLECTION).add({
         reference_id: user.uid,
-        type,
         createdAt: now,
         updatedAt: now,
         // Not decorative: every lookup filters on `deletedAt == null`, and Firestore
         // does not match a missing field against null, so the profile would be invisible.
         deletedAt: null,
     });
-
-    return { uid: user.uid, profileId: profile.id };
-}
-
-async function createEntities(db, profileId, entities) {
-    const now = new Date();
-    for (const entity of entities) {
-        await db.collection(ENTITIES_COLLECTION).add({
-            ...entity,
-            // The owner is the profile document id, not the Auth uid.
-            userId: profileId,
-            photo: null,
-            createdAt: now,
-            updatedAt: now,
-            deletedAt: null,
-        });
-    }
-}
-
-async function createNotifications(db, profileId, notifications) {
-    const newest = Date.now();
-    for (const [index, notification] of notifications.entries()) {
-        const createdAt = new Date(newest - index * MS_PER_MINUTE);
-        await db
-            .collection(NOTIFICATIONS_COLLECTION)
-            .doc(`seed_${profileId}_${String(index).padStart(2, "0")}`)
-            .set({
-                userId: profileId,
-                type: notification.type,
-                params: {},
-                // `null`, never absent: the unread count filters on `readAt == null`.
-                readAt: notification.read ? createdAt : null,
-                expiresAt: new Date(
-                    createdAt.getTime() +
-                        NOTIFICATION_RETENTION_DAYS * MS_PER_DAY
-                ),
-                createdAt,
-                updatedAt: createdAt,
-                deletedAt: null,
-            });
-    }
 }
 
 async function main() {
@@ -196,28 +64,15 @@ async function main() {
 
     await wipe();
 
-    const rows = [];
     for (const account of ACCOUNTS) {
-        const { profileId } = await createAccount(auth, db, account);
-        const entities = ENTITIES_BY_OWNER[account.email] ?? [];
-        await createEntities(db, profileId, entities);
-        const notifications = NOTIFICATIONS_BY_OWNER[account.email] ?? [];
-        await createNotifications(db, profileId, notifications);
-        rows.push({
-            ...account,
-            entities: entities.length,
-            notifications: notifications.length,
-        });
+        await createAccount(auth, db, account);
     }
 
     process.stdout.write(
         [
             `Seeded the emulated project "${target.projectId}". Every account uses the password ${SEED_PASSWORD}.`,
             "",
-            ...rows.map(
-                (row) =>
-                    `  ${row.email.padEnd(EMAIL_COLUMN_WIDTH)} ${row.type.padEnd(TYPE_COLUMN_WIDTH)} ${row.entities} entities, ${row.notifications} notifications`
-            ),
+            ...ACCOUNTS.map((account) => `  ${account.email}`),
             "",
             "This state lives only in the emulators and is rebuilt from scratch every run.",
             "",
