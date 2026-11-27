@@ -33,22 +33,14 @@ export const PANEL_PAGE_TITLES = {
         dictionary.apps.app.pages.common.routes.platform.boards.members,
     "/boards/[id]/credentials": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.common.routes.platform.boards.credentials,
-    "/entities": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.common.routes.platform.entities.list,
-    "/entities/create": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.common.routes.platform.entities.create,
-    "/entities/edit/[id]": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.common.routes.platform.entities.update,
+    "/boards/[id]/cycles": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.cycles,
+    "/boards/[id]/cycles/new": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.newCycle,
+    "/boards/[id]/cycles/[cycleId]": (dictionary: Dictionary) =>
+        dictionary.apps.app.pages.common.routes.platform.boards.cycle,
     "/account": (dictionary: Dictionary) =>
         dictionary.apps.app.pages.common.account.title,
-    "/playground": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.common.routes.platform.playground,
-    "/admin/users": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.admin.routes.platform.users.list,
-    "/admin/users/create": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.admin.routes.platform.users.create,
-    "/admin/users/edit/[id]": (dictionary: Dictionary) =>
-        dictionary.apps.app.pages.admin.routes.platform.users.update,
 } as const;
 
 export type PanelPageRoute = keyof typeof PANEL_PAGE_TITLES;

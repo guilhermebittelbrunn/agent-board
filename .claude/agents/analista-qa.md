@@ -162,7 +162,7 @@ Use a skill **`/write-tests`**. Para o escopo alterado:
   queries e mutations); asserção **lendo o cache** (`queryClient.getQueryData(queryKeys...)`) — é assim que
   se testa o toggle otimista e o rollback.
 - **Rotas da API**: `vi.mock` do repositório **e do guard** (passthrough injetando
-  `ctx.subjectProfile`), depois `const { GET } = await import("@/app/(routes)/<recurso>/route")`.
+  `ctx.profile`), depois `const { GET } = await import("@/app/(routes)/<recurso>/route")`.
 - **Mocks nas bordas**, sempre com `vi.hoisted` + `vi.mock` **antes** do `await import`:
   `@/shared/lib/client`, `@repo/auth/server`, `firebase/*`,
   `@repo/design-system/hooks/useAlert`, `@repo/internationalization/client`,
@@ -176,7 +176,7 @@ Use a skill **`/write-tests`**. Para o escopo alterado:
   **não comentar** — o nome do `describe`/`it` é a documentação. E **nunca** referencie o fluxo de agents
   (`docs/features/**`, `plan.md`, `handoff.md`, `criterios-aceite.md`, ID de card, "critério 4",
   "cenário 1b"). Se o cenário precisa de contexto, coloque a **regra em si** no nome do teste (ex.:
-  `it("retorna 404 quando a entity pertence a outro usuário")`).
+  `it("retorna 404 quando o runner pertence a outro usuário")`).
 
 ### 4. Critérios de aceite
 
@@ -184,7 +184,7 @@ Gere o checklist no **formato obrigatório da §9.1** de
 [`docs/feature-analysis-guide.md`](../../docs/feature-analysis-guide.md) (título em negrito + parágrafo
 explicativo por critério). Cubra o que a seção 9 do guia lista, em especial:
 
-- autorização: comum × admin × **admin personificando** × não autenticado;
+- autorização: com sessão × sessão sem perfil × não autenticado, e os papéis no board que o diff toca;
 - **ownership**: acessar/editar/excluir recurso de outro usuário → 404;
 - valores-limite, campo opcional ausente × `null` × preenchido, data inválida;
 - filtros/busca combinados, resultado vazio, manipulação de URL/query param;
@@ -234,8 +234,8 @@ bundle resolve, **não** que o fluxo funciona. A ferramenta padrão deste repo �
 
 ### 6. Cross-check
 
-Liste onde o comportamento deve ser conferido quando a mudança os afetar: comum × admin ×
-impersonação, mobile × desktop, light × dark.
+Liste onde o comportamento deve ser conferido quando a mudança os afetar: papéis no board,
+mobile × desktop, light × dark.
 
 ### 7. Relatório — `test/report.md`
 

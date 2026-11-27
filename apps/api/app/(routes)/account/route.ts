@@ -5,18 +5,18 @@ import {
     resolvePreferences,
     withAvatarUrl,
 } from "@/(shared)/lib/account-avatar";
+import { omitUndefined } from "@/(shared)/lib/omit-undefined";
+import { parseRequestJson } from "@/(shared)/lib/parse-request-json";
 import {
     isOwnStorageObject,
     isUsablePhotoReference,
     normalizePhotoReference,
-} from "@/(shared)/lib/entity-photo";
-import { omitUndefined } from "@/(shared)/lib/omit-undefined";
-import { parseRequestJson } from "@/(shared)/lib/parse-request-json";
+} from "@/(shared)/lib/photo-reference";
 import { deleteObjectQuietly } from "@/(shared)/lib/storage";
 import { getMergedUserByFirestoreDocId } from "@/(shared)/lib/user-merge";
 import { userRepository } from "@/(shared)/repositories/user.repository";
 import { parseUpdateAccount } from "@/(shared)/validation/account.schema";
-import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
+import { requireSessionApi } from "@/app/(guards)/session";
 
 const notFound = (): Response =>
     Response.json(
@@ -104,8 +104,8 @@ async function writeAccount(args: {
     return { ok: true };
 }
 
-export const GET = requireCommonPanelApi(async (_req, ctx) => {
-    const merged = await getMergedUserByFirestoreDocId(ctx.subjectProfile.id);
+export const GET = requireSessionApi(async (_req, ctx) => {
+    const merged = await getMergedUserByFirestoreDocId(ctx.profile.id);
 
     if (!merged) {
         return notFound();
@@ -114,7 +114,7 @@ export const GET = requireCommonPanelApi(async (_req, ctx) => {
     return Response.json({ data: await toAccountResponse(merged) });
 });
 
-export const PUT = requireCommonPanelApi(async (req, ctx) => {
+export const PUT = requireSessionApi(async (req, ctx) => {
     const parsedBody = await parseRequestJson(req);
     if (!parsedBody.ok) {
         return parsedBody.response;
@@ -126,8 +126,8 @@ export const PUT = requireCommonPanelApi(async (req, ctx) => {
     }
 
     const input = parsed.value;
-    const ownerId = ctx.subjectProfile.id;
-    const previousAvatar = ctx.subjectProfile.avatar ?? null;
+    const ownerId = ctx.profile.id;
+    const previousAvatar = ctx.profile.avatar ?? null;
 
     const resolvedAvatar = resolveAvatar(input.avatar, ownerId, previousAvatar);
     if (!resolvedAvatar.ok) {
@@ -143,13 +143,13 @@ export const PUT = requireCommonPanelApi(async (req, ctx) => {
         avatar,
         preferences: mergePreferences(
             input.preferences,
-            ctx.subjectProfile.preferences
+            ctx.profile.preferences
         ),
     });
 
     const written = await writeAccount({
         ownerId,
-        uid: ctx.subjectProfile.reference_id,
+        uid: ctx.profile.reference_id,
         patch,
         displayName: input.displayName,
     });

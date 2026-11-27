@@ -1,6 +1,6 @@
 import type { AccountDTO, UserPreferences } from "@repo/sdk/src/types";
 import { logEvent } from "@repo/shared/utils/helpers/log";
-import { isAbsoluteHttpUrl } from "./entity-photo";
+import { isAbsoluteHttpUrl } from "./photo-reference";
 import {
     isStorageConfigured,
     isStorageObjectPath,

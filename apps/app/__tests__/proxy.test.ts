@@ -123,9 +123,9 @@ describe("proxy static assets", () => {
 
 describe("proxy locale", () => {
     it("prefixes a path that has no locale with the default one", async () => {
-        const response = await proxy(anonymous("/entities"));
+        const response = await proxy(anonymous("/boards"));
 
-        expect(locationOf(response)).toBe("/pt-br/entities");
+        expect(locationOf(response)).toBe("/pt-br/boards");
     });
 
     it("keeps the query when it prefixes the locale", async () => {
@@ -149,7 +149,7 @@ describe("proxy locale", () => {
     });
 
     it("keeps the default locale for 180 days on the redirect, without Secure over HTTP", async () => {
-        await proxy(anonymous("/entities"));
+        await proxy(anonymous("/boards"));
 
         expect(cookieSetMock).toHaveBeenCalledWith(
             "x-locale",
@@ -162,7 +162,7 @@ describe("proxy locale", () => {
         getUserFromSessionCookieMock.mockResolvedValue(null);
 
         await proxy(makeRequest("/pt-br/sign-in", { origin: HTTPS_ORIGIN }));
-        await proxy(makeRequest("/entities", { origin: HTTPS_ORIGIN }));
+        await proxy(makeRequest("/boards", { origin: HTTPS_ORIGIN }));
 
         expect(cookieSetMock.mock.calls).toEqual([
             ["x-locale", "pt-br", localeCookieOptions(true)],
@@ -172,7 +172,7 @@ describe("proxy locale", () => {
 
     it("hands the locale of the path to server rendering", async () => {
         const anonymousResponse = await proxy(anonymous("/pt-br/sign-in"));
-        const signedInResponse = await proxy(signedIn("/pt-br/entities"));
+        const signedInResponse = await proxy(signedIn("/pt-br/boards"));
 
         expect(anonymousResponse.headers.get(FORWARDED_LOCALE)).toBe("pt-br");
         expect(signedInResponse.headers.get(FORWARDED_LOCALE)).toBe("pt-br");
@@ -182,7 +182,7 @@ describe("proxy locale", () => {
     });
 
     it("replaces a locale header the browser sent", async () => {
-        const request = signedIn("/pt-br/entities");
+        const request = signedIn("/pt-br/boards");
         request.headers.set(LOCALE_REQUEST_HEADER, "es");
 
         const response = await proxy(request);
@@ -215,11 +215,11 @@ describe("proxy locale", () => {
 
 describe("proxy default deny", () => {
     it("sends an anonymous visitor to sign-in keeping the deep link", async () => {
-        const response = await proxy(anonymous("/pt-br/entities/create"));
+        const response = await proxy(anonymous("/pt-br/boards/new"));
 
         expect(response.status).toBe(TEMPORARY_REDIRECT);
         expect(locationOf(response)).toBe(
-            "/pt-br/sign-in?redirect=%2Fpt-br%2Fentities%2Fcreate"
+            "/pt-br/sign-in?redirect=%2Fpt-br%2Fboards%2Fnew"
         );
     });
 
@@ -271,8 +271,30 @@ describe("proxy default deny", () => {
         );
     });
 
+    it("lets an anonymous visitor reach the landing at the locale root", async () => {
+        for (const path of ["/pt-br", "/pt-br/"]) {
+            const response = await proxy(anonymous(path));
+
+            expect(locationOf(response)).toBeNull();
+        }
+    });
+
+    it("opens only the exact locale root, never what lies under it", async () => {
+        for (const [path, redirect] of [
+            ["/pt-br/boards", "%2Fpt-br%2Fboards"],
+            ["/pt-br//boards", "%2Fpt-br%2F%2Fboards"],
+            ["/pt-br/account", "%2Fpt-br%2Faccount"],
+        ]) {
+            const response = await proxy(anonymous(path));
+
+            expect(locationOf(response)).toBe(
+                `/pt-br/sign-in?redirect=${redirect}`
+            );
+        }
+    });
+
     it("lets a signed-in visitor through an authenticated route", async () => {
-        const response = await proxy(signedIn("/pt-br/entities"));
+        const response = await proxy(signedIn("/pt-br/boards"));
 
         expect(locationOf(response)).toBeNull();
     });
@@ -281,11 +303,11 @@ describe("proxy default deny", () => {
 describe("proxy bounce off the public paths", () => {
     it("sends a signed-in visitor to the deep link stored on the way in", async () => {
         const response = await proxy(
-            signedIn("/pt-br/sign-in?redirect=%2Fpt-br%2Fentities%2Fcreate")
+            signedIn("/pt-br/sign-in?redirect=%2Fpt-br%2Fboards%2Fnew")
         );
 
         expect(response.status).toBe(TEMPORARY_REDIRECT);
-        expect(locationOf(response)).toBe("/pt-br/entities/create");
+        expect(locationOf(response)).toBe("/pt-br/boards/new");
     });
 
     it("keeps the query of the deep link, on the host the request came to", async () => {
@@ -300,10 +322,18 @@ describe("proxy bounce off the public paths", () => {
         );
     });
 
-    it("falls back to the locale home with no deep link", async () => {
+    it("falls back to the boards with no deep link", async () => {
         const response = await proxy(signedIn("/pt-br/sign-in"));
 
-        expect(locationOf(response)).toBe("/pt-br");
+        expect(locationOf(response)).toBe("/pt-br/boards");
+    });
+
+    it("sends a signed-in visitor of the landing to the boards", async () => {
+        for (const path of ["/pt-br", "/pt-br/"]) {
+            const response = await proxy(signedIn(path));
+
+            expect(locationOf(response)).toBe("/pt-br/boards");
+        }
     });
 
     /** Bouncing home would drop the token, and with it the only way to accept. */
@@ -318,7 +348,7 @@ describe("proxy bounce off the public paths", () => {
                 signedIn(`/pt-br/sign-in?redirect=${redirect}`)
             );
 
-            expect(locationOf(response)).toBe("/pt-br");
+            expect(locationOf(response)).toBe("/pt-br/boards");
         }
     });
 
@@ -346,7 +376,7 @@ describe("proxy bounce off the public paths", () => {
             );
 
             expect(locationOf(response)?.startsWith("//")).toBe(false);
-            expect(locationOf(response)).toBe("/pt-br");
+            expect(locationOf(response)).toBe("/pt-br/boards");
         }
     });
 });
@@ -371,13 +401,13 @@ describe("proxy and a session ended from another device", () => {
 
             const response = await proxy(signedIn("/pt-br/sign-in"));
 
-            expect(locationOf(response)).toBe("/pt-br");
+            expect(locationOf(response)).toBe("/pt-br/boards");
         }
         expect(clearSessionCookieMock).not.toHaveBeenCalled();
     });
 
     it("does not ask the API on an authenticated route or without a cookie", async () => {
-        await proxy(signedIn("/pt-br/entities"));
+        await proxy(signedIn("/pt-br/boards"));
         await proxy(anonymous("/pt-br/sign-in"));
 
         expect(sessionCheckMock).not.toHaveBeenCalled();
@@ -386,7 +416,7 @@ describe("proxy and a session ended from another device", () => {
 
 describe("proxy forwarded headers", () => {
     it("still stores the locale cookie when it forwards the request headers", async () => {
-        const response = await proxy(signedIn("/pt-br/entities"));
+        const response = await proxy(signedIn("/pt-br/boards"));
 
         expect(cookieSetMock).toHaveBeenCalledWith(
             "x-locale",

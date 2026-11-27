@@ -8,6 +8,21 @@ const readyInTasks = {
 };
 
 describe("decideCardMove", () => {
+    it("keeps a spec draft in Drafts until its spec is approved", () => {
+        for (const lane of ["tasks", "done"] as const) {
+            expect(
+                decideCardMove(
+                    { lane: "drafts", ready: false, activeRunId: null },
+                    { lane }
+                )
+            ).toEqual({
+                ok: false,
+                code: "CARD_DRAFT_NOT_APPROVED",
+                status: 409,
+            });
+        }
+    });
+
     it("lets a ready card leave Tasks for Done", () => {
         expect(decideCardMove(readyInTasks, { lane: "done" })).toEqual({
             ok: true,

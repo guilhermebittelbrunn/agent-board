@@ -73,7 +73,7 @@ Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. Local: `pnpm emulators` + `pnpm s
 1. **SDK é a única porta para a API.** No front, chame `apiClient.<recurso>.<ação>()` (de `@/shared/lib/client`), nunca `fetch`/axios cru nem URL hardcoded.
 2. **Nada de string de UI solta.** Todo texto visível (labels, placeholders, `aria-label`, toasts, colunas, confirmações) vem do dictionary `@repo/internationalization`. Use a skill [`/i18n-sync`](.claude/skills/i18n-sync/SKILL.md).
 3. **Erros de API por código.** A API responde `{ error: { code: "FOO_BAR" } }`; o app mapeia `code` → texto via `apiErrors` (`translations/packages/shared/utils.ts`) + `FormattedError`/`handleClientError`. Nunca vaze stack trace como copy.
-4. **Autorização espelhada na API.** Guards no servidor sempre (`requireCommonPanelApi`/`requireAdminApi`); UI oculta nunca é a única proteção.
+4. **Autorização espelhada na API.** Guards no servidor sempre (`requireSessionApi` para o que é da pessoa, `requireBoardApi` para o que é de um board); UI oculta nunca é a única proteção.
 5. **Firestore via repositório + mapper.** Estenda `BaseRepository<DTO>` e passe o mapper no `super` (`super(db, "tabela", mapper)`); normalize `Timestamp`→ISO no mapper, não no handler.
 6. **Validação na borda da API** com Zod (`parseCreateX`/`parseUpdateX`) + helpers `parseRequestJson`, `omitUndefined`, `resolveIdFromContext`.
 7. **Formulários e tabelas** usam os componentes compartilhados: `HookFormInput/Textarea/Select/Switch/DateInput/RadioGroup` e `Table` (com `searchFields`/`onRefresh`) do `@repo/design-system`; `Container`, `FormContainer` e `Footer` de `apps/app/shared/components/ui/`. Prop de erro é `error`, nunca `errorMessage`. Não reinvente primitivos.
@@ -82,11 +82,11 @@ Node `22.12.0` (ver `.nvmrc`), pnpm `10.19.0`. Local: `pnpm emulators` + `pnpm s
 10. **Mudanças mínimas + Server Components por padrão.** `"use client"` só com estado/eventos/browser API. Não refatore arquivos fora da tarefa. Rode `pnpm check` antes de concluir.
 11. **Quem executa o produto é o QA.** Fluxo que toca UI/layout (`apps/app`, `packages/design-system`) não está pronto sem ser percorrido com a skill **`agent-browser`** (light + dark + mobile) — mas isso acontece **uma vez**, no `/test`, pelo `analista-qa`. O `/develop` faz smoke para se desbloquear; o `/review` lê código e roda os gates estáticos. Nenhum dos dois sobe app, dirige browser ou tira screenshot. O que a revisão não confirma lendo código vira a lista **"Verificar no `/test`"**, e afirmação herdada sem medição própria não conta como aprovada. Divisão e evidência na §6 de [`docs/review-checklist.md`](docs/review-checklist.md). A suíte E2E (`pnpm e2e`, Playwright) roda no CI como rede de regressão dos fluxos críticos e não substitui essa passada: ela confere que o fluxo funciona, não julga tema, responsivo nem layout.
 
-**Referência viva**: o CRUD de exemplo `entity` cobre o slice inteiro de ponta a ponta — use como template:
-- API: `apps/api/app/(routes)/entities/`, `apps/api/(shared)/repositories/entity.repository.ts`, `.../mappers/entity.mapper.ts`, `.../validation/entity.schema.ts`
-- SDK: `packages/sdk/src/actions/entity/action.ts`, tipos em `packages/sdk/src/types`
-- App: `apps/app/app/[locale]/(authenticated)/(common)/(pages)/entities/`
-- i18n: `packages/internationalization/translations/apps/app/pages/common/entities.ts`
+**Referência viva**: os membros do board (`boardMember`) cobrem o slice inteiro de ponta a ponta — use como template:
+- API: `apps/api/app/(routes)/boards/[id]/members/`, `apps/api/(shared)/repositories/board-member.repository.ts`, `.../mappers/board-member.mapper.ts`, `.../validation/board-member.schema.ts`
+- SDK: `packages/sdk/src/actions/boardMember/action.ts`, tipos em `packages/sdk/src/types/board/member.ts`
+- App: `apps/app/app/[locale]/(authenticated)/(common)/(pages)/boards/(pages)/[id]/members/` e `boards/(hooks)/useBoardMemberCrud.tsx`
+- i18n: bloco `members` de `packages/internationalization/translations/apps/app/pages/common/boards.ts`
 
 ### Regras do board (somam-se às de cima)
 
@@ -124,17 +124,17 @@ Hub do ferramental: [`docs/AI-WORKFLOW.md`](docs/AI-WORKFLOW.md).
 ### Pipeline de tarefas — [`docs/TASK-PIPELINE.md`](docs/TASK-PIPELINE.md)
 
 ```
-/spec  →  /analyze  →  /develop  →  /review  →  /test     (+ opcionais: /observe · /mediate)
-descobrir  planejar     implementar   revisar     QA
-   ↑                                                └── /spec --sync fecha o ciclo
+/spec  →  /analyze  →  /develop  →  /review  →  /test  →  /spec --sync <slug>   (+ opcionais: /observe · /mediate)
+descobrir  planejar     implementar   revisar     QA        fecha a spec na própria branch
 
 /cycle — a linha inteira numa tacada, sem parar para perguntar (não commita)
 ```
 
 O ciclo começa no **backlog de funcionalidades** ([`specs/`](specs/README.md)): o `/spec` varre o repo e
 escreve as specs; você aprova uma e roda **`/analyze <nome-da-spec>`**
-(o nome da spec é o argumento padrão). No fim, `/spec --sync` audita o backlog contra o código — é isso que
-faz disso um **loop**, e não uma lista de desejos. Spec responde *o quê/por quê*; o plano do `/analyze`
+(o nome da spec é o argumento padrão). No fim, **na mesma branch**, `/spec --sync <slug>` confere a entrega no
+código, arquiva a spec e atualiza o `BACKLOG.md`, para o merge levar a fila já correta para `main`. O
+`/spec --sync` sem slug audita o backlog inteiro — é isso que faz disso um **loop**, e não uma lista de desejos. Spec responde *o quê/por quê*; o plano do `/analyze`
 responde *como*. **`specs/` contém só o que não foi entregue**; o ciclo de vida completo está em
 [`specs/README.md`](specs/README.md).
 
@@ -165,7 +165,7 @@ interativas, commit e push por etapa, relatório no card): [`.claude/rules/board
 ### Skills do projeto (digite `/` para invocar)
 
 - **`/spec-audit`** — reconcilia o backlog `specs/` com a realidade do código (fecha o loop; é o motor do `/spec --sync`).
-- **`/new-crud`** — scaffold de um CRUD vertical completo (SDK → API → app → i18n), seguindo o padrão `entity`.
+- **`/new-crud`** — scaffold de um CRUD vertical completo (SDK → API → app → i18n), seguindo o padrão `boardMember`.
 - **`/new-api-route`** — cria rota na `apps/api` (validação, guard, repo+mapper, `error.code`).
 - **`/i18n-sync`** — adiciona/valida chaves do dicionário (pt-br) + `apiErrors`.
 - **`/write-tests`** — testes Vitest (schema, mapper, rota, hook, componente) no setup do repo. Sempre no **nível mais barato que prova o comportamento**: teste que exige emulador ou app de pé só quando a infra for o objeto do teste.

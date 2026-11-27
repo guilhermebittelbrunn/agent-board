@@ -4,6 +4,8 @@ import type { BoardDTO } from "@repo/sdk/src/types";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+// No GitHub App variables: against the emulator the board answers with the sample client.
+vi.mock("@/env", () => ({ env: {} }));
 
 const { getFirestoreAdmin } = await import("@repo/auth/server");
 const { SAMPLE_BOARD_CONFIGS } = await import(
@@ -16,11 +18,17 @@ const { cardRepository } = await import(
 const { runRepository } = await import(
     "@/(shared)/repositories/run.repository"
 );
-const { completeRun, stopRun, tick, triggerStage } = await import(
-    "@/(shared)/lib/orchestrator/orchestrator"
-);
+const { applyPullRequestEvent } = await import("@repo/kanban-contract");
+const { completeRun, settlePullRequest, stopRun, tick, triggerStage } =
+    await import("@/(shared)/lib/orchestrator/orchestrator");
 const { FAKE_RUN_DURATION_MS } = await import(
     "@/(shared)/lib/orchestrator/fake-executor"
+);
+const { createCycle, stopCycle } = await import(
+    "@/(shared)/lib/orchestrator/cycle"
+);
+const { cycleRepository } = await import(
+    "@/(shared)/repositories/cycle.repository"
 );
 
 const RUN_ID = randomUUID();
@@ -136,7 +144,7 @@ async function driveUntilSettled(board: BoardDTO, cardId: string, start: Date) {
 
 afterAll(async () => {
     for (const boardId of usedBoards) {
-        for (const collection of ["card", "run", "cardEvent"]) {
+        for (const collection of ["card", "run", "cardEvent", "cycle"]) {
             const snapshot = await db()
                 .collection(collection)
                 .where("boardId", "==", boardId)
@@ -274,7 +282,7 @@ describe("orchestrator against the Firestore emulator", () => {
         expect(afterStop.map((run) => run.status)).toEqual(["running"]);
     });
 
-    it("walks the card through every stage to Done with the fake executor", async () => {
+    it("walks the card through every stage, opens its pull request and takes it to Done on merge", async () => {
         const board = await createBoard();
         const cardId = await createCard(board.id, "happy-path");
         const start = new Date("2026-11-26T10:00:00.000Z");
@@ -288,12 +296,45 @@ describe("orchestrator against the Firestore emulator", () => {
 
         const { card, stages } = await driveUntilSettled(board, cardId, start);
 
-        expect(stages).toEqual(["analyze", "develop", "review", "test"]);
+        expect(stages).toEqual(["analyze", "develop", "review", "test", "pr"]);
         expect(card).toMatchObject({
+            lane: "stage",
+            stageKey: "pr",
+            state: "idle",
+            lastRun: { stageKey: "pr", outcome: "success" },
+            pullRequestError: null,
+            pullRequest: {
+                state: "open",
+                draft: true,
+                headRef: "feat/happy-path",
+                baseRef: "main",
+                openedByBoard: true,
+                dispatchAs: OCTO,
+            },
+        });
+        const number = card?.pullRequest?.number as number;
+
+        // What the merge webhook writes, against the real transaction and mapper.
+        await cardRepository.updatePullRequest(cardId, (stored) =>
+            stored.pullRequest?.number === number
+                ? {
+                      pullRequest: applyPullRequestEvent(stored.pullRequest, {
+                          kind: "closed",
+                          merged: true,
+                          byLogin: "qa-pr-flow",
+                          at: new Date().toISOString(),
+                      }),
+                  }
+                : null
+        );
+        await settlePullRequest(board, cardId);
+
+        expect(await cardRepository.findById(cardId)).toMatchObject({
             lane: "done",
             stageKey: null,
             state: "idle",
-            lastRun: { stageKey: "test", outcome: "success" },
+            movedByUserId: null,
+            pullRequest: { state: "merged", closedByLogin: "qa-pr-flow" },
         });
         const reports = await db()
             .collection("cardEvent")
@@ -379,6 +420,314 @@ describe("orchestrator against the Firestore emulator", () => {
             state: "failed",
             activeRunId: null,
             lastRun: { outcome: "failed", endReason: "timeout" },
+        });
+    });
+
+    it("runs a cycle one spec at a time past the approval gate and closes it", async () => {
+        const board = await createBoard({
+            analyze: { wipLimit: null, approvalGate: true },
+        });
+        const first = await createCard(board.id, "cycle-first");
+        const second = await createCard(board.id, "cycle-second");
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const created = await createCycle({
+            board,
+            input: {
+                slugs: ["cycle-first", "cycle-second"],
+                options: {
+                    until: "pull_request",
+                    concurrency: 1,
+                    onFailure: "skip",
+                },
+            },
+            by: OCTO,
+            now: start,
+        });
+        if (!created.ok) {
+            throw new Error(created.code);
+        }
+        const cycleId = created.cycle.id;
+
+        const MAX_READS = 40;
+        let now = start;
+        for (let read = 0; read < MAX_READS; read += 1) {
+            const cycle = await cycleRepository.findById(cycleId);
+            if (cycle?.status !== "running") {
+                break;
+            }
+            now = new Date(now.getTime() + FAKE_RUN_DURATION_MS);
+            await tick(board, now);
+        }
+
+        const cycle = await cycleRepository.findById(cycleId);
+        expect(cycle).toMatchObject({
+            status: "finished",
+            endReason: "completed",
+            items: [
+                { slug: "cycle-first", status: "done" },
+                { slug: "cycle-second", status: "done" },
+            ],
+        });
+        for (const cardId of [first, second]) {
+            expect(await cardRepository.findById(cardId)).toMatchObject({
+                lane: "stage",
+                stageKey: "pr",
+                state: "idle",
+                cycleId: null,
+                pullRequest: { state: "open" },
+            });
+        }
+        const firstRuns = await runsOf(first);
+        const secondRuns = await runsOf(second);
+        expect(firstRuns.every((run) => run.cycleId === cycleId)).toBe(true);
+        const lastOfFirst = Math.max(
+            ...firstRuns.map((run) => run.finishedAt.toMillis())
+        );
+        const firstOfSecond = Math.min(
+            ...secondRuns.map((run) => run.queuedAt.toMillis())
+        );
+        expect(firstOfSecond).toBeGreaterThanOrEqual(lastOfFirst);
+        const boardDoc = await db().collection("board").doc(board.id).get();
+        expect(boardDoc.data()?.runningCycleId).toBeNull();
+        const reports = await db()
+            .collection("cardEvent")
+            .where("cycleId", "==", cycleId)
+            .where("type", "==", "report")
+            .get();
+        expect(reports.size).toBe(2 * config.stages.length);
+        expect(
+            reports.docs.some((docSnap) =>
+                (docSnap.data().decisions ?? []).some(
+                    (decision: { product: boolean }) => decision.product
+                )
+            )
+        ).toBe(true);
+    });
+
+    it("lets only one of two cycles created at once run, and starts the other after it", async () => {
+        const board = await createBoard();
+        await createCard(board.id, "queue-a");
+        await createCard(board.id, "queue-b");
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const options = {
+            until: "testing" as const,
+            concurrency: 1 as const,
+            onFailure: "skip" as const,
+        };
+        const results = await Promise.all(
+            ["queue-a", "queue-b"].map((slug) =>
+                createCycle({
+                    board,
+                    input: { slugs: [slug], options },
+                    by: OCTO,
+                    now: start,
+                })
+            )
+        );
+        const cycles = results.map((result) => {
+            if (!result.ok) {
+                throw new Error(result.code);
+            }
+            return result.cycle;
+        });
+        expect(cycles.map((cycle) => cycle.status).sort()).toEqual([
+            "queued",
+            "running",
+        ]);
+        const queued = cycles.find((cycle) => cycle.status === "queued");
+        const boardDoc = await db().collection("board").doc(board.id).get();
+        expect(boardDoc.data()?.runningCycleId).toBe(
+            cycles.find((cycle) => cycle.status === "running")?.id
+        );
+
+        const MAX_READS = 40;
+        let now = start;
+        for (let read = 0; read < MAX_READS; read += 1) {
+            const stored = await cycleRepository.findById(queued?.id ?? "");
+            if (stored?.status === "finished") {
+                break;
+            }
+            now = new Date(now.getTime() + FAKE_RUN_DURATION_MS);
+            await tick(board, now);
+        }
+        const stored = await Promise.all(
+            cycles.map((cycle) => cycleRepository.findById(cycle.id))
+        );
+        expect(stored.map((cycle) => cycle?.status)).toEqual([
+            "finished",
+            "finished",
+        ]);
+        for (const slug of ["queue-a", "queue-b"]) {
+            expect(
+                await cardRepository.findById(`${board.id}__${slug}`)
+            ).toMatchObject({ stageKey: "test", state: "idle", cycleId: null });
+        }
+    });
+    it("stops a cycle mid-stage, detaches its cards and starts the queued cycle", async () => {
+        const board = await createBoard();
+        const firstId = await createCard(board.id, "stop-first");
+        const secondId = await createCard(board.id, "stop-second");
+        const nextId = await createCard(board.id, "stop-next");
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const options = {
+            until: "pull_request" as const,
+            concurrency: 1 as const,
+            onFailure: "skip" as const,
+        };
+        const running = await createCycle({
+            board,
+            input: { slugs: ["stop-first", "stop-second"], options },
+            by: OCTO,
+            now: start,
+        });
+        const queued = await createCycle({
+            board,
+            input: { slugs: ["stop-next"], options },
+            by: OCTO,
+            now: start,
+        });
+        if (!(running.ok && queued.ok)) {
+            throw new Error("cycle refused");
+        }
+        expect(queued.cycle.status).toBe("queued");
+        expect(await cardRepository.findById(firstId)).toMatchObject({
+            stageKey: "analyze",
+            state: "running",
+            cycleId: running.cycle.id,
+        });
+
+        const stopAt = new Date(start.getTime() + FAKE_RUN_DURATION_MS / 2);
+        const stopped = await stopCycle({
+            board,
+            cycleId: running.cycle.id,
+            by: OCTO,
+            now: stopAt,
+        });
+
+        expect(stopped).toMatchObject({
+            ok: true,
+            cycle: {
+                status: "stopped",
+                items: [
+                    { slug: "stop-first", status: "stopped" },
+                    { slug: "stop-second", status: "skipped" },
+                ],
+            },
+        });
+        const first = await cardRepository.findById(firstId);
+        expect(first).toMatchObject({
+            stageKey: "analyze",
+            activeRunId: null,
+            cycleId: null,
+        });
+        expect(first?.state).not.toBe("running");
+        expect((await runsOf(firstId)).map((run) => run.status)).not.toContain(
+            "running"
+        );
+        expect(await cardRepository.findById(secondId)).toMatchObject({
+            lane: "tasks",
+            cycleId: null,
+        });
+        expect(await runsOf(secondId)).toHaveLength(0);
+        expect(await cycleRepository.findById(queued.cycle.id)).toMatchObject({
+            status: "running",
+        });
+        const boardDoc = await db().collection("board").doc(board.id).get();
+        expect(boardDoc.data()?.runningCycleId).toBe(queued.cycle.id);
+        expect(await cardRepository.findById(nextId)).toMatchObject({
+            stageKey: "analyze",
+            cycleId: queued.cycle.id,
+        });
+        expect(
+            await stopCycle({
+                board,
+                cycleId: running.cycle.id,
+                by: OCTO,
+                now: stopAt,
+            })
+        ).toMatchObject({ ok: false, code: "CYCLE_NOT_ACTIVE" });
+    });
+
+    it("closes a cycle on the first failure with onFailure stop and lets the other spec end its current stage", async () => {
+        const board = await createBoard();
+        const failingId = await createCard(board.id, "halt-failing");
+        const otherId = await createCard(board.id, "halt-other");
+        await createCard(board.id, "halt-pending");
+        const nextId = await createCard(board.id, "halt-next");
+        await scriptCard(failingId, ["failed"]);
+        await scriptCard(otherId, ["silent"]);
+        const start = new Date("2026-11-26T10:00:00.000Z");
+        const running = await createCycle({
+            board,
+            input: {
+                slugs: ["halt-failing", "halt-other", "halt-pending"],
+                options: {
+                    until: "pull_request",
+                    concurrency: 2,
+                    onFailure: "stop",
+                },
+            },
+            by: OCTO,
+            now: start,
+        });
+        const queued = await createCycle({
+            board,
+            input: {
+                slugs: ["halt-next"],
+                options: {
+                    until: "testing",
+                    concurrency: 1,
+                    onFailure: "skip",
+                },
+            },
+            by: OCTO,
+            now: start,
+        });
+        if (!(running.ok && queued.ok)) {
+            throw new Error("cycle refused");
+        }
+
+        await tick(board, new Date(start.getTime() + FAKE_RUN_DURATION_MS));
+
+        expect(await cycleRepository.findById(running.cycle.id)).toMatchObject({
+            status: "stopped",
+            items: [
+                { slug: "halt-failing", status: "failed" },
+                { slug: "halt-other", status: "running" },
+                { slug: "halt-pending", status: "skipped" },
+            ],
+        });
+        expect(await cardRepository.findById(otherId)).toMatchObject({
+            stageKey: "analyze",
+            state: "running",
+        });
+        expect(await cycleRepository.findById(queued.cycle.id)).toMatchObject({
+            status: "running",
+        });
+        expect(await cardRepository.findById(nextId)).toMatchObject({
+            stageKey: "analyze",
+            cycleId: queued.cycle.id,
+        });
+
+        const MS_PER_MINUTE = 60_000;
+        await tick(
+            board,
+            new Date(
+                start.getTime() +
+                    config.limits.stageTimeoutMinutes * MS_PER_MINUTE
+            )
+        );
+        const other = await cardRepository.findById(otherId);
+        expect(other).toMatchObject({
+            stageKey: "analyze",
+            activeRunId: null,
+            cycleId: null,
+        });
+        expect(await runsOf(otherId)).toHaveLength(1);
+        const closed = await cycleRepository.findById(running.cycle.id);
+        expect(closed?.items[1]).toMatchObject({
+            slug: "halt-other",
+            status: "failed",
         });
     });
 });

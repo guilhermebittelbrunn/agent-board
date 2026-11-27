@@ -4,6 +4,8 @@ import type {
     BoardDTO,
     BoardViewDTO,
 } from "@repo/sdk/src/types";
+import { isStorageConfigured } from "./storage";
+
 /** `executor` is resolved for whoever reads the board: it depends on their own runners. */
 export const toBoardView = (
     board: BoardDTO,
@@ -13,4 +15,5 @@ export const toBoardView = (
     ...board,
     access,
     executor,
+    storageAvailable: isStorageConfigured(),
 });

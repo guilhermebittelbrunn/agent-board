@@ -89,10 +89,10 @@ describe("instrumentation register", () => {
 });
 
 describe("instrumentation onRequestError", () => {
-    const errorRequest = { path: "/entities", method: "POST", headers: {} };
+    const errorRequest = { path: "/boards", method: "POST", headers: {} };
     const errorContext = {
         routerKind: "App Router",
-        routePath: "/entities",
+        routePath: "/boards",
         routeType: "route",
         revalidateReason: undefined,
     } as const;
@@ -123,7 +123,7 @@ describe("instrumentation onRequestError", () => {
         );
 
         expect(warn).toHaveBeenCalledWith(
-            "[request] failed method=POST path=/entities routeType=route digest=1837465920"
+            "[request] failed method=POST path=/boards routeType=route digest=1837465920"
         );
     });
 
@@ -131,7 +131,7 @@ describe("instrumentation onRequestError", () => {
         onRequestError?.(new Error("boom"), errorRequest, errorContext);
 
         expect(warn).toHaveBeenCalledWith(
-            "[request] failed method=POST path=/entities routeType=route"
+            "[request] failed method=POST path=/boards routeType=route"
         );
     });
 
@@ -173,7 +173,7 @@ describe("instrumentation onRequestError", () => {
         );
 
         expect(warn).toHaveBeenCalledWith(
-            "[request] failed method=POST path=/entities routeType=route requestId=3f2a1b8c-0f4a-4d0a-9e77-9f5f0a3a1c22"
+            "[request] failed method=POST path=/boards routeType=route requestId=3f2a1b8c-0f4a-4d0a-9e77-9f5f0a3a1c22"
         );
     });
 

@@ -20,15 +20,11 @@ const UNCHECKED_OWNER: BoardAccessDTO = {
 /**
  * The boards a person is a member of, plus the ones they own from before members existed.
  * The access comes from the last stored check, without asking GitHub: opening a board is
- * what checks again. Pending invitations for the person's login are claimed first, unless
- * an admin is only looking on their behalf.
+ * what checks again. Pending invitations for the person's login are claimed first.
  */
-export async function listBoardsOf(
-    profile: UserDTO,
-    isImpersonating: boolean
-): Promise<BoardViewDTO[]> {
+export async function listBoardsOf(profile: UserDTO): Promise<BoardViewDTO[]> {
     const github = profile.github;
-    if (github && !isImpersonating) {
+    if (github) {
         await boardMemberRepository.claimPendingFor({
             userId: profile.id,
             github,

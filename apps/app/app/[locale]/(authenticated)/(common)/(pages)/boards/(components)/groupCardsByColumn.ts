@@ -30,6 +30,10 @@ const byMovedAt = (left: CardDTO, right: CardDTO) =>
     (left.movedAt ?? "").localeCompare(right.movedAt ?? "") ||
     left.slug.localeCompare(right.slug);
 
+const newestFirst = (left: CardDTO, right: CardDTO) =>
+    right.createdAt.localeCompare(left.createdAt) ||
+    left.slug.localeCompare(right.slug);
+
 export const isRemovedStage = (
     column: BoardScreenColumn
 ): column is RemovedStageColumn => "removed" in column;
@@ -57,6 +61,11 @@ export function groupCardsByColumn(
     }
 
     const cardsOf = (column: BoardScreenColumn): CardDTO[] => {
+        if (column.lane === "drafts") {
+            return cards
+                .filter((card) => card.lane === "drafts")
+                .sort(newestFirst);
+        }
         if (column.lane === "tasks") {
             return cards
                 .filter((card) => card.lane === "tasks" && card.ready)
@@ -100,9 +109,12 @@ export type ColumnTarget =
     | MoveCardRequest
     | { lane: "stage"; stageKey: string };
 
-/** What dropping a card in this column asks for, `null` for a column nobody can drop into. */
+/**
+ * What dropping a card in this column asks for, `null` for a column nobody can drop into:
+ * a removed stage, and Drafts, which only takes cards born there.
+ */
 export function moveTargetOf(column: BoardScreenColumn): ColumnTarget | null {
-    if (isRemovedStage(column)) {
+    if (isRemovedStage(column) || column.lane === "drafts") {
         return null;
     }
     if (column.lane === "stage") {

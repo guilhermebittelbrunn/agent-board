@@ -20,7 +20,7 @@ Aplica-se a todo o trabalho neste repositório (loop principal e subagents).
 Não há husky/git-commit-msg-linter instalado: o formato é **convenção humana**, então respeitá-lo é
 responsabilidade de quem escreve a mensagem.
 
-- Branch: `<project>/<type>/<title>` (ex.: `api/feat/entity-soft-delete`).
+- Branch: `<project>/<type>/<title>` (ex.: `api/feat/board-archive`).
 - Commit: `type(project): descrição curta`.
 - PR: `type(project): title`.
 - `type` ∈ `feat` / `fix` / `style` / `chore` / `ci` / `refactor` / `perf` / `test` / `docs`.

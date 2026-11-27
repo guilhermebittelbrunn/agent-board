@@ -26,6 +26,12 @@ describe("agent session", () => {
         );
     });
 
+    it("adds the cycle to the prompt only for a run inside one", () => {
+        expect(buildPrompt(jobFixture({ cycleId: "Xc81" }))).toBe(
+            "/analyze search-cards --board agent-board-demo--sample-app__search-cards --cycle Xc81"
+        );
+    });
+
     it("runs claude with the column's model, effort and turn limit, accepting edits by default", () => {
         const args = buildAgentArgs(job, "/r/mcp.json", {
             mode: "acceptEdits",

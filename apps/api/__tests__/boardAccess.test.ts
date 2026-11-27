@@ -1,5 +1,5 @@
 import type { GithubRepoRole } from "@repo/kanban-contract";
-import { type UserDTO, UserType } from "@repo/sdk/src/types";
+import type { UserDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -76,7 +76,6 @@ const shiftedBy = (from: Date, ms: number) => new Date(from.getTime() + ms);
 const profile = (id: string, githubId: string, login: string): UserDTO =>
     ({
         id,
-        type: UserType.COMMON,
         github: { id: githubId, login, name: null, avatarUrl: null },
     }) as UserDTO;
 
@@ -90,6 +89,8 @@ let lookups: number;
 const client: GithubClient = {
     listInstallationRepositories: () => Promise.resolve([]),
     readFile: () => Promise.resolve(null),
+    createPullRequest: () => Promise.reject(new Error("unused")),
+    findOpenPullRequest: () => Promise.resolve(null),
     getCollaboratorRole: (_repo, username) => {
         lookups += 1;
         return Promise.resolve(roles[username] ?? "none");
@@ -99,14 +100,12 @@ const client: GithubClient = {
 const resolve = (
     person: UserDTO,
     capability: BoardCapability = "view",
-    isImpersonating = false,
     now = NOW
 ) =>
     resolveBoardAccess({
         boardId: BOARD_ID,
         profile: person,
         capability,
-        isImpersonating,
         now,
     });
 
@@ -189,20 +188,6 @@ describe("resolveBoardAccess", () => {
         });
     });
 
-    it("writes nothing while an admin impersonates the person", async () => {
-        members.seedInvite(BOARD_ID, "guest", "operator");
-
-        const ownerView = await resolve(OWNER, "view", true);
-        const guestView = await refusal(await resolve(GUEST, "view", true));
-
-        expect(ownerView.ok).toBe(true);
-        expect(guestView?.code).toBe("BOARD_NOT_FOUND");
-        expect(members.documents.has(`${BOARD_ID}__octo`)).toBe(false);
-        expect(members.documents.get(`${BOARD_ID}__guest`)).toMatchObject({
-            status: "pending",
-        });
-    });
-
     it("answers GITHUB_APP_NOT_CONFIGURED without the App", async () => {
         getGithubClientMock.mockReturnValue(null);
 
@@ -277,20 +262,20 @@ describe("resolveBoardAccess", () => {
         const firstCheck = members.documents.get(`${BOARD_ID}__octo`)
             ?.githubRoleCheckedAt as Date;
 
-        await resolve(OWNER, "view", false, shiftedBy(NOW, ONE_MINUTE_MS));
+        await resolve(OWNER, "view", shiftedBy(NOW, ONE_MINUTE_MS));
         expect(
             members.documents.get(`${BOARD_ID}__octo`)?.githubRoleCheckedAt
         ).toBe(firstCheck);
 
         const later = shiftedBy(NOW, MEMBER_CHECK_TTL_MS);
-        await resolve(OWNER, "view", false, later);
+        await resolve(OWNER, "view", later);
         expect(
             members.documents.get(`${BOARD_ID}__octo`)?.githubRoleCheckedAt
         ).toEqual(later);
 
         roles.octo = "write";
         const changed = shiftedBy(later, ONE_SECOND_MS);
-        await resolve(OWNER, "view", false, changed);
+        await resolve(OWNER, "view", changed);
         expect(members.documents.get(`${BOARD_ID}__octo`)).toMatchObject({
             githubRole: "write",
             githubRoleCheckedAt: changed,
@@ -302,7 +287,7 @@ describe("resolveBoardAccess", () => {
         const renamed = profile("p-owner", "1", "octo-renamed");
         roles["octo-renamed"] = "admin";
 
-        await resolve(renamed, "view", false, shiftedBy(NOW, ONE_SECOND_MS));
+        await resolve(renamed, "view", shiftedBy(NOW, ONE_SECOND_MS));
 
         expect(members.documents.get(`${BOARD_ID}__octo`)).toMatchObject({
             login: "octo-renamed",

@@ -22,6 +22,9 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
   `complete_stage(needs_input)`. As de detalhe técnico seguem a recomendação default e entram em
   "Decisões tomadas sem você".
 - Crie a branch do card a partir da base e termine com commit de `docs/features/<slug>/` e push.
+- Card que veio de Rascunhos (`get_card` com `card.origin: "board"`) já teve a spec aprovada no board:
+  trate o `status: proposed` do arquivo como `approved` e grave `in-progress` como de costume.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)
@@ -96,7 +99,7 @@ Invoque o subagent **`planejador-tarefa`** (Agent tool, `subagent_type: "planeja
   links inacessíveis (Figma com senha) viram "referência não lida". Se você (orquestrador) já leu
   prints/imagens enviados pelo usuário, **repasse o conteúdo descrito** (quais informações e em que
   posição) ao agente, pois ele não enxerga as imagens;
-- **ler o slice de referência `entity`** antes de desenhar qualquer coisa nova, e propor o **corte de MVP**
+- **ler o slice de referência `boardMember`** antes de desenhar qualquer coisa nova, e propor o **corte de MVP**
   (a menor fatia vertical que entrega valor);
 - produzir Etapa 1 (produto) + Etapa 2 (blueprint do slice `packages/sdk` → `apps/api` → `apps/app`/`web`
   → i18n) seguindo [`docs/feature-analysis-guide.md`](../../docs/feature-analysis-guide.md), e salvar o
@@ -112,8 +115,8 @@ de campo mais relevantes; ofereça a recomendação default como primeira opçã
 Perguntas que costumam importar neste repo e que valem a pena confirmar quando o agente as levantar:
 
 - **corte de MVP** (o que fica para depois);
-- **área do painel**: comum, admin ou ambas (define o guard);
-- **escopo do dado**: é da pessoa (como `entity`) ou de um board (espera a spec `board-members`)?
+- **guard**: `requireSessionApi` (da pessoa) ou `requireBoardApi` (de um board);
+- **escopo do dado**: é da pessoa (como `runner`) ou de um board (como `boardMember`)?
 - **volume esperado**: se a listagem pode crescer, o `BaseRepository` (sem paginação, filtro em memória)
   precisa evoluir — isso é decisão de arquitetura, não detalhe de implementação.
 

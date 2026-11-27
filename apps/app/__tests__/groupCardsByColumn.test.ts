@@ -24,15 +24,21 @@ const card = (slug: string, overrides: Partial<CardDTO> = {}): CardDTO => ({
     boardId: "b",
     slug,
     title: slug,
-    spec: { path: `specs/${slug}.md`, sha: "x", status: "approved" },
+    spec: { path: `specs/${slug}.md`, sha: "x", status: "approved", ref: null },
     ready: true,
     orphan: false,
     lane: "tasks",
+    origin: "repository",
+    request: null,
+    specApproval: null,
     stageKey: null,
     state: "idle",
     pendingAsk: null,
     activeRunId: null,
     lastRun: null,
+    pullRequest: null,
+    pullRequestError: null,
+    cycleId: null,
     reworkLoops: 0,
     order: 0,
     branch: null,
@@ -53,7 +59,7 @@ const slugsByColumn = (cards: CardDTO[]) =>
     );
 
 describe("groupCardsByColumn", () => {
-    it("puts Tasks first in the board's order, then each stage, then Done", () => {
+    it("puts Drafts, then Tasks in the board's order, then each stage, then Done", () => {
         expect(
             slugsByColumn([
                 card("b", { order: 1 }),
@@ -62,6 +68,7 @@ describe("groupCardsByColumn", () => {
                 card("d", { lane: "done" }),
             ])
         ).toEqual([
+            ["drafts", []],
             ["tasks", ["a", "b"]],
             ["stage:analyze", []],
             ["stage:develop", ["c"]],
@@ -79,13 +86,42 @@ describe("groupCardsByColumn", () => {
             config
         );
 
-        expect(grouped.columns[0]?.cards.map((item) => item.slug)).toEqual([
+        expect(grouped.columns[1]?.cards.map((item) => item.slug)).toEqual([
             "ready",
         ]);
         expect(grouped.notReady.map((item) => item.slug)).toEqual([
             "proposed",
             "orphan",
         ]);
+    });
+
+    it("lists drafts newest first, in a column nobody drops into", () => {
+        const grouped = groupCardsByColumn(
+            [
+                card("older", {
+                    lane: "drafts",
+                    stageKey: "spec",
+                    ready: false,
+                    createdAt: "2026-11-26T09:00:00.000Z",
+                }),
+                card("newer", {
+                    lane: "drafts",
+                    stageKey: "spec",
+                    ready: false,
+                    createdAt: "2026-11-26T12:00:00.000Z",
+                }),
+            ],
+            config
+        );
+        const drafts = grouped.columns[0];
+
+        expect(drafts?.column.id).toBe("drafts");
+        expect(drafts?.cards.map((item) => item.slug)).toEqual([
+            "newer",
+            "older",
+        ]);
+        expect(drafts && moveTargetOf(drafts.column)).toBeNull();
+        expect(grouped.notReady).toEqual([]);
     });
 
     it("orders stage columns by the oldest move first", () => {

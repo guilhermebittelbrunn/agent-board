@@ -6,7 +6,7 @@ Este repositório é o **agent-board**, um fork enxuto do next-boilerplate em mo
 
 | Área | Caminho | Papel |
 |------|---------|--------|
-| App Next (board, conta, admin) | `apps/app/` | Consome `@repo/sdk`, `@repo/design-system`, `@repo/internationalization`, `@repo/auth`. |
+| App Next (board e conta) | `apps/app/` | Consome `@repo/sdk`, `@repo/design-system`, `@repo/internationalization`, `@repo/auth`. |
 | API Next (rotas HTTP) | `apps/api/` | Orquestração HTTP, validação na borda, uso de pacotes `@repo/*`. |
 | Cliente HTTP e tipos de API | `packages/sdk/` | Única porta de chamada à API a partir do front. |
 | UI compartilhada e tema | `packages/design-system/` | Componentes genéricos; sem fluxo de negócio de produto. |
@@ -24,7 +24,7 @@ Este repositório é o **agent-board**, um fork enxuto do next-boilerplate em mo
 ## Convenções de implementação
 
 - **Locale no app**: há um idioma só (`pt-br`), mas as rotas mantêm o segmento `[locale]`. Para ler o dicionário, prefira `getDictionary()` (client/server) ou `getDictionaryForLocale(...)` quando a rota já fornece `[locale]`; os dois aplicam fallback/default. O do client, no servidor, só pode ser chamado durante o render. Componente client acima do segmento `[locale]` (como o `AuthProvider`) usa `useDictionary()`.
-- **Nomenclatura de arquivos**: componentes React em **TitleCase** (ex.: `PanelNavbarControls.tsx`); hooks em **camelCase** (ex.: `useListUsers.ts`).
+- **Nomenclatura de arquivos**: componentes React em **TitleCase** (ex.: `ProfileDropdown.tsx`); hooks em **camelCase** (ex.: `useMyAccount.ts`).
 
 ## Regras por escopo (`CLAUDE.md` aninhados)
 
@@ -42,20 +42,19 @@ Para **inputs compostos, `Switch`, `DateInput` e `HookForm*`**, use a secção *
 
 - **JSON do body**: use `parseRequestJson` em `apps/api/(shared)/lib/parse-request-json.ts` em POST/PUT em vez de repetir `try { await req.json() }`.
 - **PATCH parcial**: use `omitUndefined` em `apps/api/(shared)/lib/omit-undefined.ts` para montar o objeto de atualização a partir do body validado (remove chaves com valor `undefined` e preserva campos não enviados pelo front).
-- **Mappers Firestore → DTO**: quando não der para evitar normalização (ex.: `Timestamp` → ISO), crie `apps/api/(shared)/mappers/<recurso>.mapper.ts` com uma classe que estende `Mapper<Entity, DTO>` (`MapperInterface` + `Mapper` em `apps/api/(shared)/mappers/`). Não há camada “domain”: `Entity` é o documento persistido com `id`; `DTO` é o tipo do `@repo/sdk`. Implemente `toDTO` e `toPersistence` (parcial com `AllOptional` de `@repo/shared/utils`). Reutilize `stringIfExists` e `normalizeFirestoreInstant` de `@repo/shared/utils` para strings opcionais e datas. Exporte uma instância única (ex.: `entityMapper`).
-- **Repositórios com mapper**: estenda `BaseRepository<DTO>` e passe o mapper como 3.º argumento do `super` (`super(db, "entity", entityMapper)`). `UserRepository` e outros sem mapper continuam com `super(db, "tabela")` apenas. Com mapper, `create` e `findById` devolvem o DTO já normalizado. `findById` devolve `null` para um id que o Firestore recusaria como caminho (com `/`, reservado como `__x__`, `.`/`..` ou acima de 1 500 bytes UTF-8), então a rota responde o seu 404 em vez de 500.
-- **Params `[id]`**: use `resolveIdFromContext` de `apps/api/(shared)/lib/resolve-route-id.ts` e tipagem `RouteIdParamsContext` nos handlers; passe o genérico do guard (`requireAdminApi<RouteIdParamsContext>`, `requireCommonPanelApi<RouteIdParamsContext>`).
+- **Mappers Firestore → DTO**: quando não der para evitar normalização (ex.: `Timestamp` → ISO), crie `apps/api/(shared)/mappers/<recurso>.mapper.ts` com uma classe que estende `Mapper<Entity, DTO>` (`MapperInterface` + `Mapper` em `apps/api/(shared)/mappers/`). Não há camada “domain”: `Entity` é o documento persistido com `id`; `DTO` é o tipo do `@repo/sdk`. Implemente `toDTO` e `toPersistence` (parcial com `AllOptional` de `@repo/shared/utils`). Reutilize `stringIfExists` e `normalizeFirestoreInstant` de `@repo/shared/utils` para strings opcionais e datas. Exporte uma instância única (ex.: `boardMemberMapper`).
+- **Repositórios com mapper**: estenda `BaseRepository<DTO>` e passe o mapper como 3.º argumento do `super` (`super(db, BOARD_MEMBER_TABLE, boardMemberMapper)`). `UserRepository` e outros sem mapper continuam com `super(db, "tabela")` apenas. Com mapper, `create` e `findById` devolvem o DTO já normalizado. `findById` devolve `null` para um id que o Firestore recusaria como caminho (com `/`, reservado como `__x__`, `.`/`..` ou acima de 1 500 bytes UTF-8), então a rota responde o seu 404 em vez de 500.
+- **Params `[id]`**: use `resolveIdFromContext` de `apps/api/(shared)/lib/resolve-route-id.ts` e tipagem `RouteIdParamsContext` nos handlers; passe o genérico do guard (`requireSessionApi<RouteIdParamsContext>`).
 - **PUT**: quando o contrato for “fire-and-forget” no servidor, responda só `{ data: { id } }` para o cliente refetch se precisar do registo completo (evita segunda leitura na API).
 
 ### App (`apps/app`)
 
 - **Datas na UI**: `formatDisplayDateTime` em `apps/app/shared/lib/formatDisplayDateTime.ts` — locale vem de `getDictionary()`; o instante continua no fuso do navegador.
-- **Hooks de dados**: no mesmo ficheiro, exporte uma função que chama o SDK (ex.: `findEntityById`, `fetchEntitiesList`) com validação de parâmetros (`undefined` quando faltam inputs) e o hook `useQuery` com `enabled` coerente com esses parâmetros.
-- **Mutations de toggle de estado**: em CRUDs com coluna `enabled`, exponha `toggleEntityStatusMutation` que faz `PUT` só com `enabled`, **sem** `invalidateQueries`; quando a API devolver só `{ id }`, atualize o cache com `queryClient.setQueryData` (merge de `enabled` na lista e na query por id).
+- **Hooks de dados**: no mesmo ficheiro, exporte uma função que chama o SDK (ex.: `findBoardById`, `fetchBoardMembers`) com validação de parâmetros (`undefined` quando faltam inputs) e o hook `useQuery` com `enabled` coerente com esses parâmetros.
+- **Mutations de toggle de estado**: em CRUDs com coluna `enabled`, exponha uma mutation de toggle (ex.: `toggleXStatusMutation`) que faz `PUT` só com `enabled`, **sem** `invalidateQueries`; quando a API devolver só `{ id }`, atualize o cache com `queryClient.setQueryData` (merge de `enabled` na lista e na query por id).
 - **Listagens com foto**: use `ResponsiveImage` de `@repo/design-system/components/ui/responsive-image` para miniaturas em tabelas.
 - **Coluna `enabled` em listas**: renderize um `Switch` controlado que dispara a mutation de toggle (não só texto Sim/Não).
-- **Impersonação admin**: ao mudar o utilizador visualizado em `PanelNavbarControls`, após `setImpersonatedUser` faça `window.location.reload()` para garantir que todos os dados e pedidos em curso usam o novo contexto.
-- **Pós-login (admin vs comum)**: `AppDesignProvider` passa `resolveDefaultPostLoginPath` ao design system; o login com GitHub usa `resolveAppPostLoginPath` para alinhar com a mesma regra (ex.: admin → `/{locale}/admin` quando não há query `redirect`).
+- **Pós-login**: `AppDesignProvider` passa `resolveDefaultPostLoginPath` ao design system; o login com GitHub usa `resolveAppPostLoginPath` com a mesma regra. Sem query `redirect`, o destino é `/{locale}/boards` (ou o idioma preferido da conta).
 - **Campos de formulário complexos**: ver a secção **Design system — inputs e formulários (RHF)** mais abaixo neste ficheiro.
 
 ## Design system — inputs e formulários (RHF)
@@ -77,7 +76,7 @@ Pacote: `packages/design-system/`. Caminho base: `packages/design-system/compone
 
 - **`DateInput`** (`date-input.tsx`): calendário com **`Popover`** (Radix) + **`Calendar`** (react-day-picker) e botão de gatilho; valor controlado em string **`YYYY-MM-DD`**. Evitar `<input type="date">` nativo para manter UX e estilo consistentes com o resto do design system.
 - **`HookFormDateInput`** repassa `value` / `onChange` / `onBlur` / `ref` ao `DateInput` (o `onChange` recebe a string da data, não evento de `<input>`).
-- Com valor, o calendário abre no mês da data. `captionLayout="dropdown"` liga os seletores de mês e ano (usado na data de nascimento de `entity`); sem `startMonth`/`endMonth` o ano vai de cem anos atrás ao fim do ano corrente, então campo de data futura com seletor precisa passar `endMonth`.
+- Com valor, o calendário abre no mês da data. `captionLayout="dropdown"` liga os seletores de mês e ano (útil em data de nascimento); sem `startMonth`/`endMonth` o ano vai de cem anos atrás ao fim do ano corrente, então campo de data futura com seletor precisa passar `endMonth`.
 
 ### Switch
 

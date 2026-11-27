@@ -11,7 +11,6 @@ import type { ReactNode } from "react";
 import { ToastContainer } from "react-toastify";
 import { getAppSessionUser } from "@/lib/server/authSession";
 import { resolvePreferredTimeZone } from "@/lib/server/displayTimeZone";
-import { resolvePanelSnapshot } from "@/lib/server/panelSnapshot";
 import { DocumentLangSync } from "@/shared/components/DocumentLangSync";
 import { AppDesignProvider } from "@/shared/providers/AppDesignProvider";
 import { DisplayTimeZoneProvider } from "@/shared/providers/DisplayTimeZoneProvider";
@@ -40,24 +39,16 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     const [
         { locale },
         sessionUser,
-        panelSnapshot,
         preferredTheme,
         preferredTimeZone,
         consent,
     ] = await Promise.all([
         getDictionary(),
         getAppSessionUser(),
-        resolvePanelSnapshot(),
         resolvePreferredTheme(),
         resolvePreferredTimeZone(),
         resolveConsentBootstrap(),
     ]);
-
-    // Resolved on the server so the panel is already correct on the first paint.
-    const initialPanel = {
-        snapshot: panelSnapshot,
-        actorUid: sessionUser?.uid ?? null,
-    };
 
     return (
         <html
@@ -83,7 +74,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                                 <DisplayTimeZoneProvider
                                     initialTimeZone={preferredTimeZone}
                                 >
-                                    <ClientLayout initialPanel={initialPanel}>
+                                    <ClientLayout
+                                        actorUid={sessionUser?.uid ?? null}
+                                    >
                                         {children}
                                     </ClientLayout>
                                 </DisplayTimeZoneProvider>

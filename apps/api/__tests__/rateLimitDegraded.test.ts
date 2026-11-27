@@ -69,10 +69,7 @@ describe("rate limit without a usable ARCJET_KEY", () => {
             const statuses: number[] = [];
 
             for (let attempt = 0; attempt < BURST; attempt++) {
-                for (const path of [
-                    "/notifications/read-all",
-                    "/auth/sign-in",
-                ]) {
+                for (const path of ["/boards/b1/cards/sync", "/auth/sign-in"]) {
                     const response = await proxy(mutatingRequest(path));
                     statuses.push(response.status);
                 }

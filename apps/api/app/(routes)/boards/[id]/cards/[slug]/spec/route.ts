@@ -12,8 +12,9 @@ import { requireBoardApi } from "@/app/(guards)/board";
 type CardRouteParams = { id: string; slug: string };
 
 /**
- * The spec body as it is now on the base branch, without the frontmatter the sync already
- * read. Reading it does not update the card.
+ * The spec body as it is now on the branch it lives on (the card branch for a draft or a
+ * board-born card not yet merged, the base branch otherwise), without the frontmatter.
+ * Reading it does not update the card.
  */
 export const GET = requireBoardApi<CardRouteParams>(
     "view",
@@ -33,7 +34,7 @@ export const GET = requireBoardApi<CardRouteParams>(
             return githubAppNotConfiguredResponse();
         }
 
-        const ref = ctx.board.config.baseBranch;
+        const ref = card.spec.ref ?? ctx.board.config.baseBranch;
         try {
             const file = await client.readFile(
                 ctx.board.repository,

@@ -5,16 +5,16 @@ import {
 } from "@/(shared)/lib/board-import";
 import { boardRepository } from "@/(shared)/repositories/board.repository";
 import { parseBoardPreviewQuery } from "@/(shared)/validation/board.schema";
-import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
+import { requireSessionApi } from "@/app/(guards)/session";
 
-export const GET = requireCommonPanelApi(async (req, ctx) => {
+export const GET = requireSessionApi(async (req, ctx) => {
     const query = parseBoardPreviewQuery(req);
     if (!query.ok) {
         return query.response;
     }
 
     const target = await resolveImportTarget(
-        ctx.subjectProfile,
+        ctx.profile,
         query.value.repository
     );
     if (!target.ok) {
@@ -22,7 +22,7 @@ export const GET = requireCommonPanelApi(async (req, ctx) => {
     }
 
     const id = boardIdForRepository(target.repository.fullName);
-    const links = await boardRepository.linksFor([id], ctx.subjectProfile.id);
+    const links = await boardRepository.linksFor([id], ctx.profile.id);
 
     return Response.json({
         data: toImportPreview(target, links.get(id) ?? null),

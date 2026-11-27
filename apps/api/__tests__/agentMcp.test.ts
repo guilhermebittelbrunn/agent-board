@@ -99,7 +99,7 @@ describe("MCP, handshake era (2025-11-25 and earlier)", () => {
         ).toEqual({ status: 202, body: null });
     });
 
-    it("lists the five tools, without create_card, with the contract limits", async () => {
+    it("lists the six tools, without create_card, with the contract limits", async () => {
         const { body } = await legacy("tools/list");
         const tools = (
             body?.result as { tools: ReturnType<typeof mcpToolList> }
@@ -111,6 +111,7 @@ describe("MCP, handshake era (2025-11-25 and earlier)", () => {
             "ask",
             "attach_artifact",
             "complete_stage",
+            "get_attachment",
         ]);
         const ask = tools.find((tool) => tool.name === "ask");
         expect(ask?.inputSchema).toMatchObject({
@@ -319,5 +320,60 @@ describe("MCP, per-request era (2026-07-28)", () => {
 
         expect(reply.status).toBe(HTTP_STATUS.NOT_FOUND);
         expect(reply.body?.error?.code).toBe(JSON_RPC_ERROR.METHOD_NOT_FOUND);
+    });
+});
+
+describe("MCP, get_attachment content", () => {
+    const attachment = (contentType: string, text: string) => ({
+        id: "3f0c9e1a-1b2c-4d5e-8f90-123456789abc",
+        name: "file",
+        contentType,
+        size: text.length,
+        base64: Buffer.from(text).toString("base64"),
+    });
+    const callWith = async (data: unknown) => {
+        callAgentToolMock.mockResolvedValueOnce({ ok: true, data });
+        return (
+            await legacy("tools/call", {
+                name: "get_attachment",
+                arguments: {},
+            })
+        ).body?.result;
+    };
+
+    it("sends an image as image content", async () => {
+        expect(await callWith(attachment("image/png", "png"))).toEqual({
+            content: [
+                {
+                    type: "image",
+                    data: Buffer.from("png").toString("base64"),
+                    mimeType: "image/png",
+                },
+            ],
+            isError: false,
+        });
+    });
+
+    it("sends text decoded as text content", async () => {
+        expect(await callWith(attachment("text/markdown", "# Notas"))).toEqual({
+            content: [{ type: "text", text: "# Notas" }],
+            isError: false,
+        });
+    });
+
+    it("sends a PDF as an embedded resource", async () => {
+        expect(await callWith(attachment("application/pdf", "%PDF-"))).toEqual({
+            content: [
+                {
+                    type: "resource",
+                    resource: {
+                        uri: "kanban://attachment/3f0c9e1a-1b2c-4d5e-8f90-123456789abc",
+                        mimeType: "application/pdf",
+                        blob: Buffer.from("%PDF-").toString("base64"),
+                    },
+                },
+            ],
+            isError: false,
+        });
     });
 });

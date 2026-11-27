@@ -21,6 +21,8 @@ export type BoardAccessDTO = {
 export type BoardViewDTO = BoardDTO & {
     access: BoardAccessDTO;
     executor: StageExecutorKind | null;
+    /** File storage is configured, so a spec draft can take attachments. */
+    storageAvailable: boolean;
 };
 
 export type BoardMemberDTO = {

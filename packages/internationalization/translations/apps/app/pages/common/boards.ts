@@ -114,6 +114,7 @@ export const commonBoardsPageTranslations = {
         nav: {
             label: "Seções do board",
             board: "Quadro",
+            cycles: "Ciclos",
             settings: "Configuração",
             members: "Membros",
             credentials: "Minhas credenciais",
@@ -144,6 +145,9 @@ export const commonBoardsPageTranslations = {
                 },
             },
             columns: {
+                drafts: "Rascunhos",
+                draftsHint: "Specs sendo escritas com você",
+                addDraft: "Nova spec",
                 tasks: "Tarefas",
                 tasksHint: "Specs aprovadas, na ordem do board",
                 done: "Concluído",
@@ -153,6 +157,7 @@ export const commonBoardsPageTranslations = {
                 countOne: "1 card",
                 countOther: "{count} cards",
                 empty: {
+                    drafts: "Nenhum rascunho. Use Nova spec para descrever o que você quer construir.",
                     tasks: "As specs aprovadas aparecem aqui, na ordem do backlog.",
                     firstStage: "Arraste um card de Tarefas para cá.",
                     other: "Nenhum card",
@@ -184,6 +189,7 @@ export const commonBoardsPageTranslations = {
                 moved: "{title} movido para {column}.",
                 reordered: "{title} agora está na posição {position}.",
                 orphan: "Spec removida",
+                cycleBadge: "Ciclo",
                 reworkLoop: "Volta {loop} de {max}",
                 triggered: "{title}: {column} disparada.",
                 queued: "{title} entrou na fila de {column}.",
@@ -194,7 +200,19 @@ export const commonBoardsPageTranslations = {
                     stopped: "Parado por {login}.",
                     noRunner:
                         "Nenhum runner seu pegou esta etapa. Inicie o runner e rode de novo.",
+                    noCredential:
+                        "Você não tem credencial que sirva a {column}. Veja Minhas credenciais.",
                     awaitingApproval: "Plano pronto · aguarda sua aprovação",
+                    awaitingMerge: "Aguardando o merge",
+                },
+                pullRequest: {
+                    open: "PR #{number}",
+                    closed: "PR #{number} fechada sem merge",
+                    checks: {
+                        pending: "checks pendentes",
+                        success: "checks passando",
+                        failure: "checks falhando",
+                    },
                 },
                 runActions: {
                     rerun: "Rodar de novo",
@@ -211,6 +229,87 @@ export const commonBoardsPageTranslations = {
                     waiting_input: "Aguardando você",
                     failed: "Falhou",
                 },
+            },
+        },
+        drafts: {
+            status: {
+                writing: "Escrevendo",
+                waiting: "Aguardando você",
+                ready: "Spec pronta",
+                failed: "Falhou",
+                idle: "Parado",
+            },
+            card: {
+                origin: "Escrita a partir de texto",
+                originWithOneAttachment: "Escrita a partir de texto e 1 anexo",
+                originWithAttachments:
+                    "Escrita a partir de texto e {count} anexos",
+                answer: "Responder",
+                approve: "Aprovar spec",
+                read: "Ler",
+            },
+            newSpec: {
+                open: "Nova spec",
+                title: "Nova spec",
+                description:
+                    "Conte o que você quer, do seu jeito. Um agente lê o código, pergunta o que faltar e escreve a spec no formato do repositório.",
+                textLabel: "O que você quer construir?",
+                textPlaceholder:
+                    "Ex.: quero ser avisado quando um card parar esperando resposta.",
+                textRequired: "Descreva o que você quer construir.",
+                textTooLong: "O pedido passa de {max} caracteres.",
+                attachments: "Anexos",
+                attach: "Anexar print, PDF ou texto",
+                attachHint: "Até {count} arquivos de {size} MB cada.",
+                removeAttachment: "Remover {name}",
+                attachmentsOff:
+                    "Anexos estão desligados neste ambiente: o armazenamento de arquivos não está configurado.",
+                tooMany: "No máximo {count} anexos por spec.",
+                tooLarge: "{name} passa de {size} MB.",
+                typeNotAllowed:
+                    "{name} não é imagem (PNG, JPEG, WebP), PDF nem texto (.txt, .md).",
+                uploading: "Enviando…",
+                uploaded: "Enviado",
+                retry: "Tentar de novo",
+                steps: {
+                    read: "O agente lê o pedido, os anexos e o código do repositório.",
+                    ask: "Quando faltar informação, ele pergunta aqui no card, até 4 perguntas por rodada.",
+                    write: "A spec é gravada na branch do card a cada rodada. Você aprova quando estiver pronta.",
+                },
+                runsOn: "Roda no seu runner · {model} · {effort}",
+                runsOnFake: "Executor de teste · o resultado é simulado",
+                cancel: "Cancelar",
+                submit: "Começar a spec",
+                submitting: "Começando…",
+                created: "Rascunho criado. O agente começou a escrever a spec.",
+                createdNotQueued:
+                    "Rascunho criado, mas a escrita não começou. Abra o card e rode de novo.",
+            },
+            detail: {
+                request: "Seu pedido",
+                attachments: "Anexos",
+                inDrafts: "em Rascunhos",
+                round: "{round}ª rodada de perguntas",
+                requestedBy: "pedida por {login} em {date}",
+                draftTitle: "Rascunho da spec",
+                draftMissing:
+                    "O agente ainda não gravou o rascunho na branch {branch}.",
+                approve: "Aprovar spec e mandar para Tarefas",
+                approveHint: "Libera quando não houver perguntas abertas",
+                approveWritingHint: "Libera quando a rodada atual terminar",
+                approveFailedHint:
+                    "A última rodada falhou. Rode de novo antes de aprovar.",
+                approveIdleHint:
+                    "A escrita ainda não terminou uma rodada. Rode de novo para começar.",
+                approved: "Spec aprovada. O card está em Tarefas.",
+                approvedBy: "Aprovada por {login} em {date}",
+                discard: "Descartar rascunho",
+                discardTitle: "Descartar este rascunho?",
+                discardDescription:
+                    "O card sai do quadro. A branch {branch} continua no GitHub com o que o agente já gravou.",
+                discardConfirm: "Descartar",
+                discardCancel: "Manter rascunho",
+                discarded: "Rascunho descartado.",
             },
         },
         trigger: {
@@ -238,6 +337,157 @@ export const commonBoardsPageTranslations = {
             confirmRerun: "Rodar de novo",
             confirmApprove: "Aprovar e seguir",
         },
+        cycles: {
+            loadError: "Não foi possível carregar os ciclos.",
+            list: {
+                title: "Ciclos",
+                description:
+                    "Um ciclo leva as specs escolhidas da Análise até Testando ou até a PR, sem parar para perguntar. As decisões que o agente tomar sozinho ficam anotadas no ciclo.",
+                newCycle: "Novo ciclo",
+                empty: "Nenhum ciclo ainda.",
+                specsCount: "{count} specs",
+                specsCountOne: "1 spec",
+                columns: {
+                    startedAt: "Início",
+                    specs: "Specs",
+                    status: "Status",
+                    startedBy: "Iniciado por",
+                },
+                queuedAt: "Na fila desde {date}",
+            },
+            status: {
+                queued: "Na fila",
+                running: "Rodando",
+                finished: "Terminado",
+                stopped: "Parado",
+            },
+            endReason: {
+                completed: "Todas as specs saíram do ciclo.",
+                stopped: "Parado por {login}.",
+                item_failed: "Parou porque uma spec falhou.",
+            },
+            itemStatus: {
+                pending: "aguardando a vez",
+                running: "rodando",
+                done: "pronta",
+                waiting_input: "aguardando você",
+                failed: "falhou",
+                skipped: "pulada",
+                stopped: "parada",
+            },
+            until: {
+                testing: "até Testando",
+                pull_request: "até abrir a PR",
+            },
+            concurrency: {
+                one: "uma por vez",
+                two: "até 2 ao mesmo tempo",
+            },
+            new: {
+                title: "Novo ciclo",
+                description:
+                    "Leva cada spec escolhida da Análise até a PR sem parar para perguntar. Quando precisa decidir, o agente segue a política do repositório e anota a decisão no relatório do ciclo.",
+                queuedNotice:
+                    "Já existe um ciclo rodando. Este entra na fila e começa quando ele terminar.",
+                viewCurrent: "Ver ciclo atual",
+                specs: {
+                    title: "Specs do ciclo",
+                    hint: "Toque para escolher. O ciclo segue a ordem em que você escolheu.",
+                    empty: "Nenhuma spec pronta em Tarefas. Só entram specs aprovadas que não estão rodando nem em outro ciclo.",
+                    position: "{position}ª no ciclo",
+                },
+                until: {
+                    label: "Até onde vai",
+                    testing: "Até Testando",
+                    pull_request: "Até abrir a PR",
+                },
+                concurrency: {
+                    label: "Specs ao mesmo tempo",
+                    one: "Uma por vez",
+                    two: "Até 2",
+                    runnersWarning:
+                        "Duas specs ao mesmo tempo precisam de dois runners seus online. Agora você tem {count}.",
+                },
+                onFailure: {
+                    label: "Se uma spec falhar",
+                    skip: "Pular para a próxima",
+                    stop: "Parar o ciclo",
+                },
+                footer: "Roda nos seus runners. As PRs abrem como o board.yml manda; o merge é seu.",
+                submit: "Iniciar ciclo com {count} specs",
+                submitOne: "Iniciar ciclo com 1 spec",
+                cancel: "Cancelar",
+                created: "Ciclo iniciado.",
+                queued: "Ciclo na fila.",
+                validation: {
+                    specsRequired: "Escolha pelo menos uma spec.",
+                    specsMax: "Um ciclo leva no máximo {max} specs.",
+                },
+            },
+            detail: {
+                title: "Ciclo de {date}",
+                queuedTitle: "Ciclo na fila desde {date}",
+                summary:
+                    "{count} specs · {concurrency} · {until} · iniciado por {login}",
+                summaryOne:
+                    "1 spec · {concurrency} · {until} · iniciado por {login}",
+                notFound: "Ciclo não encontrado.",
+                back: "Ciclos",
+                counters: {
+                    pullRequests: "specs com PR aberta",
+                    done: "specs prontas",
+                    decisions: "decisões tomadas sem você",
+                    review: "decisões de produto para revisar",
+                    elapsed: "rodando até agora",
+                    total: "duração",
+                },
+                elapsed: {
+                    minutes: "{minutes} min",
+                    hours: "{hours} h {minutes} min",
+                },
+                stop: {
+                    button: "Parar o ciclo",
+                    title: "Parar o ciclo?",
+                    description:
+                        "As etapas em andamento são interrompidas e as specs que ainda não começaram ficam de fora. Os cards ficam onde estão, e o que os agentes já enviaram para as branches continua lá.",
+                    cancel: "Continuar rodando",
+                    confirm: "Parar o ciclo",
+                    done: "Ciclo parado.",
+                },
+                progress: {
+                    title: "Andamento",
+                    spec: "Spec",
+                    done: "feita",
+                    pending: "—",
+                    pullRequest: "#{number}",
+                    pullRequestDraft: "#{number} rascunho",
+                    reworkLoop: "{state} · volta {loop}",
+                    queuedHint: "O andamento aparece quando o ciclo começar.",
+                },
+                decisions: {
+                    title: "Decisões tomadas sem você",
+                    empty: "Nenhuma decisão registrada ainda.",
+                    where: "{spec} · {stage}",
+                    rule: {
+                        policy: "Política do repositório",
+                        spec: "Recomendação da spec",
+                        repo_pattern: "Padrão do repositório",
+                        least_impact: "Menor impacto",
+                    },
+                },
+                review: {
+                    title: "Para revisar",
+                    description:
+                        "Decisões de produto que o agente tomou sozinho e marcou para você conferir.",
+                    empty: "Nenhuma decisão de produto para revisar.",
+                },
+                activity: {
+                    title: "Atividade",
+                    empty: "Nenhuma atividade ainda.",
+                    where: "{time} · {spec} · {stage}",
+                },
+            },
+        },
         stop: {
             title: "Parar {column}?",
             description:
@@ -246,6 +496,59 @@ export const commonBoardsPageTranslations = {
             confirm: "Parar",
         },
         cardDetail: {
+            pullRequest: {
+                title: "Pull request",
+                openOnGithub: "Abrir PR no GitHub",
+                draft: "Rascunho",
+                states: {
+                    open: "Aberta",
+                    merged: "Mergeada",
+                    closed: "Fechada sem merge",
+                },
+                branches: "{head} → {base}",
+                commitsOne: "1 commit",
+                commitsOther: "{count} commits",
+                openedByBoard: "aberta pelo board em {when}",
+                adoptedByBoard: "adotada pelo board em {when}",
+                closedBy: "Fechada sem merge por @{login}",
+                mergedBy: "Mergeada por @{login}",
+                checks: {
+                    title: "Checks",
+                    empty: "Nenhum check concluído ainda",
+                    summary: {
+                        pending: "Checks pendentes",
+                        success: "Checks passando",
+                        failure: "Checks falhando",
+                    },
+                    conclusion: {
+                        success: "Passou",
+                        failure: "Falhou",
+                        neutral: "Neutro",
+                        cancelled: "Cancelado",
+                        skipped: "Pulado",
+                        timed_out: "Tempo esgotado",
+                        action_required: "Ação necessária",
+                        stale: "Desatualizado",
+                        startup_failure: "Falhou ao iniciar",
+                        other: "{conclusion}",
+                    },
+                },
+                reviews: {
+                    title: "Reviews",
+                    empty: "Nenhuma review ainda",
+                    state: {
+                        approved: "Aprovou",
+                        changes_requested: "Pediu mudanças",
+                        commented: "Comentou",
+                    },
+                },
+                pendingComment: "Comentário novo esperando o {command}",
+                errorTitle: "Não foi possível abrir a PR",
+                retry: "Tentar de novo",
+                retrying: "Abrindo…",
+                mergeNote:
+                    "O merge é sempre seu. Quando a PR for mergeada, o card vai para Concluído.",
+            },
             loadError: "Não foi possível carregar o card.",
             specLoadError: "Não foi possível ler a spec no GitHub.",
             column: "Coluna",
@@ -437,12 +740,18 @@ export const commonBoardsPageTranslations = {
             badFormat: "O valor não está no formato esperado.",
             notAllowed: "Valor não permitido. Use um destes: {allowed}.",
             stageKeyDuplicated: "A chave {key} aparece em mais de uma etapa.",
+            stageKeyReserved:
+                "A chave {key} é reservada para a escrita de specs. Use outra chave nesta etapa.",
             reworkTargetInvalid:
                 "A etapa {stageColumn} devolve o card para {target}, que não existe antes dela. Aponte para uma etapa anterior, como {suggestion}.",
             reworkTargetInvalidNoSuggestion:
                 "A etapa {stageColumn} devolve o card para {target}, que não existe antes dela.",
             baseBranchUnprotected:
                 "A branch base {baseBranch} precisa estar em protectedBranches.",
+            pullRequestStageDuplicated:
+                "Só uma etapa pode abrir a PR. Tire pullRequest da etapa {stageColumn}.",
+            pullRequestStageNotLast:
+                "A etapa {stageColumn} abre a PR e precisa ser a última do board: o merge leva o card direto para Concluído.",
             yamlSyntax:
                 "O arquivo não é um YAML válido (linha {line}, coluna {column}).",
             yamlSyntaxNoPosition:
@@ -508,6 +817,7 @@ export const commonBoardsPageTranslations = {
                     approval: "aprovação",
                     onRework: "retrabalho",
                     onPrComment: "comentário de PR",
+                    pullRequest: "abertura da PR",
                 },
             },
         },
@@ -558,9 +868,67 @@ export const commonBoardsPageTranslations = {
             },
             howItRuns: {
                 title: "Com que credencial cada disparo roda",
-                own: "Um runner seu que esteja online.",
+                own: "Um runner seu que esteja online, se o board.yml deixar a etapa rodar no runner local.",
                 refused:
                     "Se nenhum servir, o disparo é recusado e o motivo aparece no card.",
+            },
+            cloud: {
+                title: "Nuvem: tarefas agendadas por etapa",
+                description:
+                    "Uma tarefa agendada do Claude Code, com gatilho de API, para cada etapa. O board guarda a URL e o token cifrados. Por enquanto as etapas rodam só no runner local.",
+                disabled: "O cadastro na nuvem está desligado neste ambiente.",
+                columns: {
+                    stage: "Etapa",
+                    status: "Situação",
+                    url: "URL de disparo",
+                    token: "Token",
+                    action: "Ação",
+                },
+                status: {
+                    saved: "Cadastrada",
+                    missing: "Não cadastrada",
+                    localOnly: "Só no runner local",
+                },
+                localOnlyHint: "o board.yml não permite nuvem",
+                urlHint: "…/routines/••••{last4}",
+                tokenEnding: "terminando em {last4}",
+                empty: "—",
+                add: "Cadastrar",
+                replace: "Trocar",
+                remove: "Remover",
+                addAria: "Cadastrar a tarefa agendada de {stage}",
+                replaceAria: "Trocar a tarefa agendada de {stage}",
+                removeAria: "Remover a tarefa agendada de {stage}",
+                dialog: {
+                    title: "Tarefa agendada de {stage}",
+                    description:
+                        "Cole a Fire URL e o token do gatilho de API da tarefa. O token aparece uma vez só no Claude Code.",
+                    fireUrl: "Fire URL",
+                    fireUrlPlaceholder:
+                        "https://api.anthropic.com/v1/claude_code/routines/trig_…/fire",
+                    fireUrlInvalid:
+                        "Use a Fire URL do gatilho de API da tarefa agendada.",
+                    token: "Token",
+                    tokenInvalid:
+                        "Cole o token inteiro, com pelo menos 20 caracteres.",
+                    save: "Salvar",
+                    saving: "Salvando…",
+                    cancel: "Cancelar",
+                    saved: "Tarefa agendada de {stage} salva.",
+                },
+                removeDialog: {
+                    title: "Remover a tarefa agendada de {stage}?",
+                    description:
+                        "O board apaga a URL e o token guardados. A tarefa continua existindo no Claude Code.",
+                    confirm: "Remover",
+                    removing: "Removendo…",
+                    cancel: "Cancelar",
+                    removed: "Tarefa agendada de {stage} removida.",
+                },
+            },
+            secrets: {
+                title: "Segredos",
+                body: "Tokens e URLs de disparo ficam cifrados na API. Aqui você vê só os últimos caracteres e pode remover a qualquer hora.",
             },
         },
     },

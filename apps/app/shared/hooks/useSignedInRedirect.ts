@@ -57,7 +57,7 @@ export function useSignedInRedirect(): void {
             const path = await resolveAppPostLoginPath({
                 idToken: token,
                 locale,
-                fallbackPath: `/${locale}`,
+                fallbackPath: `/${locale}/boards`,
             });
             if (!cancelled) {
                 window.location.replace(path);

@@ -39,30 +39,12 @@ setup("reset the emulators to the seed", () => {
 setup("sign in as the common user", async ({ page }) => {
     setup.setTimeout(WARM_UP_TEST_TIMEOUT);
     await signInThroughForm(page, SEED_ACCOUNTS.common);
-    await expect(page).toHaveURL(`${APP_URL}/${LOCALE}`, {
+    await expect(page).toHaveURL(`${APP_URL}/${LOCALE}/boards`, {
         timeout: FIRST_COMPILE_TIMEOUT,
     });
     await page
         .context()
         .storageState({ path: AUTH_STATE.common, indexedDB: true });
 
-    await compileRoutes(page, [
-        `/${LOCALE}/entities`,
-        `/${LOCALE}/entities/create`,
-        `/${LOCALE}/entities/edit/route-warm-up`,
-        `/${LOCALE}/account`,
-    ]);
-});
-
-setup("sign in as the admin", async ({ page }) => {
-    setup.setTimeout(WARM_UP_TEST_TIMEOUT);
-    await signInThroughForm(page, SEED_ACCOUNTS.admin);
-    await expect(page).toHaveURL(`${APP_URL}/${LOCALE}/admin`, {
-        timeout: FIRST_COMPILE_TIMEOUT,
-    });
-    await page
-        .context()
-        .storageState({ path: AUTH_STATE.admin, indexedDB: true });
-
-    await compileRoutes(page, [`/${LOCALE}/admin/users`]);
+    await compileRoutes(page, [`/${LOCALE}/account`, `/${LOCALE}/boards/new`]);
 });

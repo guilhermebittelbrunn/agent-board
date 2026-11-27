@@ -1,4 +1,3 @@
-import { UserType } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,7 +9,6 @@ const {
     createMock,
     updateMock,
     getUserMock,
-    emitNotificationMock,
 } = vi.hoisted(() => ({
     getIdTokenSessionMock: vi.fn(),
     lookupProviderMock: vi.fn(),
@@ -19,15 +17,9 @@ const {
     createMock: vi.fn(),
     updateMock: vi.fn(),
     getUserMock: vi.fn(),
-    emitNotificationMock: vi.fn(),
 }));
 
 class FakeIdentityToolkitError extends Error {}
-
-vi.mock("@/(shared)/lib/notifications", () => ({
-    emitNotificationQuietly: (...args: unknown[]) =>
-        emitNotificationMock(...args),
-}));
 
 vi.mock("@/(shared)/lib/firebase-identity-toolkit", () => ({
     IdentityToolkitError: FakeIdentityToolkitError,
@@ -110,7 +102,6 @@ function profile(github?: unknown) {
     return {
         id: "profile-1",
         reference_id: UID,
-        type: UserType.COMMON,
         createdAt: "2026-01-01T00:00:00.000Z",
         deletedAt: null,
         ...(github === undefined ? {} : { github }),
@@ -147,7 +138,6 @@ describe("POST /auth/sign-in/github — primeiro login", () => {
         await expect(response.json()).resolves.toEqual({
             user: {
                 uid: UID,
-                type: UserType.COMMON,
                 email: "octocat@example.com",
                 preferences: null,
             },
@@ -156,7 +146,6 @@ describe("POST /auth/sign-in/github — primeiro login", () => {
         expect(createMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 reference_id: UID,
-                type: UserType.COMMON,
             })
         );
         expect(updateMock).toHaveBeenCalledWith({

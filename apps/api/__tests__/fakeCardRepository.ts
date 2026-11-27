@@ -2,11 +2,14 @@ import {
     type CardRecord,
     cardIdFor,
     cardMapper,
+    pullRequestDocument,
 } from "@/(shared)/mappers/card.mapper";
 import type {
     CardMovePatch,
     CardMoveResult,
+    CardPullRequestPatch,
     CardSyncWrite,
+    DraftWriteRefusal,
 } from "@/(shared)/repositories/card.repository";
 
 type StoredCard = Record<string, unknown>;
@@ -90,12 +93,27 @@ export function createFakeCardRepository() {
                 });
                 return Promise.resolve();
             },
+            detachCycle(cardIds: string[], cycleId: string): Promise<void> {
+                for (const id of cardIds) {
+                    const document = documents.get(id);
+                    if (document?.cycleId === cycleId) {
+                        documents.set(id, { ...document, cycleId: null });
+                    }
+                }
+                return Promise.resolve();
+            },
             move(id: string, patch: CardMovePatch): Promise<CardMoveResult> {
                 const current = read(id);
                 if (current === null) {
                     return Promise.resolve({
                         ok: false,
                         code: "CARD_NOT_FOUND",
+                    });
+                }
+                if (current.lane === "drafts") {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_DRAFT_NOT_APPROVED",
                     });
                 }
                 if (current.activeRunId !== null) {
@@ -123,6 +141,105 @@ export function createFakeCardRepository() {
                         ? { ok: true, card: moved }
                         : { ok: false, code: "CARD_NOT_FOUND" }
                 );
+            },
+            findByPullRequest: (boardId: string, number: number) =>
+                Promise.resolve(
+                    listByBoard(boardId).find(
+                        (card) => card.pullRequest?.number === number
+                    ) ?? null
+                ),
+            updatePullRequest(
+                id: string,
+                update: (card: CardRecord) => CardPullRequestPatch | null
+            ): Promise<CardRecord | null> {
+                const current = read(id);
+                if (current === null) {
+                    return Promise.resolve(null);
+                }
+                const patch = update(current);
+                if (patch !== null) {
+                    documents.set(id, {
+                        ...documents.get(id),
+                        ...(patch.pullRequest === undefined
+                            ? {}
+                            : {
+                                  pullRequest:
+                                      patch.pullRequest === null
+                                          ? null
+                                          : pullRequestDocument(
+                                                patch.pullRequest
+                                            ),
+                              }),
+                        ...(patch.pullRequestError === undefined
+                            ? {}
+                            : { pullRequestError: patch.pullRequestError }),
+                        updatedAt: new Date(),
+                    });
+                }
+                return Promise.resolve(read(id));
+            },
+            isIdTaken: (id: string) => Promise.resolve(documents.has(id)),
+            createDraft(id: string, document: StoredCard) {
+                if (documents.has(id)) {
+                    return Promise.resolve(null);
+                }
+                documents.set(id, document);
+                return Promise.resolve(read(id));
+            },
+            approveDraft(
+                id: string,
+                patch: StoredCard
+            ): Promise<
+                | { ok: true; card: CardRecord }
+                | { ok: false; code: DraftWriteRefusal }
+            > {
+                const current = read(id);
+                if (current === null) {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_NOT_FOUND",
+                    });
+                }
+                if (current.lane !== "drafts") {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_NOT_DRAFT",
+                    });
+                }
+                if (
+                    current.activeRunId !== null ||
+                    current.pendingAsk !== null ||
+                    current.state !== "idle"
+                ) {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_SPEC_NOT_READY",
+                    });
+                }
+                documents.set(id, { ...documents.get(id), ...patch });
+                const approved = read(id);
+                return Promise.resolve(
+                    approved
+                        ? { ok: true, card: approved }
+                        : { ok: false, code: "CARD_NOT_FOUND" }
+                );
+            },
+            discardDraft(
+                id: string,
+                at: Date
+            ): Promise<DraftWriteRefusal | null> {
+                const current = read(id);
+                if (current === null) {
+                    return Promise.resolve("CARD_NOT_FOUND");
+                }
+                if (current.lane !== "drafts") {
+                    return Promise.resolve("CARD_NOT_DRAFT");
+                }
+                if (current.activeRunId !== null) {
+                    return Promise.resolve("CARD_RUN_ACTIVE");
+                }
+                documents.set(id, { ...documents.get(id), deletedAt: at });
+                return Promise.resolve(null);
             },
         },
     };

@@ -51,7 +51,7 @@ test("signing in with GitHub through the emulator popup shows the GitHub login",
         screenName: "e2e-octocat",
     });
 
-    await expect(page).toHaveURL(`${APP_URL}/${LOCALE}`);
+    await expect(page).toHaveURL(`${APP_URL}/${LOCALE}/boards`);
     // The sign-in screen lands here with a full page load, and a click on the trigger
     // before hydration does not open the menu.
     await expect(async () => {

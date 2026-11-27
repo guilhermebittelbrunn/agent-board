@@ -128,6 +128,21 @@ describe("cardRunActions", () => {
         ).toEqual(none);
     });
 
+    it("offers to run a spec draft again, but never approval between rounds", () => {
+        const draft = card({ lane: "drafts", stageKey: "spec" });
+
+        expect(cardRunActions(draft, operator).rerun).toBe(true);
+        expect(
+            cardRunActions({ ...draft, state: "failed" }, operator).rerun
+        ).toBe(true);
+        expect(
+            cardRunActions(
+                { ...draft, lastRun: lastRun({ stageKey: "analyze" }) },
+                operator
+            ).approve
+        ).toBe(false);
+    });
+
     it("offers nothing to who cannot trigger, nor without an executor", () => {
         const failed = card({ state: "failed" });
         const running = card({ activeRunId: "r1", state: "running" });

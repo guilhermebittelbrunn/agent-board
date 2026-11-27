@@ -1,7 +1,6 @@
 "use client";
 
 import { postAuthRedirectTarget } from "@repo/auth/redirect";
-import { UserType } from "@repo/sdk/src/types";
 import { setCookie } from "@repo/shared/utils";
 import { apiClient } from "@/shared/lib/client";
 import {
@@ -53,7 +52,7 @@ function writePreferredLocale(locale: string): void {
     setCookie("x-locale", locale, PREFERENCE_COOKIE_TTL_SECONDS);
 }
 
-type SignedInAccount = { type?: string; preferredLocale: string | null };
+type SignedInAccount = { preferredLocale: string | null };
 
 /**
  * Carrying the account preferences to this device is a consequence of signing in, not of
@@ -68,10 +67,7 @@ export async function applyAccountPreferences(
     try {
         const me = await apiClient.authApi.me();
         projectThemePreference(me.preferences);
-        return {
-            type: me.type ?? undefined,
-            preferredLocale: readPreferredLocale(me.preferences),
-        };
+        return { preferredLocale: readPreferredLocale(me.preferences) };
     } catch {
         return null;
     }
@@ -89,17 +85,14 @@ function destinationForAccount(
         writePreferredLocale(account.preferredLocale);
     }
 
-    if (account.type === UserType.ADMIN) {
-        return `/${account.preferredLocale ?? locale}/admin`;
-    }
-
     return account.preferredLocale && account.preferredLocale !== locale
-        ? `/${account.preferredLocale}`
+        ? `/${account.preferredLocale}/boards`
         : null;
 }
 
 /**
- * When there is no `redirect` query, admins default to `/{locale}/admin` so the first screen matches the panel toggle.
+ * Without a `redirect` query the destination only changes when the account prefers another
+ * language; otherwise the caller keeps its own fallback.
  */
 export async function resolveDefaultPostLoginForApp(args: {
     idToken: string;

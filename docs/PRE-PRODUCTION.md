@@ -64,15 +64,9 @@ coringa. Detalhe em [`SECURITY.md`](SECURITY.md#cors-allowlist-sem-coringa).
       Secret do OAuth App. O Client Secret fica só no Firebase, não vai para variável de ambiente
 - [x] Email/Password e Google **desligados** no mesmo lugar
 - [x] Domínio do painel em Authentication → Settings → Authorized domains
-- [x] Quem opera os boards fica com o perfil `common`, que é como todo login pelo GitHub nasce. Não
-      promova essa conta a `admin`
 
-Boards, cards e execuções ficam no painel comum, e a API dele (`requireCommonPanelApi`, base do
-`requireBoardApi`) só aceita perfil `common`. Um admin que abre `/<locale>/boards` volta para o painel
-admin, e no painel comum só entra personificando outro usuário comum, em modo leitura. Agindo como ele
-mesmo, a API responde `403 AUTH_REQUEST_IMPERSONATION_REQUIRED`. Com o login só por GitHub, cada pessoa
-tem uma conta, então promover o único usuário a `admin` deixa o board sem ninguém que consiga criar um
-board. O painel admin hoje só gerencia usuários. Se precisar dele, use outra conta do GitHub.
+O app não tem papel global: toda conta com perfil usa as mesmas telas, e o acesso a cada board vem do papel
+efetivo nele. Um perfil antigo com `type: "admin"` gravado entra normalmente; nenhum guard lê esse campo.
 
 **Por quê.** A tela de login de produção só tem o botão "Entrar com GitHub". O popup é do Firebase, que
 precisa do OAuth App para falar com o GitHub. A API lê o `login` da pessoa no próprio Firebase
@@ -84,16 +78,10 @@ emulador (`POST /auth/sign-in` e `/api/auth/session` respondem `403 AUTH_SIGN_IN
 API trata a credencial como anônima). Desligar os provedores no console é a primeira barreira; o código é
 a segunda.
 
-`POST /users` (o admin cria conta pelo painel) continua criando conta com e-mail e senha. Com
-Email/Password desligado, essa conta não consegue entrar. O convite por login do GitHub fica para a spec
-`board-members`.
-
 **Como verificar.**
 
 1. Abrir `https://<painel>/pt-br/sign-in`: só o botão do GitHub e as duas notas, sem campo de e-mail.
-2. Entrar pelo popup e abrir o menu de perfil: a segunda linha mostra `@<seu-login>`. Por enquanto isso
-   só vale para o perfil `common`. Para admin, o menu chama `GET /account`, que fica atrás do guard do
-   painel comum e responde `403 COMMON_PANEL_FORBIDDEN`, e a linha não aparece.
+2. Entrar pelo popup e abrir o menu de perfil: a segunda linha mostra `@<seu-login>`.
 3. No Firestore, o documento `user` da conta tem `github.id` (só dígitos) e `github.login`.
 4. Senha recusada no servidor:
 
@@ -117,6 +105,20 @@ gera.
 - [x] GitHub App criado na conta ou organização dona dos repositórios (Settings → Developer settings → GitHub Apps → New GitHub App). É um App próprio do board, separado do Claude GitHub App
 - [x] Permissões de repositório: Metadata (read), Contents (read), Pull requests (read & write), Issues (read), Checks (read)
 - [x] Nenhum evento extra marcado. O `installation_repositories` chega a todo GitHub App sem precisar assinar
+- [ ] Conferir no App (Permissions & events → Repository permissions) que `Pull requests` está mesmo em
+  `Read and write`. O item acima foi marcado antes de existir código que escrevesse no GitHub; até a
+  `pr-flow`, nada mediu. Se precisar mudar, cada instalação tem de aceitar a permissão nova (a conta dona
+  recebe o pedido em Settings → Applications → Installed GitHub Apps → Review request); até lá o card mostra
+  `GITHUB_APP_PERMISSION_MISSING` e a API não responde 500
+- [ ] Assinar os eventos `Pull request`, `Pull request review`, `Issue comment` e `Check suite`
+  (Permissions & events → Subscribe to events). `Issue comment` depende de `Issues: read` e `Check suite`
+  de `Checks: read`, já listadas. Sem eles a PR abre, mas o card não vê review, comentário, CI nem merge
+- [ ] Conferir de ponta a ponta num repositório de teste com o kit: levar um card até Aguardando PR e ver a
+  PR aparecer como rascunho com autor `<app>[bot]`; comentar e ver o `/mediate` na linha do tempo; em
+  Advanced → Recent Deliveries do App, as entregas com `200` e `{"data":{"handled":true}}`; mergear e ver o
+  card em Concluído. Também conferir se `check_suite.completed` do GitHub Actions chega ao App (a
+  documentação diz que sim para quem tem `Checks: read`; não medido). Em repositório privado de conta Free o
+  GitHub não aceita rascunho: o board abre pronta para review e avisa na linha do tempo
 - [x] Webhook URL `https://<host-da-api>/github/webhook`, content type `application/json`, com um segredo gerado por `openssl rand -hex 32`
 - [ ] Chave privada gerada no App (Credentials → Key pairs → New key), `.pem` baixado e guardado só no gerenciador de segredos
 - [x] `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (com as quebras de linha escapadas como `\n`) e `GITHUB_WEBHOOK_SECRET` nas variáveis da `apps/api` na Vercel. Nunca na `apps/app`
@@ -130,10 +132,11 @@ de cada instância. Sem ele, um colaborador adicionado ou removido leva até 5 m
 
 Por quê: é a credencial com que a API lista os repositórios, lê o `.kanban/board.yml` e consulta a
 permissão de cada pessoa no GitHub, que limita o papel no board. Sem ele não há importação de board em
-produção. As permissões de PR, Issues e Checks só passam a ser usadas com a spec `pr-flow`; pedi-las agora
-evita reaprovar a instalação em cada repositório depois. Os eventos `pull_request`,
-`pull_request_review`, `pull_request_review_comment`, `issue_comment` e `check_suite` entram junto com
-ela.
+produção. As permissões de PR, Issues e Checks são usadas pela coluna Aguardando PR (spec `pr-flow`): o board abre
+a PR com `Pull requests: write` e acompanha o card pelos eventos `pull_request`, `pull_request_review`,
+`issue_comment` e `check_suite`. O `pull_request_review_comment` fica de fora porque cada comentário em
+linha já chega dentro do `pull_request_review`, e assinar os dois dispararia o `/mediate` uma vez por
+comentário.
 
 Sem as variáveis, a API sobe e o build passa. O boot avisa uma vez (`[github] GitHub App is NOT
 configured…` e `[github] GITHUB_WEBHOOK_SECRET is not set…`), `POST /github/webhook` responde `503
@@ -197,17 +200,17 @@ A chave restrita responde **403**; **400** quer dizer que ela aceita chamada de 
 - [ ] Um coletor de erro no `reportRequestError` (`onRequestError` dos apps), se quiser alerta em vez de log
 - [ ] Retenção de log da plataforma conferida no painel do provedor
 
-### 10. Retenção das notificações
+### 10. Índices e dados órfãos depois da limpeza do app
 
-- [ ] Política de TTL em `notification.expiresAt` ligada (exige faturamento ativo)
+- [ ] `firebase deploy --only firestore:indexes` no projeto de produção, depois do merge que tirou os
+      recursos herdados do core (CRUD `entity`, notificações e a área admin)
+- [ ] Os índices de `entity`, `notification` e os dois de `user` (`deletedAt` + `type`, `deletedAt` +
+      `lastAccessAt`) apagados no console, ou com `--force` no deploy
 
-```bash
-gcloud firestore fields ttls update expiresAt \
-  --collection-group=notification --enable-ttl --project=<id>
-```
-
-Cada notificação nasce com `expiresAt` em 90 dias. Sem a TTL nada quebra: a lista é paginada e a contagem
-para em 100.
+O `firestore.indexes.json` agora declara só o índice de `user` (`reference_id` + `deletedAt`). Um deploy
+sem `--force` não apaga índice que existe no projeto e saiu do arquivo: os antigos ficam na lista, sem custo
+de leitura. Os documentos de `entity` e `notification` e os campos `type` e `lastAccessAt` dos perfis também
+ficam no banco, sem leitor. Limpar esses dados é um script avulso, fora do código do app.
 
 ### 11. Backup do Firestore
 
@@ -294,6 +297,9 @@ uma execução vencida continua `running` no banco até a próxima leitura; a te
 leitura aplica o prazo antes de responder. A etapa seguinte de um card que estourou o prazo de madrugada só começa
 quando alguém abre o board. Gatilho para reavaliar: o primeiro ciclo noturno que travar por isso.
 
+Com runner local, o ciclo não depende mais disso para prazos: o runner avisa o `finish` com `exit: "deadline"` e o
+board fecha a execução vencida na hora (spec `cycle-runs`). Continua dependendo para um `run` que nenhum runner pegou.
+
 **Como verificar:** no emulador, `pnpm --filter api fake-executor script <boardId> <slug> silent`, disparar a etapa,
 esperar o card ficar Rodando e rodar `pnpm --filter api fake-executor expire <boardId> <slug>`. O card continua
 Rodando no Firestore até o quadro ser aberto; ao abrir, vira "Falhou" com "O agente não respondeu em 45 min.".
@@ -369,6 +375,38 @@ token e o modo de permissão `acceptEdits` se comportam como o runner espera.
 **O que acontece sem isso:** o G2 do roadmap fica sem evidência.
 
 **Como verificar:** o card chega a Concluído e a branch tem um commit por etapa.
+
+### Chave das credenciais da nuvem (spec `execution-credentials`, 2026-11-27)
+
+**O que fazer:** gerar a chave e gravá-la no ambiente da API de produção, no gerenciador de segredos do provedor,
+nunca em arquivo versionado.
+
+```bash
+openssl rand -base64 32
+```
+
+O valor vai em `CREDENTIALS_ENCRYPTION_KEY`. Guarde uma cópia fora do provedor (num cofre de senhas, por exemplo):
+perder a chave equivale a apagar todas as tarefas agendadas cadastradas.
+
+**Por quê:** a Fire URL e o token de cada tarefa agendada ficam cifrados no Firestore com AES-256-GCM. A chave fica no
+ambiente da API, separada do banco, para que um vazamento do Firestore sozinho não entregue os tokens. Fora do
+emulador não há chave padrão.
+
+**O que acontece sem ela:** a API sobe e o build passa. O boot imprime
+`[credentials] CREDENTIALS_ENCRYPTION_KEY is not set: saving scheduled tasks is switched off.` (ou a versão de erro,
+quando o valor não decodifica para 32 bytes). Em "Minhas credenciais", a seção da nuvem mostra "O cadastro na nuvem
+está desligado neste ambiente." com as ações desabilitadas, e `PUT /boards/<id>/credentials/scheduled-tasks/<etapa>`
+responde `503 CREDENTIALS_ENCRYPTION_NOT_CONFIGURED`. Runners locais e disparos funcionam como antes. Hoje nada roda
+pela nuvem ainda (isso chega com a spec `cloud-routines-runner`), então a falta da chave não bloqueia nenhum fluxo.
+
+**Trocar a chave:** tudo o que foi cifrado com a anterior deixa de abrir. O prefixo `v1` do valor guardado reserva
+espaço para rotação com duas chaves, que ainda não existe; até lá, trocar a chave significa pedir a cada membro que
+cadastre as tarefas de novo.
+
+**Como verificar:** com a API publicada, `GET /boards/<id>/credentials` devolve `"cloudCredentialsEnabled": true`, e
+cadastrar uma tarefa na tela muda a linha da etapa para "Cadastrada", com os quatro últimos caracteres do id e do
+token. Na resposta do `PUT` e no documento `credential/<boardId>__<userId>__<etapa>` do Firestore, nem a URL nem o token
+aparecem em claro.
 
 ---
 

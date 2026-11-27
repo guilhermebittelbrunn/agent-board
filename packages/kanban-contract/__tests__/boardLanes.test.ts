@@ -18,11 +18,12 @@ const config = parseBoardConfig({
 });
 
 describe("boardColumns", () => {
-    it("puts Tasks first, one column per stage in file order, then Done", () => {
+    it("puts Drafts and Tasks first, one column per stage in file order, then Done", () => {
         if (!config.success) {
             throw config.error;
         }
         expect(boardColumns(config.data)).toEqual([
+            { id: "drafts", lane: "drafts" },
             { id: "tasks", lane: "tasks" },
             {
                 id: "stage:analyze",

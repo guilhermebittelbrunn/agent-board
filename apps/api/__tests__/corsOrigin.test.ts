@@ -31,9 +31,9 @@ const FORBIDDEN = 403;
 const TOO_MANY_REQUESTS = 429;
 const RETRY_AFTER_SECONDS = 43;
 const ORIGIN_REFUSAL_LINE =
-    /^\[security] blocked reason=origin path=\/entities method=GET requestId=[0-9a-f-]{36}$/;
+    /^\[security] blocked reason=origin path=\/boards method=GET requestId=[0-9a-f-]{36}$/;
 const MISSING_ORIGIN_REFUSAL_LINE =
-    /^\[security] blocked reason=missing-origin path=\/entities method=POST requestId=[0-9a-f-]{36}$/;
+    /^\[security] blocked reason=missing-origin path=\/boards method=POST requestId=[0-9a-f-]{36}$/;
 const REQUEST_ID = /^[0-9a-f-]{36}$/;
 const SESSION_COOKIE = { "access-token": "session-cookie-value" };
 const RATE_LIMIT_REFUSAL_LINE =
@@ -51,7 +51,7 @@ type ProxyRequestOptions = {
 function makeRequest({
     origin,
     method = "GET",
-    path = "/entities",
+    path = "/boards",
     authorization,
     cookies = {},
     secFetchSite,
@@ -146,6 +146,14 @@ describe("allowed origin list", () => {
         expect(
             buildCorsHeaders(APP_ORIGIN)["Access-Control-Expose-Headers"]
         ).toContain("Retry-After");
+    });
+
+    it("lets the browser send only the bearer, the body type and the locale", () => {
+        expect(
+            buildCorsHeaders(APP_ORIGIN)
+                ["Access-Control-Allow-Headers"].split(", ")
+                .sort()
+        ).toEqual(["Authorization", "Content-Type", "x-locale"]);
     });
 
     it("grants nothing when there is no origin to answer, but still varies", () => {
@@ -437,19 +445,6 @@ describe("api proxy rate limit", () => {
         expect(budgetsSpent()).toEqual(publicAuthPaths.map(() => "strict"));
     });
 
-    it("counts changing the password in the strict budget", async () => {
-        const proxy = await loadProxy(APP_ORIGIN);
-        const passwordPaths = ["/account/password"];
-
-        for (const path of passwordPaths) {
-            await proxy(
-                makeRequest({ origin: APP_ORIGIN, method: "POST", path })
-            );
-        }
-
-        expect(budgetsSpent()).toEqual(passwordPaths.map(() => "strict"));
-    });
-
     it("counts runner registration in the strict budget and its polling in the standard one", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
 
@@ -461,7 +456,7 @@ describe("api proxy rate limit", () => {
 
     it("counts the rest of the account area in the standard budget", async () => {
         const proxy = await loadProxy(APP_ORIGIN);
-        const accountPaths = ["/account", "/account/", "/account/password/x"];
+        const accountPaths = ["/account", "/account/", "/account/password"];
 
         for (const path of accountPaths) {
             await proxy(
@@ -650,7 +645,7 @@ describe("api proxy rate limit", () => {
             const proxy = await loadProxy(APP_ORIGIN);
 
             await proxy(
-                makeRequest({ origin: APP_ORIGIN, method, path: "/entities/1" })
+                makeRequest({ origin: APP_ORIGIN, method, path: "/boards/1" })
             );
 
             expect(budgetsSpent()).toEqual(["standard"]);
@@ -662,7 +657,7 @@ describe("api proxy rate limit", () => {
 
         for (const method of ["GET", "HEAD"]) {
             await proxy(
-                makeRequest({ origin: APP_ORIGIN, method, path: "/entities" })
+                makeRequest({ origin: APP_ORIGIN, method, path: "/boards" })
             );
         }
 
@@ -676,7 +671,7 @@ describe("api proxy rate limit", () => {
             makeRequest({
                 origin: APP_ORIGIN,
                 method: "POST",
-                path: "/account/password",
+                path: "/files",
                 authorization: `Bearer ${unsignedJwt("uid-1")}`,
             })
         );
@@ -695,7 +690,7 @@ describe("api proxy rate limit", () => {
             makeRequest({
                 origin: APP_ORIGIN,
                 method: "POST",
-                path: "/notifications/read-all",
+                path: "/boards/b1/cards/sync",
                 authorization: `Bearer ${unsignedJwt("uid-1")}`,
             })
         );

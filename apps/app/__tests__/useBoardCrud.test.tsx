@@ -117,9 +117,7 @@ describe("useBoardCrud.create", () => {
     });
 
     it("leaves the preview alone for an unrelated error", async () => {
-        createMock.mockRejectedValue(
-            apiError("AUTH_REQUEST_IMPERSONATION_READ_ONLY")
-        );
+        createMock.mockRejectedValue(apiError("BOARD_ROLE_INSUFFICIENT"));
         const { result } = renderHook(() => useBoardCrud(), { wrapper });
 
         result.current.createBoardMutation.mutate(REPOSITORY);

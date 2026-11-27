@@ -1,11 +1,5 @@
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { z } from "zod";
-import {
-    existingPasswordSchema,
-    isPasswordTooShort,
-    newPasswordSchema,
-    passwordTooShortResponse,
-} from "./password.schema";
 
 const DISPLAY_NAME_MAX = 120;
 const PHONE_MAX = 32;
@@ -40,15 +34,7 @@ export const updateAccountSchema = z
     })
     .strict();
 
-export const changePasswordSchema = z
-    .object({
-        currentPassword: existingPasswordSchema,
-        password: newPasswordSchema,
-    })
-    .strict();
-
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
-export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 const validationFailed = (): Response =>
     Response.json(
@@ -83,22 +69,5 @@ export function parseUpdateAccount(
         };
     }
 
-    return { ok: true, value: parsed.data };
-}
-
-export function parseChangePassword(
-    body: unknown
-):
-    | { ok: true; value: ChangePasswordInput }
-    | { ok: false; response: Response } {
-    const parsed = changePasswordSchema.safeParse(body);
-    if (!parsed.success) {
-        return {
-            ok: false,
-            response: isPasswordTooShort(parsed.error)
-                ? passwordTooShortResponse()
-                : validationFailed(),
-        };
-    }
     return { ok: true, value: parsed.data };
 }

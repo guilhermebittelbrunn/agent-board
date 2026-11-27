@@ -30,10 +30,14 @@ const card = (overrides: Partial<CardRecord> = {}): CardRecord => ({
         path: "specs/features/search-cards.md",
         sha: "x",
         status: "approved",
+        ref: null,
     },
     ready: true,
     orphan: false,
     lane: "tasks",
+    origin: "repository",
+    request: null,
+    specApproval: null,
     stageKey: null,
     state: "idle",
     pendingAsk: null,
@@ -42,6 +46,9 @@ const card = (overrides: Partial<CardRecord> = {}): CardRecord => ({
     branch: "feat/search-cards",
     activeRunId: null,
     lastRun: null,
+    pullRequest: null,
+    pullRequestError: null,
+    cycleId: null,
     movedAt: null,
     movedByUserId: null,
     syncedAt: NOW.toISOString(),
@@ -65,6 +72,7 @@ const run = (overrides: Partial<RunRecord> = {}): RunRecord => ({
     branch: "feat/search-cards",
     trigger: "drag",
     triggeredBy: OCTO,
+    cycleId: null,
     executor: null,
     status: "queued",
     active: true,
@@ -247,10 +255,12 @@ describe("planCompletion", () => {
             card: {
                 state: "running",
                 reworkLoops: overrides.reworkLoops ?? 0,
+                pullRequest: null,
             },
             run: { stageKey },
             outcome,
             config,
+            now: NOW,
             stageSettings: overrides.approvalGate
                 ? { [stageKey]: { wipLimit: null, approvalGate: true } }
                 : {},
@@ -280,11 +290,57 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
     });
 
-    it("takes the card to Done after the last stage", () => {
-        expect(complete("success", "test")).toEqual({
+    it("queues the pull request stage after the test stage", () => {
+        const plan = complete("success", "test");
+
+        expect(plan.card).toEqual({
+            lane: "stage",
+            stageKey: "pr",
+            state: "queued",
+            reworkLoops: 0,
+        });
+        expect(plan.next).toMatchObject({
+            stage: { key: "pr" },
+            trigger: "transition",
+        });
+    });
+
+    it("keeps the card on the pull request stage after its command", () => {
+        expect(complete("success", "pr")).toEqual({
+            card: {
+                lane: "stage",
+                stageKey: "pr",
+                state: "idle",
+                reworkLoops: 0,
+            },
+            next: null,
+            cycleItem: null,
+        });
+    });
+
+    it("takes the card to Done after the last stage of a board without a pull request stage", () => {
+        const withoutPr = parseBoardConfig({
+            ...SAMPLE_BOARD_CONFIGS.valid,
+            stages: SAMPLE_BOARD_CONFIGS.valid.stages.slice(0, -1),
+        });
+        if (!withoutPr.success) {
+            throw new Error("fixture must be valid");
+        }
+
+        expect(
+            planCompletion({
+                card: { state: "running", reworkLoops: 0, pullRequest: null },
+                run: { stageKey: "test" },
+                outcome: "success",
+                config: withoutPr.data,
+                stageSettings: {},
+                now: NOW,
+            })
+        ).toEqual({
             card: {
                 lane: "done",
                 stageKey: null,
@@ -292,6 +348,7 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
     });
 
@@ -316,6 +373,7 @@ describe("planCompletion", () => {
                 reworkLoops: 2,
             },
             next: null,
+            cycleItem: null,
         });
     });
 
@@ -328,6 +386,7 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
         });
         expect(complete("failed", "develop").card).toMatchObject({
             stageKey: "develop",
@@ -344,6 +403,189 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+            cycleItem: null,
+        });
+    });
+});
+
+describe("cycles in the trigger and the completion", () => {
+    const triggerInput = { stageKey: "analyze", config, by: OCTO, now: NOW };
+    const cycleOf = (
+        status: "running" | "stopped",
+        until: "testing" | "pull_request" = "pull_request"
+    ) => ({
+        status,
+        options: { until, concurrency: 1 as const, onFailure: "skip" as const },
+    });
+    const completeIn = (
+        outcome: Parameters<typeof planCompletion>[0]["outcome"],
+        stageKey: string,
+        cycle: ReturnType<typeof cycleOf> | null,
+        approvalGate = false
+    ) =>
+        planCompletion({
+            card: { state: "running", reworkLoops: 0, pullRequest: null },
+            run: { stageKey },
+            outcome,
+            config,
+            now: NOW,
+            stageSettings: approvalGate
+                ? { [stageKey]: { wipLimit: null, approvalGate: true } }
+                : {},
+            cycle,
+        });
+
+    it("links the card and the run to the cycle that starts it", () => {
+        const plan = planTrigger(card(), {
+            ...triggerInput,
+            trigger: "cycle",
+            cycleId: "c1",
+        });
+        expect(plan).toMatchObject({
+            ok: true,
+            card: { cycleId: "c1" },
+            run: { cycleId: "c1", trigger: "cycle" },
+        });
+    });
+
+    it("takes the card out of the cycle on a person's start", () => {
+        const plan = planTrigger(card({ cycleId: "c1" }), triggerInput);
+        expect(plan).toMatchObject({
+            ok: true,
+            card: { cycleId: null },
+            run: { cycleId: null },
+        });
+    });
+
+    it("skips the approval gate inside a running cycle and keeps the item", () => {
+        const plan = completeIn("success", "analyze", cycleOf("running"), true);
+        expect(plan.card).toMatchObject({
+            stageKey: "develop",
+            state: "queued",
+        });
+        expect(plan.next?.stage.key).toBe("develop");
+        expect(plan.cycleItem).toBeNull();
+    });
+
+    it("stops on Testing with until testing and closes the item as done", () => {
+        const plan = completeIn(
+            "success",
+            "test",
+            cycleOf("running", "testing")
+        );
+        expect(plan.card).toMatchObject({ stageKey: "test", state: "idle" });
+        expect(plan.next).toBeNull();
+        expect(plan.cycleItem).toBe("done");
+    });
+
+    it("closes the item as done when the card waits on the pull request stage", () => {
+        const plan = completeIn("success", "pr", cycleOf("running"));
+        expect(plan.card).toMatchObject({ stageKey: "pr", state: "idle" });
+        expect(plan.cycleItem).toBe("done");
+    });
+
+    it("reports failed and waiting_input as the item's result", () => {
+        expect(
+            completeIn("failed", "develop", cycleOf("running")).cycleItem
+        ).toBe("failed");
+        expect(
+            completeIn("needs_input", "develop", cycleOf("running")).cycleItem
+        ).toBe("waiting_input");
+    });
+
+    it("starts nothing after a stage of a stopped cycle", () => {
+        const plan = completeIn("success", "develop", cycleOf("stopped"));
+        expect(plan.card).toMatchObject({ stageKey: "develop", state: "idle" });
+        expect(plan.next).toBeNull();
+        expect(plan.cycleItem).toBe("stopped");
+    });
+
+    it("leaves the result alone outside a cycle", () => {
+        expect(completeIn("success", "develop", null).cycleItem).toBeNull();
+    });
+});
+
+describe("the spec stage of a draft", () => {
+    const draft = (overrides: Partial<CardRecord> = {}) =>
+        card({
+            slug: "slack-alerts",
+            lane: "drafts",
+            stageKey: "spec",
+            origin: "board",
+            ready: false,
+            branch: "feat/slack-alerts",
+            ...overrides,
+        });
+
+    it("runs the spec stage on a draft without asking for readiness", () => {
+        expect(decideTrigger(draft(), "spec", config)).toMatchObject({
+            ok: true,
+            stage: {
+                key: "spec",
+                command: "/spec",
+                agent: "estrategista-produto",
+            },
+            branch: "feat/slack-alerts",
+            resetReworkLoops: false,
+        });
+    });
+
+    it("refuses the spec stage outside Drafts and a normal stage on a draft", () => {
+        expect(decideTrigger(card(), "spec", config)).toEqual({
+            ok: false,
+            code: "CARD_STAGE_NOT_FOUND",
+            status: 422,
+        });
+        expect(decideTrigger(draft(), "analyze", config)).toEqual({
+            ok: false,
+            code: "CARD_DRAFT_NOT_APPROVED",
+            status: 409,
+        });
+    });
+
+    it("keeps the draft in Drafts while the spec stage is queued", () => {
+        const plan = planTrigger(draft(), {
+            stageKey: "spec",
+            config,
+            by: OCTO,
+            now: NOW,
+        });
+
+        expect(plan).toMatchObject({
+            ok: true,
+            run: { stageKey: "spec", command: "/spec", model: "opus" },
+            card: { lane: "drafts", stageKey: "spec", state: "queued" },
+        });
+    });
+
+    it("never moves the draft on its own after a round", () => {
+        const completeWith = (
+            outcome: "success" | "needs_input" | "needs_rework" | "failed"
+        ) =>
+            planCompletion({
+                card: { state: "running", reworkLoops: 0, pullRequest: null },
+                run: { stageKey: "spec" },
+                outcome,
+                config,
+                stageSettings: {},
+                now: NOW,
+            });
+
+        expect(completeWith("success")).toEqual({
+            card: {
+                lane: "drafts",
+                stageKey: "spec",
+                state: "idle",
+                reworkLoops: 0,
+            },
+            next: null,
+            cycleItem: null,
+        });
+        expect(completeWith("needs_input").card.state).toBe("waiting_input");
+        expect(completeWith("needs_rework").card.state).toBe("failed");
+        expect(completeWith("failed").card).toMatchObject({
+            lane: "drafts",
+            state: "failed",
         });
     });
 });
@@ -438,7 +680,148 @@ describe("toStageDispatch", () => {
                 "slug",
                 "stageKey",
                 "triggeredBy",
+                "cycleId",
             ].sort()
         );
+    });
+});
+
+describe("pull request comment runs", () => {
+    const openPullRequest = (
+        extra: Partial<NonNullable<CardRecord["pullRequest"]>> = {}
+    ): NonNullable<CardRecord["pullRequest"]> => ({
+        number: 12,
+        url: "https://github.com/agent-board-demo/sample-app/pull/12",
+        title: "Busca",
+        draft: true,
+        state: "open",
+        headRef: "feat/search-cards",
+        baseRef: "main",
+        headSha: "sha",
+        commits: 3,
+        openedAt: "2026-11-26T09:00:00.000Z",
+        openedByBoard: true,
+        dispatchAs: OCTO,
+        closedAt: null,
+        closedByLogin: null,
+        checks: [],
+        reviews: [],
+        commentRunsAt: [],
+        unhandledCommentAt: null,
+        ...extra,
+    });
+    const finish = (
+        pullRequest: CardRecord["pullRequest"],
+        outcome: "success" | "failed" | "needs_input" = "success"
+    ) =>
+        planCompletion({
+            card: { state: "running", reworkLoops: 0, pullRequest },
+            run: { stageKey: "pr" },
+            outcome,
+            config,
+            stageSettings: {},
+            now: NOW,
+        });
+
+    it("runs /mediate when a comment waited for the run to end", () => {
+        const plan = finish(
+            openPullRequest({ unhandledCommentAt: "2026-11-26T09:59:00.000Z" })
+        );
+
+        expect(plan.next).toMatchObject({
+            stage: { key: "pr" },
+            trigger: "pr_comment",
+            command: "/mediate",
+        });
+        expect(plan.card).toMatchObject({
+            lane: "stage",
+            stageKey: "pr",
+            state: "queued",
+            pullRequest: {
+                unhandledCommentAt: null,
+                commentRunsAt: [NOW.toISOString()],
+            },
+        });
+    });
+
+    it("leaves the comment waiting when the hourly limit is reached", () => {
+        const plan = finish(
+            openPullRequest({
+                unhandledCommentAt: "2026-11-26T09:59:00.000Z",
+                commentRunsAt: [
+                    "2026-11-26T09:10:00.000Z",
+                    "2026-11-26T09:20:00.000Z",
+                    "2026-11-26T09:30:00.000Z",
+                ],
+            })
+        );
+
+        expect(plan.next).toBeNull();
+        expect(plan.card.state).toBe("idle");
+        expect(plan.card.pullRequest).toBeUndefined();
+    });
+
+    it("does nothing without a waiting comment or while a question is open", () => {
+        expect(finish(openPullRequest()).next).toBeNull();
+        expect(
+            finish(
+                openPullRequest({
+                    unhandledCommentAt: "2026-11-26T09:59:00.000Z",
+                }),
+                "needs_input"
+            ).next
+        ).toBeNull();
+    });
+
+    it("refuses a comment run off the pull request stage", () => {
+        const plan = planTrigger(
+            card({ lane: "stage", stageKey: "test", state: "idle" }),
+            {
+                stageKey: "test",
+                config,
+                by: OCTO,
+                now: NOW,
+                trigger: "pr_comment",
+            }
+        );
+
+        expect(plan).toMatchObject({
+            ok: false,
+            code: "CARD_NOT_IN_PULL_REQUEST_STAGE",
+        });
+    });
+
+    it("queues the comment command, without agent, and counts the run", () => {
+        const plan = planTrigger(
+            card({
+                lane: "stage",
+                stageKey: "pr",
+                state: "idle",
+                branch: "feat/search-cards",
+                pullRequest: openPullRequest(),
+            }),
+            {
+                stageKey: "pr",
+                config,
+                by: OCTO,
+                now: NOW,
+                trigger: "pr_comment",
+            }
+        );
+
+        expect(plan).toMatchObject({
+            ok: true,
+            run: {
+                stageKey: "pr",
+                command: "/mediate",
+                agent: null,
+                trigger: "pr_comment",
+            },
+        });
+        if (!plan.ok) {
+            throw new Error("expected a plan");
+        }
+        const stored = plan.card.pullRequest as { commentRunsAt: Date[] };
+        expect(stored.commentRunsAt).toEqual([NOW]);
     });
 });

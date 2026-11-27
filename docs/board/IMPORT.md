@@ -26,7 +26,7 @@ Schema: `packages/kanban-contract/src/boardConfig.ts`. Modelo comentado: [`kit/.
 | `backlog.index` | `specs/BACKLOG.md` | Fonte da ordem |
 | `backlog.readyStatus` | `approved` | Status da spec que vira card pronto |
 | `featuresDir` | `docs/features` | Onde ficam os artefatos de cada feature |
-| `stages[].key` | — | Único, kebab-case |
+| `stages[].key` | — | Único, kebab-case; `spec` é reservada para a escrita de specs |
 | `stages[].column` | — | Título da coluna |
 | `stages[].command` | — | Slash command do repositório (`/develop`) |
 | `stages[].agent` | — | Opcional; só informativo no card |
@@ -36,6 +36,11 @@ Schema: `packages/kanban-contract/src/boardConfig.ts`. Modelo comentado: [`kit/.
 | `stages[].approval` | `none` | `none`, `optional` (o dono liga/desliga) ou `required` |
 | `stages[].onRework` | — | Etapa **anterior** para onde o card volta em `needs_rework` |
 | `stages[].onPrComment` | — | Comando disparado a cada comentário novo na PR |
+| `specAuthoring.command` | `/spec` | Comando da coluna Rascunhos, que escreve a spec a partir do pedido |
+| `specAuthoring.agent` | `estrategista-produto` | Autor dos eventos da escrita no card |
+| `specAuthoring.model` / `effort` | `opus` / `high` | Modelo e esforço da escrita |
+| `specAuthoring.runners` | `local, cloud` | Executores permitidos para a escrita |
+| `specAuthoring.path` | `specs/features/{slug}.md` | Onde o agente grava a spec na branch do card; precisa conter `{slug}` |
 | `limits.maxReworkLoops` | `2` | 0–5; depois disso o card fica *aguardando você* |
 | `limits.maxTurnsPerStage` | `200` | Limite de turnos por execução |
 | `environment.install` | — | Comando de instalação |

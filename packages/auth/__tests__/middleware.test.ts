@@ -282,7 +282,7 @@ describe("authMiddleware — opções", () => {
             protectedRoutes: ["/painel"],
         });
 
-        await middleware(request("http://localhost:3000/painel/entities"));
+        await middleware(request("http://localhost:3000/painel/boards"));
         expect(getCurrentUserMock).toHaveBeenCalledTimes(1);
 
         await middleware(request(PROTECTED_URL));

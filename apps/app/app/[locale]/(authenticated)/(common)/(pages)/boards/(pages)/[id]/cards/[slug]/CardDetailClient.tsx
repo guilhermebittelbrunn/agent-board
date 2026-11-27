@@ -29,14 +29,13 @@ import type {
 import FormattedError from "@repo/shared/utils/helpers/formattedError";
 import { handleClientError } from "@repo/shared/utils/helpers/handleClientError";
 import { useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
 import { LoadErrorState } from "@/shared/components/ui/LoadErrorState";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { queryKeys } from "@/shared/lib/queryKeys";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../../../paths";
 import { boardColumnTitle } from "../../../../(components)/boardColumnTitle";
 import {
@@ -44,6 +43,7 @@ import {
     fillMessage,
 } from "../../../../(components)/boardConfigIssueMessage";
 import { CardArtifacts } from "../../../../(components)/CardArtifacts";
+import { CardPullRequest } from "../../../../(components)/CardPullRequest";
 import { CardQuestions } from "../../../../(components)/CardQuestions";
 import {
     type CardRunCommand,
@@ -52,6 +52,7 @@ import {
 import { CardTimeline } from "../../../../(components)/CardTimeline";
 import { githubFileUrl } from "../../../../(components)/githubFileUrl";
 import { groupCardsByColumn } from "../../../../(components)/groupCardsByColumn";
+import { SpecDraftDetail } from "../../../../(components)/SpecDraftDetail";
 import { SpecMarkdown } from "../../../../(components)/SpecMarkdown";
 import { shortSha } from "../../../../(components)/shortSha";
 import { useStageRunDialogs } from "../../../../(components)/useStageRunDialogs";
@@ -87,12 +88,11 @@ function CardSummary({
 }: CardSectionProps & {
     onRunCommand: (card: CardDTO, command: CardRunCommand) => void;
 }) {
-    const { isImpersonating } = useAuthRequestPanel();
     const detailCopy = boardsDictionary.cardDetail;
     const specUrl = githubFileUrl(
         board.repository.owner,
         board.repository.name,
-        board.config.baseBranch,
+        card.spec.ref ?? board.config.baseBranch,
         card.spec.path
     );
 
@@ -115,10 +115,9 @@ function CardSummary({
                     <CardRunControls
                         board={board}
                         boardsDictionary={boardsDictionary}
-                        canTrigger={
-                            canTriggerStages(board.access.effectiveRole) &&
-                            !isImpersonating
-                        }
+                        canTrigger={canTriggerStages(
+                            board.access.effectiveRole
+                        )}
                         card={card}
                         onCommand={onRunCommand}
                         showOrphan={false}
@@ -244,10 +243,17 @@ function useRefetchEventsWhenCardChanges(boardId: string, card: CardDTO) {
     }, [boardId, card.slug, card.updatedAt, queryClient]);
 }
 
-/** Pending questions on top, then the timeline, the spec and the artifacts as tabs. */
-function CardActivity({ board, card, boardsDictionary }: CardSectionProps) {
+/**
+ * Pending questions on top, then the timeline, the spec and the artifacts as tabs. A draft
+ * shows its spec next to the activity, so the spec tab is left out there.
+ */
+function CardActivity({
+    board,
+    card,
+    boardsDictionary,
+    showSpecTab = true,
+}: CardSectionProps & { showSpecTab?: boolean }) {
     const { locale } = getDictionary();
-    const { isImpersonating } = useAuthRequestPanel();
     const detailCopy = boardsDictionary.cardDetail;
     const {
         data: events,
@@ -263,8 +269,8 @@ function CardActivity({ board, card, boardsDictionary }: CardSectionProps) {
     } = useCardEventCrud(board.id, card.slug);
 
     const role = board.access.effectiveRole;
-    const canComment = canCommentOnCards(role) && !isImpersonating;
-    const canAnswer = canAnswerQuestions(role) && !isImpersonating;
+    const canComment = canCommentOnCards(role);
+    const canAnswer = canAnswerQuestions(role);
     const pendingQuestions = pendingQuestionsOf(card, events);
     const links = {
         owner: board.repository.owner,
@@ -301,9 +307,11 @@ function CardActivity({ board, card, boardsDictionary }: CardSectionProps) {
                     <TabsTrigger className="flex-none" value="timeline">
                         {detailCopy.tabs.timeline}
                     </TabsTrigger>
-                    <TabsTrigger className="flex-none" value="spec">
-                        {detailCopy.tabs.spec}
-                    </TabsTrigger>
+                    {showSpecTab ? (
+                        <TabsTrigger className="flex-none" value="spec">
+                            {detailCopy.tabs.spec}
+                        </TabsTrigger>
+                    ) : null}
                     <TabsTrigger className="flex-none" value="artifacts">
                         {detailCopy.tabs.artifacts}
                     </TabsTrigger>
@@ -333,13 +341,15 @@ function CardActivity({ board, card, boardsDictionary }: CardSectionProps) {
                         pendingEventId={card.pendingAsk?.eventId ?? null}
                     />
                 </TabsContent>
-                <TabsContent className="pt-4" value="spec">
-                    <SpecSection
-                        board={board}
-                        boardsDictionary={boardsDictionary}
-                        card={card}
-                    />
-                </TabsContent>
+                {showSpecTab ? (
+                    <TabsContent className="pt-4" value="spec">
+                        <SpecSection
+                            board={board}
+                            boardsDictionary={boardsDictionary}
+                            card={card}
+                        />
+                    </TabsContent>
+                ) : null}
                 <TabsContent className="pt-4" value="artifacts">
                     <CardArtifacts
                         boardsDictionary={boardsDictionary}
@@ -354,6 +364,58 @@ function CardActivity({ board, card, boardsDictionary }: CardSectionProps) {
                 <div aria-hidden className="h-16 md:hidden" />
             ) : null}
         </>
+    );
+}
+
+/** A card in Drafts gets the spec draft layout; every other card, its summary and activity. */
+function CardPageBody({
+    board,
+    card,
+    boardsDictionary,
+    onRunCommand,
+    onDiscarded,
+}: CardSectionProps & {
+    onRunCommand: (card: CardDTO, command: CardRunCommand) => void;
+    onDiscarded: () => void;
+}) {
+    if (card.lane === "drafts") {
+        return (
+            <SpecDraftDetail
+                activity={
+                    <CardActivity
+                        board={board}
+                        boardsDictionary={boardsDictionary}
+                        card={card}
+                        showSpecTab={false}
+                    />
+                }
+                board={board}
+                boardsDictionary={boardsDictionary}
+                card={card}
+                onDiscarded={onDiscarded}
+                onRunCommand={onRunCommand}
+            />
+        );
+    }
+    return (
+        <div className="flex w-full min-w-0 flex-col gap-6">
+            <CardSummary
+                board={board}
+                boardsDictionary={boardsDictionary}
+                card={card}
+                onRunCommand={onRunCommand}
+            />
+            <CardPullRequest
+                board={board}
+                boardsDictionary={boardsDictionary}
+                card={card}
+            />
+            <CardActivity
+                board={board}
+                boardsDictionary={boardsDictionary}
+                card={card}
+            />
+        </div>
     );
 }
 
@@ -386,6 +448,7 @@ export function CardDetailClient() {
     const boardCards =
         queryClient.getQueryData<CardDTO[]>(queryKeys.boards.cards(id)) ??
         (card ? [card] : []);
+    const router = useRouter();
     const { onCommand, dialogs } = useStageRunDialogs({
         boardId: id,
         board,
@@ -397,7 +460,6 @@ export function CardDetailClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,
@@ -418,19 +480,15 @@ export function CardDetailClient() {
                 loading={isLoading}
             >
                 {board && card ? (
-                    <div className="flex w-full min-w-0 flex-col gap-6">
-                        <CardSummary
-                            board={board}
-                            boardsDictionary={boardsDictionary}
-                            card={card}
-                            onRunCommand={onCommand}
-                        />
-                        <CardActivity
-                            board={board}
-                            boardsDictionary={boardsDictionary}
-                            card={card}
-                        />
-                    </div>
+                    <CardPageBody
+                        board={board}
+                        boardsDictionary={boardsDictionary}
+                        card={card}
+                        onDiscarded={() =>
+                            router.push(routes.boards.detail(id).url)
+                        }
+                        onRunCommand={onCommand}
+                    />
                 ) : null}
             </Container>
             {dialogs}

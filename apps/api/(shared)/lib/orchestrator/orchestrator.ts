@@ -1,21 +1,32 @@
-import type {
-    ActiveRunView,
-    ExecutorReport,
-    RunEndReason,
-    RunPerson,
-    RunTrigger,
-    StageOutcome,
+import {
+    type ActiveRunView,
+    canRunPrComment,
+    type ExecutorReport,
+    findPullRequestStage,
+    type RunEndReason,
+    type RunPerson,
+    type RunTrigger,
+    resolvePullRequestClosure,
+    type StageOutcome,
+    stageRunnersOf,
 } from "@repo/kanban-contract";
 import type { BoardDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { logEvent } from "@repo/shared/utils/helpers/log";
 import { agentEventFromTool } from "@/(shared)/lib/card-events";
+import { nextTasksOrder } from "@/(shared)/lib/card-order";
+import {
+    appendBoardUpdate,
+    pullRequestEventText,
+} from "@/(shared)/lib/pull-request/pull-request-events";
+import { ensurePullRequest } from "@/(shared)/lib/pull-request/pull-request-open";
 import { findUnclaimed } from "@/(shared)/lib/runner/runner-claim";
 import { type CardRecord, cardIdFor } from "@/(shared)/mappers/card.mapper";
 import type { RunRecord } from "@/(shared)/mappers/run.mapper";
 import { cardRepository } from "@/(shared)/repositories/card.repository";
 import { cardEventRepository } from "@/(shared)/repositories/card-event.repository";
 import { runRepository } from "@/(shared)/repositories/run.repository";
+import { onCycleItemSettled } from "./cycle";
 import {
     deadlineFor,
     findExpired,
@@ -26,7 +37,7 @@ import {
     toStageDispatch,
 } from "./decide";
 import { getStageExecutor } from "./executor";
-import { executorsForUsers, resolveExecutorFor } from "./executor-choice";
+import { chooseExecutorFor, executorsForRuns } from "./executor-choice";
 
 type Board = Pick<BoardDTO, "id" | "config" | "repository" | "stageSettings">;
 
@@ -54,6 +65,7 @@ export async function triggerStage(input: {
     stageKey: string;
     by: RunPerson;
     trigger?: RunTrigger;
+    cycleId?: string;
     now?: Date;
 }): Promise<TriggerResult> {
     const now = input.now ?? new Date();
@@ -66,10 +78,20 @@ export async function triggerStage(input: {
                 by: input.by,
                 now,
                 trigger: input.trigger,
+                cycleId: input.cycleId,
             })
     );
     if (!queued.ok) {
         return queued;
+    }
+    if (input.trigger !== "pr_comment") {
+        await openPullRequestOnEntry({
+            board: input.board,
+            cardId: queued.cardId,
+            stageKey: input.stageKey,
+            dispatchAs: input.by,
+            now,
+        });
     }
     await pumpBoard(input.board, now);
     const stored = await readBack(queued.cardId, queued.runId);
@@ -101,21 +123,159 @@ export async function completeRun(input: {
             stoppedBy: null,
         },
         config: board.config,
-        plan: (card, run) =>
+        plan: (card, run, cycle) =>
             planCompletion({
                 card,
                 run,
                 outcome: input.outcome,
                 config: board.config,
                 stageSettings: board.stageSettings,
+                now,
+                cycle,
             }),
         now,
     });
     if (result.ignored) {
         return { ignored: true };
     }
+    if (result.next !== null && result.next.trigger !== "pr_comment") {
+        await openPullRequestOnEntry({
+            board,
+            cardId: result.cardId,
+            stageKey: result.next.stageKey,
+            dispatchAs: result.next.triggeredBy,
+            now,
+        });
+    }
+    await settlePullRequest(board, result.cardId);
     await pumpBoard(board, now);
+    if (result.cycle !== null) {
+        await onCycleItemSettled(board, {
+            cycleId: result.cycle.id,
+            cardId: result.cardId,
+            result: result.cycle.result,
+            now,
+        });
+    }
     return { ignored: false };
+}
+
+/**
+ * Opens the pull request before the stage command runs, so the command already finds it.
+ * A failure stays on the card for a person to retry; it never fails the caller.
+ */
+async function openPullRequestOnEntry({
+    board,
+    cardId,
+    stageKey,
+    dispatchAs,
+    now,
+}: {
+    board: Board;
+    cardId: string;
+    stageKey: string;
+    dispatchAs: RunPerson;
+    now: Date;
+}): Promise<void> {
+    if (findPullRequestStage(board.config)?.key !== stageKey) {
+        return;
+    }
+    try {
+        await ensurePullRequest({ board, cardId, dispatchAs, now });
+    } catch {
+        logEvent("github", "pull-request-open-crashed", {
+            boardId: board.id,
+            cardId,
+        });
+    }
+}
+
+/**
+ * Moves a card whose pull request was merged (to Done) or closed (to the end of Tasks). With
+ * a live run nothing moves: `completeRun` calls this again once that run ends.
+ */
+export async function settlePullRequest(
+    board: Pick<Board, "id" | "config">,
+    cardId: string
+): Promise<void> {
+    const card = await cardRepository.findById(cardId);
+    if (card === null) {
+        return;
+    }
+    const closure = resolvePullRequestClosure(
+        card,
+        findPullRequestStage(board.config)?.key
+    );
+    if (closure === null) {
+        return;
+    }
+    const order =
+        closure.lane === "tasks"
+            ? nextTasksOrder(await cardRepository.listByBoard(board.id))
+            : undefined;
+    await cardRepository.move(card.id, {
+        lane: closure.lane,
+        order,
+        movedByUserId: null,
+    });
+}
+
+/**
+ * A new comment or review on the card's pull request runs the comment command. With a run
+ * still live, or the hourly limit reached, the comment is kept as waiting: the end of the
+ * live run picks it up.
+ */
+export async function onPullRequestComment(
+    board: Board,
+    cardId: string,
+    now: Date
+): Promise<void> {
+    const stage = findPullRequestStage(board.config);
+    const limit = board.config.limits.maxPrCommentRunsPerHour;
+    if (stage?.onPrComment === undefined || limit === 0) {
+        return;
+    }
+    const card = await cardRepository.findById(cardId);
+    const pullRequest = card?.pullRequest;
+    if (
+        card === null ||
+        pullRequest == null ||
+        pullRequest.state !== "open" ||
+        card.lane !== "stage" ||
+        card.stageKey !== stage.key
+    ) {
+        return;
+    }
+    const withinLimit = canRunPrComment(pullRequest.commentRunsAt, now, limit);
+    if (withinLimit && card.activeRunId === null) {
+        const started = await triggerStage({
+            board,
+            slug: card.slug,
+            stageKey: stage.key,
+            by: pullRequest.dispatchAs,
+            trigger: "pr_comment",
+            now,
+        });
+        if (started.ok || started.code !== "CARD_RUN_ACTIVE") {
+            return;
+        }
+    }
+    await cardRepository.updatePullRequest(card.id, (stored) =>
+        stored.pullRequest?.state === "open"
+            ? {
+                  pullRequest: {
+                      ...stored.pullRequest,
+                      unhandledCommentAt: now.toISOString(),
+                  },
+              }
+            : null
+    );
+    if (!withinLimit && pullRequest.unhandledCommentAt === null) {
+        await appendBoardUpdate(
+            card,
+            pullRequestEventText.commentLimit(limit, stage.onPrComment)
+        );
+    }
 }
 
 export async function stopRun(input: {
@@ -138,6 +298,14 @@ export async function stopRun(input: {
         await getStageExecutor(run.executor)?.cancel(stopped.runId);
     }
     await pumpBoard(input.board, now);
+    if (stopped.cycleId !== null) {
+        await onCycleItemSettled(input.board, {
+            cycleId: stopped.cycleId,
+            cardId: stopped.cardId,
+            result: "stopped",
+            now,
+        });
+    }
     const card = await cardRepository.findById(stopped.cardId);
     return card
         ? { ok: true, card }
@@ -154,18 +322,23 @@ export async function resumeAfterAnswer(input: {
     by: RunPerson;
     now?: Date;
 }): Promise<void> {
-    if ((await resolveExecutorFor(input.by.userId, input.now)) === null) {
-        return;
-    }
     const card = await cardRepository.findBySlug(input.board.id, input.slug);
     if (
         card === null ||
-        card.lane !== "stage" ||
+        !(card.lane === "stage" || card.lane === "drafts") ||
         card.stageKey === null ||
         card.state !== "waiting_input" ||
         card.activeRunId !== null ||
         card.pendingAsk !== null
     ) {
+        return;
+    }
+    const choice = await chooseExecutorFor(
+        input.by.userId,
+        input.now,
+        stageRunnersOf(input.board.config, card.stageKey)
+    );
+    if (!choice.ok) {
         return;
     }
     await triggerStage({
@@ -180,22 +353,29 @@ export async function resumeAfterAnswer(input: {
 
 /**
  * Starts what fits in the columns. Each run gets the executor of the person who triggered
- * it, so a runner only ever runs its owner's stages; a run whose person has no executor
- * ends right away with `no_runner`.
+ * it, so a runner only ever runs its owner's stages. A run whose person has no executor
+ * ends right away: `no_credential` when nothing they own can serve that stage, `no_runner`
+ * when an online runner would.
  */
 async function pumpBoard(board: Board, now: Date): Promise<void> {
     const live = await runRepository.listActiveByBoard(board.id);
-    const queuedBy = live
-        .filter((run) => run.status === "queued")
-        .map((run) => run.triggeredBy.userId);
-    if (queuedBy.length === 0) {
+    const queued = live.filter((run) => run.status === "queued");
+    if (queued.length === 0) {
         return;
     }
-    const byUser = await executorsForUsers(queuedBy, now);
+    const choices = await executorsForRuns(queued, board.config, now);
     const started = await runRepository.promote({
         boardId: board.id,
-        pick: (runs, stored) => pickPromotions(runs, stored.stageSettings),
-        executorFor: (run) => byUser.get(run.triggeredBy.userId) ?? null,
+        // A run queued after `live` was read has no choice yet; the pump of the request that
+        // queued it read it, so it stays queued here instead of starting with no executor.
+        pick: (runs, stored) =>
+            pickPromotions(runs, stored.stageSettings).filter((run) =>
+                choices.has(run.id)
+            ),
+        executorFor: (run) => {
+            const choice = choices.get(run.id);
+            return choice?.ok ? choice.executor : null;
+        },
         deadlineFor: (startedAt, stored) =>
             deadlineFor(startedAt, stored.config),
         now,
@@ -204,7 +384,12 @@ async function pumpBoard(board: Board, now: Date): Promise<void> {
         const executor =
             run.executor === null ? null : getStageExecutor(run.executor);
         if (executor === null) {
-            logEvent("orchestrator", "no_runner", {
+            const choice = choices.get(run.id);
+            const endReason =
+                choice && !choice.ok && choice.refusal === "stage_not_served"
+                    ? "no_credential"
+                    : "no_runner";
+            logEvent("orchestrator", endReason, {
                 boardId: board.id,
                 runId: run.id,
             });
@@ -212,7 +397,7 @@ async function pumpBoard(board: Board, now: Date): Promise<void> {
                 board,
                 runId: run.id,
                 outcome: "failed",
-                endReason: "no_runner",
+                endReason,
                 now,
             });
             continue;
@@ -246,6 +431,7 @@ const toActiveRunView = (run: RunRecord): ActiveRunView => ({
     slug: run.slug,
     stageKey: run.stageKey,
     command: run.command,
+    cycleId: run.cycleId,
     startedAt: new Date(run.startedAt ?? run.queuedAt),
 });
 
@@ -280,6 +466,7 @@ async function recordReport(
                     ...ref,
                     outcome: report.outcome,
                     summary: report.summary,
+                    decisions: report.decisions,
                 },
             },
             ctx
@@ -290,6 +477,7 @@ async function recordReport(
             await cardEventRepository.appendAgentEvent(card, {
                 ...event.write,
                 runId: run.id,
+                cycleId: run.cycleId,
             });
         }
     }

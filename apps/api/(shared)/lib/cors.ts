@@ -1,4 +1,3 @@
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
 import { REQUEST_ID_HEADER } from "@repo/shared/utils/helpers/request-id";
 
 /**
@@ -10,13 +9,9 @@ const DEVELOPMENT_ORIGINS = ["http://localhost:3000"];
 
 const ALLOWED_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 
-const ALLOWED_HEADERS = [
-    "Content-Type",
-    "Authorization",
-    "x-role",
-    "x-locale",
-    ...Object.values(AUTH_REQUEST_HEADER),
-].join(", ");
+const ALLOWED_HEADERS = ["Content-Type", "Authorization", "x-locale"].join(
+    ", "
+);
 
 const PREFLIGHT_MAX_AGE_SECONDS = "86400";
 

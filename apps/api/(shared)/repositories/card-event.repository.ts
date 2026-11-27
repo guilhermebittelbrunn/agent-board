@@ -64,6 +64,24 @@ class CardEventRepository extends BaseRepository<CardEventDTO> {
             .sort(byCreation);
     }
 
+    /** The events of every card of a cycle, newest first, up to `limit`. */
+    async listByCycle(cycleId: string, limit: number): Promise<CardEventDTO[]> {
+        const snapshot = await this.db
+            .collection(this.table)
+            .where("cycleId", "==", cycleId)
+            .where("deletedAt", "==", null)
+            .get();
+        return snapshot.docs
+            .map((docSnap) =>
+                this.toDTO(
+                    docSnap.id,
+                    docSnap.data() as Record<string, unknown>
+                )
+            )
+            .sort((left, right) => byCreation(right, left))
+            .slice(0, limit);
+    }
+
     async findInCard(
         cardId: string,
         eventId: string

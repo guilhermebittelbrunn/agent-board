@@ -27,6 +27,74 @@ type BoardCardItemProps = {
     onDrop?: (event: DragEvent<HTMLElement>) => void;
 };
 
+const CHECKS_DOT = {
+    pending: "bg-muted-foreground",
+    success: "bg-success",
+    failure: "bg-destructive",
+} as const;
+
+/** The pull request in one line: open on the stage with its CI, or closed back in Tasks. */
+function PullRequestLine({
+    card,
+    boardsDictionary,
+}: {
+    card: CardDTO;
+    boardsDictionary: BoardsDictionary;
+}) {
+    const pullRequestCopy = boardsDictionary.board.card.pullRequest;
+    const { pullRequest } = card;
+    if (pullRequest === null) {
+        return null;
+    }
+    if (pullRequest.state === "open" && card.lane === "stage") {
+        return (
+            <span className="relative flex items-center gap-1.5 text-muted-foreground text-xs">
+                <span
+                    aria-hidden
+                    className={cn(
+                        "size-2 rounded-full",
+                        CHECKS_DOT[pullRequest.checksSummary]
+                    )}
+                />
+                {fillMessage(pullRequestCopy.open, {
+                    number: pullRequest.number,
+                })}
+                <span className="sr-only">
+                    {pullRequestCopy.checks[pullRequest.checksSummary]}
+                </span>
+            </span>
+        );
+    }
+    if (pullRequest.state === "closed" && card.lane === "tasks") {
+        return (
+            <span className="text-muted-foreground text-xs">
+                {fillMessage(pullRequestCopy.closed, {
+                    number: pullRequest.number,
+                })}
+            </span>
+        );
+    }
+    return null;
+}
+
+/** The card runs inside a cycle, which decides for it until it leaves. */
+function CycleBadge({
+    card,
+    boardsDictionary,
+}: {
+    card: CardDTO;
+    boardsDictionary: BoardsDictionary;
+}) {
+    if (card.cycleId === null) {
+        return null;
+    }
+    return (
+        <Badge className="self-start" variant="secondary">
+            {boardsDictionary.board.card.cycleBadge}
+        </Badge>
+    );
+}
+
 export function BoardCardItem({
     card,
     href,
@@ -94,6 +162,8 @@ export function BoardCardItem({
                 </div>
             ) : null}
             {position === null ? runControls : null}
+            <CycleBadge boardsDictionary={boardsDictionary} card={card} />
+            <PullRequestLine boardsDictionary={boardsDictionary} card={card} />
             {position === null && card.branch ? (
                 <span className="break-all font-mono text-muted-foreground text-xs">
                     {card.branch}

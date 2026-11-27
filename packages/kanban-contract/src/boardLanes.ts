@@ -1,6 +1,6 @@
 import type { BoardConfig } from "./boardConfig";
 
-export const CARD_LANES = ["tasks", "stage", "done"] as const;
+export const CARD_LANES = ["drafts", "tasks", "stage", "done"] as const;
 export type CardLane = (typeof CARD_LANES)[number];
 
 export type BoardStageColumn = {
@@ -14,6 +14,7 @@ export type BoardStageColumn = {
 };
 
 export type BoardColumn =
+    | { id: "drafts"; lane: "drafts" }
     | { id: "tasks"; lane: "tasks" }
     | BoardStageColumn
     | { id: "done"; lane: "done" };
@@ -21,9 +22,10 @@ export type BoardColumn =
 export const stageColumnId = (stageKey: string): `stage:${string}` =>
     `stage:${stageKey}`;
 
-/** Tasks first, one column per stage in the order of `board.yml`, then Done. */
+/** Drafts and Tasks first, one column per stage in the order of `board.yml`, then Done. */
 export function boardColumns(config: BoardConfig): BoardColumn[] {
     return [
+        { id: "drafts", lane: "drafts" },
         { id: "tasks", lane: "tasks" },
         ...config.stages.map(
             (stage): BoardStageColumn => ({

@@ -12,9 +12,11 @@ const {
     moveMock,
     triggerMock,
     stopMock,
+    openPullRequestMock,
     successAlertMock,
     errorAlertMock,
 } = vi.hoisted(() => ({
+    openPullRequestMock: vi.fn(),
     syncMock: vi.fn(),
     reorderMock: vi.fn(),
     moveMock: vi.fn(),
@@ -32,6 +34,8 @@ vi.mock("@/shared/lib/client", () => ({
             move: (...args: unknown[]) => moveMock(...args),
             trigger: (...args: unknown[]) => triggerMock(...args),
             stop: (...args: unknown[]) => stopMock(...args),
+            openPullRequest: (...args: unknown[]) =>
+                openPullRequestMock(...args),
         },
     },
 }));
@@ -44,20 +48,33 @@ vi.mock("@repo/design-system/hooks/useAlert", () => ({
 
 const BOARD_ID = "agent-board-demo--sample-app";
 
+const PR_NUMBER = 12;
+
 const card = (slug: string, overrides: Partial<CardDTO> = {}): CardDTO => ({
     id: `${BOARD_ID}__${slug}`,
     boardId: BOARD_ID,
     slug,
     title: slug,
-    spec: { path: `specs/features/${slug}.md`, sha: "x", status: "approved" },
+    spec: {
+        path: `specs/features/${slug}.md`,
+        sha: "x",
+        status: "approved",
+        ref: null,
+    },
     ready: true,
     orphan: false,
     lane: "tasks",
+    origin: "repository",
+    request: null,
+    specApproval: null,
     stageKey: null,
     state: "idle",
     pendingAsk: null,
     activeRunId: null,
     lastRun: null,
+    pullRequest: null,
+    pullRequestError: null,
+    cycleId: null,
     reworkLoops: 0,
     order: 0,
     branch: `feat/${slug}`,
@@ -116,6 +133,7 @@ beforeEach(() => {
         moveMock,
         triggerMock,
         stopMock,
+        openPullRequestMock,
         successAlertMock,
         errorAlertMock,
     ]) {
@@ -362,6 +380,54 @@ describe("useBoardCardCrud", () => {
         ).toBe(true);
         expect(successAlertMock).toHaveBeenCalledWith(
             "Backlog sincronizado: 2 criados, 1 atualizados, 0 órfãos."
+        );
+    });
+
+    it("stores the card with its pull request and reads the card, list and events again", async () => {
+        const target = card("a", { lane: "stage", stageKey: "pr" });
+        const opened = {
+            ...target,
+            pullRequestError: null,
+            cycleId: null,
+            pullRequest: { number: PR_NUMBER } as CardDTO["pullRequest"],
+        };
+        openPullRequestMock.mockResolvedValue(opened);
+        const eventsKey = queryKeys.boards.cardEvents(BOARD_ID, "a");
+        queryClient.setQueryData(eventsKey, []);
+        const { result } = renderHook(() => useBoardCardCrud(BOARD_ID), {
+            wrapper,
+        });
+
+        await act(() =>
+            result.current.openPullRequestMutation.mutateAsync(target)
+        );
+
+        expect(openPullRequestMock).toHaveBeenCalledWith(BOARD_ID, "a");
+        expect(
+            queryClient.getQueryData<CardDTO>(
+                queryKeys.boards.card(BOARD_ID, "a")
+            )?.pullRequest?.number
+        ).toBe(PR_NUMBER);
+        expect(cardsInvalidated()).toBe(true);
+        expect(queryClient.getQueryState(eventsKey)?.isInvalidated).toBe(true);
+    });
+
+    it("shows the translated error when the pull request cannot be opened", async () => {
+        openPullRequestMock.mockRejectedValue(
+            apiError("GITHUB_APP_PERMISSION_MISSING")
+        );
+        const { result } = renderHook(() => useBoardCardCrud(BOARD_ID), {
+            wrapper,
+        });
+
+        await act(async () => {
+            await result.current.openPullRequestMutation
+                .mutateAsync(card("a"))
+                .catch(() => null);
+        });
+
+        expect(errorAlertMock).toHaveBeenCalledWith(
+            expect.stringContaining("Pull requests: Read and write")
         );
     });
 });

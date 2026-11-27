@@ -5,7 +5,6 @@ import {
 } from "@tanstack/react-query";
 import { getServerApiClient } from "@/lib/server/apiServerClient";
 import { panelPageMetadata } from "@/lib/server/panelMetadata";
-import { isImpersonating } from "@/lib/server/panelSnapshot";
 import { queryKeys } from "@/shared/lib/queryKeys";
 import { CardDetailClient } from "./CardDetailClient";
 
@@ -20,8 +19,8 @@ export default async function CardDetailPage({ params }: CardDetailPageProps) {
     const { id, slug } = await params;
     const queryClient = new QueryClient();
 
-    if (id && slug && !(await isImpersonating())) {
-        const client = await getServerApiClient("common");
+    if (id && slug) {
+        const client = await getServerApiClient();
         if (client) {
             await Promise.all([
                 queryClient.prefetchQuery({

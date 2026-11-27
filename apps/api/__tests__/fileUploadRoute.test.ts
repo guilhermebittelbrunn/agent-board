@@ -1,6 +1,3 @@
-import { UserRoleLevel } from "@repo/auth/types";
-import { UserType } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +26,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
     },
 }));
 
@@ -52,18 +48,11 @@ vi.mock("@/(shared)/validation/file.schema", async (importOriginal) => ({
 
 const { POST } = await import("@/app/(routes)/files/route");
 
-const ADMIN_UID = "admin-1";
 const OWNER_UID = "common-9";
 
-const ADMIN_PROFILE = {
-    id: "p1",
-    reference_id: ADMIN_UID,
-    type: UserType.ADMIN,
-};
 const OWNER_PROFILE = {
     id: "p2",
     reference_id: OWNER_UID,
-    type: UserType.COMMON,
 };
 
 const SIGNED_URL = "https://storage.googleapis.com/bucket/object?X-Goog-Sig=1";
@@ -99,21 +88,10 @@ function uploadRequest(
 const asOwner = (query = "") =>
     uploadRequest(
         {
-            [AUTH_REQUEST_HEADER.USER_ID]: OWNER_UID,
-            [AUTH_REQUEST_HEADER.USER_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: OWNER_UID,
+            "x-test-actor": OWNER_UID,
         },
         query
     );
-
-const asImpersonatingAdmin = () =>
-    uploadRequest({
-        [AUTH_REQUEST_HEADER.USER_ID]: ADMIN_UID,
-        [AUTH_REQUEST_HEADER.USER_ROLE]: UserRoleLevel.ADMIN,
-        [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-        [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: OWNER_UID,
-    });
 
 async function errorCode(response: Response): Promise<string> {
     const body = (await response.json()) as { error: { code: string } };
@@ -133,9 +111,7 @@ beforeEach(() => {
     }
 
     resolveApiActorMock.mockResolvedValue({ uid: OWNER_UID });
-    findByReferenceIdMock.mockImplementation((uid: string) =>
-        Promise.resolve(uid === ADMIN_UID ? ADMIN_PROFILE : OWNER_PROFILE)
-    );
+    findByReferenceIdMock.mockResolvedValue(OWNER_PROFILE);
     isStorageConfiguredMock.mockReturnValue(true);
     putObjectMock.mockResolvedValue(undefined);
     signReadUrlMock.mockResolvedValue({
@@ -146,7 +122,7 @@ beforeEach(() => {
 });
 
 describe("POST /files", () => {
-    it("stores the object under the subject's own prefix and answers with a signed url", async () => {
+    it("stores the object under the caller's own prefix and answers with a signed url", async () => {
         const response = await POST(asOwner());
 
         expect(response.status).toBe(STATUS_CREATED);
@@ -264,16 +240,4 @@ describe("POST /files", () => {
             expect(putObjectMock).not.toHaveBeenCalled();
         }
     );
-
-    it("refuses an admin acting as another user and writes nothing", async () => {
-        resolveApiActorMock.mockResolvedValue({ uid: ADMIN_UID });
-
-        const response = await POST(asImpersonatingAdmin());
-
-        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-        expect(await errorCode(response)).toBe(
-            "AUTH_REQUEST_IMPERSONATION_READ_ONLY"
-        );
-        expect(putObjectMock).not.toHaveBeenCalled();
-    });
 });

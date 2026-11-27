@@ -48,7 +48,7 @@ export const POST = requireBoardApi("manageMembers", async (req, ctx) => {
         boardId: ctx.board.id,
         login,
         role,
-        invitedByUserId: ctx.subjectProfile.id,
+        invitedByUserId: ctx.profile.id,
     });
     if (!created) {
         return errorResponse(

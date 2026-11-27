@@ -15,10 +15,8 @@ import { getDictionary } from "@repo/internationalization/client";
 import type { AccountDTO } from "@repo/sdk/src/types";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useId } from "react";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { AccountPreferencesForm } from "./AccountPreferencesForm";
 import { AccountProfileForm } from "./AccountProfileForm";
-import { AccountSecurityForm } from "./AccountSecurityForm";
 import {
     type AccountTabValue,
     accountTabHref,
@@ -77,7 +75,6 @@ export function AccountTabs({ account }: AccountTabsProps) {
 
     const sectionContent: Record<AccountTabValue, ReactNode> = {
         profile: <AccountProfileForm account={account} />,
-        security: <AccountSecurityForm account={account} />,
         preferences: <AccountPreferencesForm account={account} />,
     };
 
@@ -123,7 +120,6 @@ export function AccountTabs({ account }: AccountTabsProps) {
             </TabsList>
 
             <div className="flex min-w-0 flex-1 flex-col gap-6">
-                <ImpersonationReadOnlyNotice />
                 {accountTabValues.map((value) => (
                     <TabsContent
                         className="flex flex-col gap-6"

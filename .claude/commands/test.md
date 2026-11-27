@@ -26,6 +26,7 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
 - Sem perguntas: gere sempre o roteiro de teste manual; rode e2e só se o ambiente tiver browser.
 - Teste relacionado falhando por defeito do código → `needs_rework`; por ambiente → `failed` com o motivo.
 - Termine com commit dos testes criados e de `docs/features/<slug>/test/`, e push.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)
@@ -157,7 +158,7 @@ dizer o que ele subiu, o que reutilizou e que derrubou o que era dele. Se ele n�
 
 ## Passo 5 — Cross-check
 
-Liste os ambientes a conferir quando a mudança os afetar: comum × admin × impersonação, mobile ×
+Liste os ambientes a conferir quando a mudança os afetar: papéis no board, mobile ×
 desktop, light × dark. Registre os
 follow-ups.
 
@@ -169,7 +170,9 @@ critérios e o relatório ficam em `docs/features/<slug>/test/` para o usuário 
 Critérios e resultados já estão salvos e o `STATE.md` marca `test = done`. Pode `/compact`/`/clear` ao
 concluir, ou seguir para `/observe` (opcional) para gerar a observação final não-técnica.
 
-Se o `STATE.md` tiver `spec: <id>`, **sugira rodar `/spec --sync`** para fechar o ciclo: ele confere no
-código o que foi entregue e move a spec para `done`. Sem esse passo, o backlog em `specs/` passa a mentir.
+Se o `STATE.md` tiver `spec: <id>` e `test = done`, o próximo passo é **`/spec --sync <slug>`, nesta mesma
+branch e antes da PR**: ele confere no código o que foi entregue, arquiva a spec em
+`docs/features/<slug>/spec.md` e atualiza o `BACKLOG.md`. Assim o merge leva o backlog já correto para
+`main`, e a branch seguinte começa da próxima tarefa sem reconstruir o que esta entregou.
 
 Mantenha tudo em português e em Markdown estruturado.

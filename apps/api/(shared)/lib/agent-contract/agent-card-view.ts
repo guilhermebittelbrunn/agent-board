@@ -1,6 +1,7 @@
 import {
     type AgentAnsweredQuestion,
     type AgentArtifactRef,
+    type AgentCardRequest,
     type AgentCardView,
     displayCardState,
 } from "@repo/kanban-contract";
@@ -23,6 +24,7 @@ const UNREAD_SPEC: SpecRead = { sha: null, content: null };
 async function readSpec(
     board: BoardDTO,
     card: CardRecord,
+    ref: string,
     runId: string
 ): Promise<SpecRead> {
     const client = getGithubClient();
@@ -34,7 +36,7 @@ async function readSpec(
         const file = await client.readFile(
             board.repository,
             card.spec.path,
-            board.config.baseBranch
+            ref
         );
         return file
             ? { sha: file.sha, content: specBody(file.content) }
@@ -80,14 +82,34 @@ export function artifactsOf(events: CardEventDTO[]): AgentArtifactRef[] {
     );
 }
 
+/** The request as the agent sees it: who asked, never where the files sit in the bucket. */
+export function agentRequestOf(card: CardRecord): AgentCardRequest | null {
+    if (card.request === null) {
+        return null;
+    }
+    const { text, attachments, requestedBy, requestedAt } = card.request;
+    return {
+        text,
+        attachments: attachments.map(({ id, name, contentType, size }) => ({
+            id,
+            name,
+            contentType,
+            size,
+        })),
+        requestedBy: { login: requestedBy.login },
+        requestedAt,
+    };
+}
+
 export async function buildAgentCardView(input: {
     run: RunRecord;
     board: BoardDTO;
     card: CardRecord;
 }): Promise<AgentCardView> {
     const { run, board, card } = input;
+    const specRef = card.spec.ref ?? board.config.baseBranch;
     const [spec, events] = await Promise.all([
-        readSpec(board, card, run.id),
+        readSpec(board, card, specRef, run.id),
         cardEventRepository.listByCard(card.id),
     ]);
     return {
@@ -101,6 +123,8 @@ export async function buildAgentCardView(input: {
             state: displayCardState(card),
             reworkLoops: card.reworkLoops,
             branch: card.branch,
+            origin: card.origin,
+            cycleId: run.cycleId,
         },
         run: {
             id: run.id,
@@ -119,11 +143,21 @@ export async function buildAgentCardView(input: {
         },
         spec: {
             path: card.spec.path,
-            ref: board.config.baseBranch,
+            ref: specRef,
             ...spec,
         },
+        request: agentRequestOf(card),
         pendingAsk: card.pendingAsk,
         answers: answeredQuestionsOf(events),
         artifacts: artifactsOf(events),
+        pullRequest:
+            card.pullRequest === null
+                ? null
+                : {
+                      number: card.pullRequest.number,
+                      url: card.pullRequest.url,
+                      draft: card.pullRequest.draft,
+                      state: card.pullRequest.state,
+                  },
     };
 }

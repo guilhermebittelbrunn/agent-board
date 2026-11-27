@@ -1,5 +1,6 @@
 import useAlert from "@repo/design-system/hooks/useAlert";
 import { getDictionary } from "@repo/internationalization/client";
+import { SPEC_STAGE_KEY } from "@repo/kanban-contract";
 import type {
     BoardViewDTO,
     CardDTO,
@@ -159,7 +160,10 @@ export const useBoardCardCrud = (boardId: string) => {
                     current.id === card.id
                         ? {
                               ...current,
-                              lane: "stage" as const,
+                              lane:
+                                  stageKey === SPEC_STAGE_KEY
+                                      ? ("drafts" as const)
+                                      : ("stage" as const),
                               stageKey,
                               state: "queued" as const,
                           }
@@ -186,8 +190,26 @@ export const useBoardCardCrud = (boardId: string) => {
         },
     });
 
+    // Opening the pull request writes on the timeline, so the card and its events are read again.
+    const openPullRequestMutation = useMutation({
+        mutationFn: (card: CardDTO) =>
+            apiClient.boardCard.openPullRequest(boardId, card.slug),
+        onSuccess: (card) => storeCard(card),
+        onError: showError,
+        onSettled: async (_result, _error, card) => {
+            await Promise.all([
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.boards.card(boardId, card.slug),
+                }),
+                queryClient.invalidateQueries({ queryKey: cardsKey }),
+                refreshEvents(card),
+            ]);
+        },
+    });
+
     return {
         syncMutation,
+        openPullRequestMutation,
         reorderMutation,
         moveMutation,
         triggerMutation,

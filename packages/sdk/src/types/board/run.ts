@@ -23,6 +23,7 @@ export type RunDTO = {
     branch: string;
     trigger: RunTrigger;
     triggeredByLogin: string;
+    cycleId: string | null;
     /** `null` while the run waits in the queue; set when an executor takes it. */
     executor: StageExecutorKind | null;
     status: RunStatus;

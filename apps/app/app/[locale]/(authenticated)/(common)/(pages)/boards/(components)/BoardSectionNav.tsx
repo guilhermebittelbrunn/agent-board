@@ -2,7 +2,12 @@ import { buttonVariants } from "@repo/design-system/components/ui/button";
 import Link from "next/link";
 import type { BoardsDictionary } from "./boardConfigIssueMessage";
 
-export type BoardSection = "board" | "members" | "settings" | "credentials";
+export type BoardSection =
+    | "board"
+    | "cycles"
+    | "members"
+    | "settings"
+    | "credentials";
 
 type BoardSectionNavProps = {
     active: BoardSection;
@@ -12,6 +17,7 @@ type BoardSectionNavProps = {
 
 const SECTIONS: BoardSection[] = [
     "board",
+    "cycles",
     "members",
     "settings",
     "credentials",

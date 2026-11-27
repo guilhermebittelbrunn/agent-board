@@ -68,6 +68,80 @@ const created = (result: ReturnType<typeof plan>) =>
     );
 
 describe("planBacklogSync", () => {
+    it("never orphans a board-born card missing from the index", () => {
+        const result = plan(
+            [
+                card("draft", {
+                    origin: "board",
+                    lane: "drafts",
+                    stageKey: "spec",
+                    spec: {
+                        path: "specs/features/draft.md",
+                        sha: "",
+                        status: "",
+                        ref: "feat/draft",
+                    },
+                }),
+                card("approved", {
+                    origin: "board",
+                    spec: {
+                        path: "specs/features/approved.md",
+                        sha: "s",
+                        status: "approved",
+                        ref: "feat/approved",
+                    },
+                }),
+            ],
+            []
+        );
+
+        expect(result.writes).toEqual([]);
+        expect(result.summary.unchanged).toBe(2);
+    });
+
+    it("leaves a draft alone when the index has a spec with its slug", () => {
+        const result = plan(
+            [
+                card("draft", {
+                    origin: "board",
+                    lane: "drafts",
+                    stageKey: "spec",
+                }),
+            ],
+            [spec("draft", { status: "approved" })]
+        );
+
+        expect(result.writes).toEqual([]);
+        expect(result.summary.unchanged).toBe(1);
+    });
+
+    it("points a merged board-born card back to the base branch", () => {
+        const result = plan(
+            [
+                card("approved", {
+                    origin: "board",
+                    spec: {
+                        path: "specs/features/approved.md",
+                        sha: "sha-approved",
+                        status: "approved",
+                        ref: "feat/approved",
+                    },
+                }),
+            ],
+            [spec("approved")]
+        );
+
+        expect(result.writes).toEqual([
+            {
+                kind: "update",
+                id: `${BOARD_ID}__approved`,
+                patch: expect.objectContaining({
+                    spec: expect.objectContaining({ ref: null }),
+                }),
+            },
+        ]);
+    });
+
     it("creates the first cards in the order of the index", () => {
         const result = plan(
             [],
@@ -129,6 +203,7 @@ describe("planBacklogSync", () => {
                         path: "specs/features/a.md",
                         sha: "new",
                         status: "proposed",
+                        ref: null,
                     },
                 }),
             },

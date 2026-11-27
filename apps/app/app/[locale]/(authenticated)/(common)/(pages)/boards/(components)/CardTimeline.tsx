@@ -12,7 +12,7 @@ import {
 import { Form } from "@repo/design-system/components/ui/form";
 import { Skeleton } from "@repo/design-system/components/ui/skeleton";
 import { getDictionary } from "@repo/internationalization/client";
-import type { BoardConfig } from "@repo/kanban-contract";
+import { type BoardConfig, SPEC_STAGE_KEY } from "@repo/kanban-contract";
 import type { CardEventViewDTO } from "@repo/sdk/src/types";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -43,7 +43,8 @@ type TimelineCopy = BoardsDictionary["cardDetail"]["timeline"];
 
 function groupTitle(
     label: CardEventGroupLabel,
-    timelineCopy: TimelineCopy
+    timelineCopy: TimelineCopy,
+    draftsColumn: string
 ): string {
     switch (label.kind) {
         case "tasks":
@@ -61,13 +62,16 @@ function groupTitle(
                       count: label.loop,
                   });
         }
-        default:
+        default: {
+            const column =
+                label.stageKey === SPEC_STAGE_KEY ? draftsColumn : label.column;
             return label.loop === 0
-                ? label.column
+                ? column
                 : fillMessage(timelineCopy.groups.rework, {
-                      column: label.column,
+                      column,
                       count: label.loop,
                   });
+        }
     }
 }
 
@@ -186,7 +190,11 @@ export function CardTimeline({
                         className="font-semibold text-muted-foreground text-sm"
                         id={headingId}
                     >
-                        {groupTitle(group.label, timelineCopy)}
+                        {groupTitle(
+                            group.label,
+                            timelineCopy,
+                            boardsDictionary.board.columns.drafts
+                        )}
                     </h3>
                     <ol className="flex flex-col gap-5">
                         {group.events.map((event) => (

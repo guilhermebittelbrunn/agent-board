@@ -14,6 +14,9 @@ vi.mock("@/(shared)/lib/github/github-client", () => ({
     getGithubClient: () => null,
 }));
 
+// Attachments are read through the Storage module, which would validate every variable of `@/env`.
+vi.mock("@/env", () => ({ env: { FIREBASE_STORAGE_BUCKET: "" } }));
+
 const { getFirestoreAdmin } = await import("@repo/auth/server");
 const { SAMPLE_BOARD_CONFIGS } = await import(
     "@/(shared)/lib/github/github-sample-repositories"

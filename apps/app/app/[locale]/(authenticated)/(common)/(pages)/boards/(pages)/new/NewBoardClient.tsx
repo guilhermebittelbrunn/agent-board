@@ -9,10 +9,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Container } from "@/shared/components/ui/Container";
 import { Footer } from "@/shared/components/ui/Footer";
 import { Header } from "@/shared/components/ui/Header";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { LoadErrorState } from "@/shared/components/ui/LoadErrorState";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../paths";
 import { BoardColumnsPreview } from "../../(components)/BoardColumnsPreview";
 import { BoardConfigFileCard } from "../../(components)/BoardConfigFileCard";
@@ -90,7 +88,6 @@ export function NewBoardClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const selectedRepository = searchParams.get("repository");
-    const { isImpersonating } = useAuthRequestPanel();
     const { dictionary, locale } = getDictionary();
     const routes = COMMON_ROUTES(dictionary, locale);
     const boardsDictionary = dictionary.apps.app.pages.common.boards;
@@ -115,10 +112,7 @@ export function NewBoardClient() {
     const previewData = preview.data;
     const existingBoard =
         previewData && previewData.board !== null ? previewData.board : null;
-    const canCreate =
-        previewData?.status === "valid" &&
-        existingBoard === null &&
-        !isImpersonating;
+    const canCreate = previewData?.status === "valid" && existingBoard === null;
     const currentStep = selectedRepository ? 2 : 1;
     const stepCopy = selectedRepository
         ? wizardCopy.readConfig
@@ -189,7 +183,6 @@ export function NewBoardClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,
@@ -212,7 +205,6 @@ export function NewBoardClient() {
                         current={currentStep}
                     />
                     <div className="flex min-w-0 flex-col gap-6">
-                        <ImpersonationReadOnlyNotice />
                         {selectedRepository ? (
                             <>
                                 <RepositorySummary

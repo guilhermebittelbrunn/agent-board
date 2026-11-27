@@ -12,8 +12,8 @@ import {
 const isCi = Boolean(process.env.CI);
 const SERVER_START_TIMEOUT = 300_000;
 
-// The flows a user must be able to finish on a phone: sign-in and the central CRUD.
-const CRITICAL_FLOWS = /(signIn|entityCrud)\.spec\.ts$/;
+// The flow a user must be able to finish on a phone: signing in and reaching the boards.
+const CRITICAL_FLOWS = /signIn\.spec\.ts$/;
 const PHONE_VIEWPORT = { width: 390, height: 844 };
 
 // Building these throws before any server starts when one of them could reach a real

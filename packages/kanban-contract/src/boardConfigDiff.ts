@@ -10,6 +10,7 @@ export const STAGE_FIELDS = [
     "approval",
     "onRework",
     "onPrComment",
+    "pullRequest",
 ] as const;
 
 export type StageField = (typeof STAGE_FIELDS)[number];
@@ -23,11 +24,21 @@ export type BoardStagesDiff = {
     moved: boolean;
 };
 
-const sameValue = (left: unknown, right: unknown): boolean =>
-    Array.isArray(left) && Array.isArray(right)
-        ? left.length === right.length &&
-          left.every((item, index) => item === right[index])
-        : left === right;
+function sameValue(left: unknown, right: unknown): boolean {
+    if (Array.isArray(left) && Array.isArray(right)) {
+        return (
+            left.length === right.length &&
+            left.every((item, index) => item === right[index])
+        );
+    }
+    if (isPullRequestSettings(left) && isPullRequestSettings(right)) {
+        return left.draft === right.draft;
+    }
+    return left === right;
+}
+
+const isPullRequestSettings = (value: unknown): value is { draft: boolean } =>
+    value !== null && typeof value === "object" && "draft" in value;
 
 export function isEmptyStagesDiff(diff: BoardStagesDiff): boolean {
     return (

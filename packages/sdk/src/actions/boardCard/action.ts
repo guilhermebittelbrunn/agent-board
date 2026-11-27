@@ -187,4 +187,30 @@ export default class BoardCardActions {
 
         return data.data;
     }
+
+    /** Opens (or adopts) the pull request of a card on the pull request stage; idempotent. */
+    async openPullRequest(boardId: string, slug: string): Promise<CardDTO> {
+        const { data } = await this.client.request<Response<CardDTO>>({
+            url: `${cardPath(boardId, slug)}/pull-request`,
+            method: "POST",
+        });
+
+        return data.data;
+    }
+
+    async approveSpec(boardId: string, slug: string): Promise<CardDTO> {
+        const { data } = await this.client.request<Response<CardDTO>>({
+            url: `${cardPath(boardId, slug)}/spec/approve`,
+            method: "POST",
+        });
+
+        return data.data;
+    }
+
+    async discardDraft(boardId: string, slug: string): Promise<void> {
+        await this.client.request({
+            url: `${cardPath(boardId, slug)}/spec/discard`,
+            method: "POST",
+        });
+    }
 }

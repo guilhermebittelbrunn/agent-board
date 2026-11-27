@@ -22,7 +22,7 @@ reexecutados à mão numa revisão**, e um "está verde" só vale como resposta 
 | `typecheck` nos workspaces que declaram o script | erro de tipo em qualquer app ou pacote |
 | `pnpm test` | as suítes Vitest de todos os workspaces |
 | `test:emulator` (`apps/api`) | `firestore.rules` e `storage.rules` negando cliente anônimo e autenticado; upload, leitura pela URL devolvida e troca de avatar contra o Storage emulado |
-| `pnpm e2e` (job `e2e`, pulado em PR só de documentação) | login, CRUD de `entity`, troca de painel e seções da conta no navegador, contra o emulador, e axe sem violação `critical`/`serious` fora da allowlist nas telas percorridas |
+| `pnpm e2e` (job `e2e`, pulado em PR só de documentação) | landing, login, chegada em `/boards` e seções da conta pelo menu do avatar no navegador, contra o emulador, e axe sem violação `critical`/`serious` fora da allowlist nas telas percorridas |
 
 A consequência prática é onde a revisão humana precisa se concentrar — e é o resto deste arquivo:
 convenção de camada, autorização, ownership, escolha de `queryKey`, string de UI que existe no dicionário
@@ -59,14 +59,13 @@ responsabilidade da revisão e do deploy da Vercel.
 ## 1. `apps/api`
 
 - [ ] Handler é `export const GET = guard(async (req, ctx) => …)` — **nunca** `export async function GET`.
-- [ ] Protegido por guard: `requireCommonPanelApi` (comum, expõe `ctx.subjectProfile`) ou
-      `requireAdminApi` (admin, **sem** `subjectProfile`); rotas de board, pelo guard de papel do board. Autorização repetida no servidor — UI oculta
+- [ ] Protegido por guard: `requireSessionApi` (recurso da pessoa, expõe `ctx.profile`) ou
+      `requireBoardApi` (recurso de um board, papel efetivo). Autorização repetida no servidor — UI oculta
       não é proteção.
-- [ ] Rota `[id]`: genérico no guard (`requireCommonPanelApi<RouteIdParamsContext>`) +
+- [ ] Rota `[id]`: genérico no guard (`requireSessionApi<RouteIdParamsContext>`) +
       `resolveIdFromContext(ctx)`.
-- [ ] **Ownership**: recurso da pessoa (como `entity` e `notification`) só é lido pelo predicado do
-      repositório (`findOwnedBy(id, ctx.subjectProfile.id)` → `null` → 404; listas e contagens pelo helper
-      privado `ownedBy`). Recurso de um board é lido pelo escopo do board depois do guard de papel. Vale em **todos** os handlers que
+- [ ] **Ownership**: recurso da pessoa (como `runner`) só é lido pelo predicado do
+      repositório (`revokeOwned(id, ctx.profile.id, …)` → `false` → 404; listas pelo `userId` do perfil). Recurso de um board é lido pelo escopo do board depois do guard de papel. Vale em **todos** os handlers que
       recebem id (404, não 403 — não vaze existência). Nenhum id do body é confiado sem checar o vínculo.
 - [ ] Input validado na borda com Zod: `parseCreateX`/`parseUpdateX` retornando
       `{ ok: true; value } | { ok: false; response }`; body via `parseRequestJson`; patch via
@@ -80,22 +79,21 @@ responsabilidade da revisão e do deploy da Vercel.
 - [ ] Contrato de resposta: `list`/`get` → `{ data }` 200 · `create` → `{ data }` 201 ·
       `update` → `{ data: { id } }` 200 · `delete` → sem body 204.
 - [ ] Persistência via repositório que estende `BaseRepository<DTO>`, mapper como **3º argumento do
-      `super`** (`super(db, "entity", entityMapper)`). Normalização (`Timestamp`→ISO,
+      `super`** (`super(db, BOARD_MEMBER_TABLE, boardMemberMapper)`). Normalização (`Timestamp`→ISO,
       `normalizeFirestoreInstant`, `stringIfExists`) fica **no mapper**, não no handler.
-- [ ] Mapper exporta **uma instância** (`export const entityMapper = new …`); `toPersistence` usa
+- [ ] Mapper exporta **uma instância** (`export const boardMemberMapper = new …`); `toPersistence` usa
       whitelist de chaves.
 - [ ] Defaults de campo opcional (`?? null`, `?? true`) aplicados no handler.
 - [ ] Header customizado novo foi adicionado em `allowHeaders` do CORS em `apps/api/proxy.ts`.
 - [ ] Não importa componente React de `apps/app`.
 - [ ] ⚠️ Não use `app/(routes)/auth/*` como modelo — é legado (`req.json()` sem validação,
-      `{ error: "string" }`). O modelo é `entities/`.
+      `{ error: "string" }`). O modelo é `boards/[id]/members/`.
 
 ## 2. `apps/app`
 
 - [ ] Chamada à API **só** via `apiClient` (`@/shared/lib/client`) / `@repo/sdk`. Zero `fetch`/axios cru.
 - [ ] Server Component por padrão; `"use client"` só com estado/eventos/browser API.
-- [ ] Prefetch RSC usa a **mesma `queryKey`** do hook client (de `shared/lib/queryKeys.ts`) e está
-      envolvido em `if (!(await isImpersonating()))`.
+- [ ] Prefetch RSC usa a **mesma `queryKey`** do hook client (de `shared/lib/queryKeys.ts`).
 - [ ] No servidor, **não** reutiliza o `apiClient` singleton — usa `getServerApiClient` (uma instância por
       request), senão headers de auth vazam entre requests concorrentes.
 - [ ] Hooks: `useListX` + `fetchXList` no mesmo arquivo; `useFindXById` + `findXById` no mesmo arquivo,
@@ -113,8 +111,7 @@ responsabilidade da revisão e do deploy da Vercel.
       `locale.emptyText`; coluna `enabled` é `Switch` controlado (não texto Sim/Não); miniatura via
       `ResponsiveImage`; ações via `ActionsMenu`.
 - [ ] Estados cobertos: loading (skeleton), submit com `isPending` (bloqueia duplo clique), vazio, erro.
-- [ ] Impersonação: troca de contexto faz `router.refresh()`, **nunca** `window.location.reload()`; o
-      estado de painel vem do snapshot do servidor (`initialPanel`), não de descoberta por rede no cliente
+- [ ] Bearer do `apiClient` só pelo `ApiAuthProvider`; hook de dado autenticado usa `useAuthorizedQuery`
       — ver [`AUTH-PANEL.md`](AUTH-PANEL.md).
 - [ ] Nome de arquivo de módulo de feature em camelCase; componente exportado em PascalCase.
 
@@ -140,7 +137,7 @@ responsabilidade da revisão e do deploy da Vercel.
       texto de confirmação, `emptyText`, mensagem de Zod.
 - [ ] Chave nova no dicionário `pt-br`, no arquivo-folha da área — rode
       `pnpm --filter @repo/internationalization typecheck`.
-- [ ] Variável do dicionário com nome descritivo (`entitiesList`, `entityMessages`) — **nunca** `t`/`d`.
+- [ ] Variável do dicionário com nome descritivo (`membersCopy`, `accountProfile`) — **nunca** `t`/`d`.
 - [ ] Locale via `getDictionary()` ou `getDictionaryForLocale(locale)` quando a rota já dá o `[locale]`.
 
 ## 5. Testes
@@ -151,7 +148,7 @@ responsabilidade da revisão e do deploy da Vercel.
 - [ ] Mock nas **bordas**: `@/shared/lib/client`, `@repo/auth/server`, `firebase/*`,
       `@repo/design-system/hooks/useAlert`, `@repo/internationalization/client` — com
       `vi.hoisted` + `vi.mock` **antes** do `await import(...)`.
-- [ ] Rota da API: mocka repositório **e** guard (passthrough injetando `ctx.subjectProfile`).
+- [ ] Rota da API: mocka repositório **e** guard (passthrough injetando `ctx.profile`).
 - [ ] Cobre caminho feliz **e** cada caminho de erro (validação, não encontrado, sem permissão,
       ownership de terceiro).
 - [ ] **Nível certo, custo mínimo**: o teste escolhido é o **mais barato que prova o comportamento**.

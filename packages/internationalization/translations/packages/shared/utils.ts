@@ -6,63 +6,32 @@ export const sharedUtilsTranslations = {
         },
         apiErrors: {
             AUTH_INVALID_TOKEN: "Sessão inválida ou expirada.",
+            AUTH_PROFILE_NOT_FOUND:
+                "Sua conta não tem perfil neste app. Saia e entre de novo.",
             AUTH_INVALID_CREDENTIALS: "E-mail ou senha incorretos.",
             AUTH_SIGN_IN_METHOD_DISABLED:
                 "Este método de entrada não está disponível. Entre com o GitHub.",
             AUTH_GITHUB_PROFILE_UNAVAILABLE:
                 "Não foi possível ler seu perfil do GitHub. Tente entrar novamente.",
-            ADMIN_FORBIDDEN: "Você não tem permissão para esta ação.",
-            AUTH_REQUEST_USER_ID_MISMATCH: "Contexto da requisição inválido.",
-            AUTH_REQUEST_USER_ROLE_MISMATCH: "Contexto da requisição inválido.",
-            AUTH_REQUEST_PANEL_FORBIDDEN:
-                "Painel não permitido para este usuário.",
-            AUTH_REQUEST_IMPERSONATION_FORBIDDEN:
-                "Não é possível atuar como outro usuário.",
-            AUTH_REQUEST_ADMIN_TARGET_INVALID:
-                "Contexto da requisição inválido.",
-            AUTH_REQUEST_IMPERSONATION_REQUIRED:
-                "Selecione um usuário para este painel.",
-            AUTH_REQUEST_IMPERSONATION_TARGET_INVALID:
-                "Usuário inválido para atuação.",
-            AUTH_REQUEST_IMPERSONATION_READ_ONLY:
-                "Somente leitura: você está atuando como outro usuário.",
             AUTH_MISSING_TOKEN: "Token de autenticação ausente.",
             AUTH_FORBIDDEN_ORIGIN: "Origem da requisição não permitida.",
             AUTH_NO_SESSION: "Nenhuma sessão ativa.",
             AUTH_SESSION_EXPIRED:
                 "Sua sessão atingiu o tempo máximo. Entre novamente.",
             USERS_NOT_FOUND: "Usuário não encontrado.",
-            USERS_DELETE_AUTH_FAILED:
-                "Não foi possível bloquear o acesso deste usuário, então ele não foi arquivado. Tente de novo em instantes.",
-            USERS_SELF_LOCKOUT_FORBIDDEN:
-                "Você não pode desativar, arquivar nem tirar o acesso de administrador da sua própria conta.",
             ACCOUNT_NOTHING_TO_UPDATE: "Nada para atualizar.",
             ACCOUNT_AVATAR_INVALID:
                 "A imagem informada não pode ser usada como foto de perfil.",
-            ACCOUNT_CURRENT_PASSWORD_INVALID: "A senha atual está incorreta.",
-            ACCOUNT_PASSWORD_UNSUPPORTED:
-                "Esta conta não usa senha. Entre pelo provedor de acesso original.",
             ACCOUNT_UPDATE_FAILED:
                 "Não foi possível salvar a sua conta. Tente de novo.",
-            AUTH_SESSIONS_NOT_REVOKED:
-                'A alteração foi salva, mas não conseguimos encerrar as outras sessões desta conta. Entre de novo e use "Sair de todos os dispositivos" em Segurança.',
             AUTH_SESSION_REVOKED:
                 "Esta sessão foi encerrada. Entre novamente para continuar.",
-            USERS_NOTHING_TO_UPDATE: "Nenhum dado para atualizar.",
             VALIDATION_FAILED: "Dados inválidos.",
-            USERS_AUTH_EMAIL_ALREADY_IN_USE: "Este e-mail já está em uso.",
             USERS_AUTH_WEAK_PASSWORD: "Senha muito fraca.",
             AUTH_PASSWORD_TOO_SHORT:
                 "A senha deve ter pelo menos 8 caracteres.",
-            USERS_AUTH_INVALID_EMAIL: "E-mail inválido.",
             USERS_AUTH_RATE_LIMITED:
                 "Muitas tentativas. Tente novamente em instantes.",
-            USERS_AUTH_SIGN_UP_FAILED: "Não foi possível criar o usuário.",
-            USERS_PROFILE_CREATE_FAILED:
-                "Não foi possível salvar o perfil do usuário.",
-            COMMON_PANEL_FORBIDDEN:
-                "Esta ação não está disponível para o seu perfil.",
-            ENTITY_NOT_FOUND: "Entidade não encontrada.",
             ROUTE_NOT_FOUND: "Este endereço não existe na API.",
             AUTH_RATE_LIMITED:
                 "Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.",
@@ -74,7 +43,6 @@ export const sharedUtilsTranslations = {
                 "Formato não aceito. Envie JPG, PNG ou WebP.",
             UPLOAD_FAILED:
                 "Não foi possível enviar o arquivo agora. Tente de novo em instantes.",
-            ENTITY_PHOTO_INVALID: "Imagem inválida para esta entidade.",
             GITHUB_APP_NOT_CONFIGURED:
                 "A integração com o GitHub não está configurada. Fale com o suporte.",
             GITHUB_WEBHOOK_SIGNATURE_INVALID:
@@ -89,6 +57,12 @@ export const sharedUtilsTranslations = {
                 "O GitHub limitou as chamadas do board por alguns minutos. Tente de novo em instantes.",
             GITHUB_UNAVAILABLE:
                 "Não foi possível falar com o GitHub agora. Tente de novo em instantes.",
+            GITHUB_APP_PERMISSION_MISSING:
+                "O GitHub App do board não tem permissão para abrir pull requests neste repositório. Peça a quem administra o App para conceder Pull requests: Read and write.",
+            GITHUB_PULL_REQUEST_REJECTED:
+                "O GitHub recusou a PR. Confira se a branch do card está no repositório e tem commits que a base não tem.",
+            GITHUB_WEBHOOK_PROCESSING_FAILED:
+                "O evento do GitHub chegou, mas o board não conseguiu registrá-lo agora. O GitHub pode reenviá-lo.",
             BOARD_NOT_FOUND: "Board não encontrado.",
             BOARD_ALREADY_EXISTS: "Este repositório já tem um board.",
             BOARD_CONFIG_NOT_FOUND:
@@ -134,10 +108,46 @@ export const sharedUtilsTranslations = {
             CARD_RUN_ACTIVE:
                 "Este card já está rodando uma etapa. Pare a execução ou espere ela terminar.",
             CARD_RUN_NOT_ACTIVE: "Este card não está rodando nenhuma etapa.",
+            CARD_NOT_IN_PULL_REQUEST_STAGE:
+                "Este card não está na etapa de PR do board.",
             CARD_BRANCH_INVALID:
                 "Não foi possível montar uma branch válida para este card. Confira o branchPattern do board.yml.",
+            CARD_DRAFT_NOT_APPROVED:
+                "Este card ainda é um rascunho. Aprove a spec para ele entrar em Tarefas.",
+            CARD_NOT_DRAFT: "Este card não está mais em Rascunhos.",
+            CARD_SPEC_NOT_READY:
+                "A spec ainda não está pronta: espere a rodada terminar e responda às perguntas abertas.",
+            CARD_SPEC_DRAFT_MISSING:
+                "O rascunho da spec não está na branch do card. Rode a escrita de novo.",
+            CARD_SPEC_DRAFT_INVALID:
+                "O rascunho da spec não tem um cabeçalho válido com o id deste card. Rode a escrita de novo.",
+            SPEC_DRAFT_ATTACHMENT_INVALID:
+                "Um dos anexos não foi encontrado ou não é seu. Remova e envie de novo.",
+            SPEC_DRAFT_ATTACHMENT_TYPE_NOT_ALLOWED:
+                "Formato não aceito. Anexe imagem (PNG, JPEG, WebP), PDF ou texto (.txt, .md).",
+            SPEC_DRAFT_ATTACHMENT_TOO_LARGE:
+                "O anexo passa do tamanho máximo de 3 MB.",
+            SPEC_DRAFT_SLUG_UNAVAILABLE:
+                "Já existem specs com nomes parecidos com este pedido. Mude o começo do texto e tente de novo.",
+            CYCLE_NOT_FOUND: "Ciclo não encontrado.",
+            CYCLE_SPECS_INVALID:
+                "Alguma spec escolhida não está pronta em Tarefas ou já está rodando. Atualize a página e escolha de novo.",
+            CYCLE_SPEC_BUSY: "Alguma spec escolhida já está em outro ciclo.",
+            CYCLE_RUNNERS_UNAVAILABLE:
+                "Duas specs ao mesmo tempo precisam de dois runners seus online.",
+            CYCLE_NOT_ACTIVE: "Este ciclo já terminou.",
             RUN_EXECUTOR_UNAVAILABLE:
                 "Nenhum runner seu está online. Inicie o runner e tente de novo.",
+            RUN_NO_CREDENTIAL_FOR_STAGE:
+                "Nenhuma credencial sua serve a esta etapa. Veja Minhas credenciais.",
+            CREDENTIALS_ENCRYPTION_NOT_CONFIGURED:
+                "O cadastro de credenciais da nuvem está desligado neste ambiente.",
+            CREDENTIAL_STAGE_NOT_FOUND: "Esta etapa não existe no board.",
+            CREDENTIAL_STAGE_NOT_CLOUD:
+                "O board.yml não permite nuvem nesta etapa.",
+            CREDENTIAL_FIRE_URL_INVALID:
+                "Use a Fire URL do gatilho de API da tarefa agendada.",
+            CREDENTIAL_NOT_FOUND: "Credencial não encontrada.",
             RUNNER_TOKEN_INVALID: "Token do runner inválido.",
             RUNNER_REVOKED: "Este runner foi revogado. Registre de novo.",
             RUNNER_CODE_INVALID:
@@ -150,19 +160,13 @@ export const sharedUtilsTranslations = {
             AGENT_CARD_MISMATCH: "Este token não vale para este card.",
             AGENT_STAGE_MISMATCH: "Este token não vale para esta etapa.",
             AGENT_RUN_CLOSED: "Esta execução já terminou.",
+            AGENT_ASK_IN_CYCLE:
+                "Dentro de um ciclo o agente não pergunta: decida pela política do repositório e registre a decisão.",
+            AGENT_ATTACHMENT_NOT_FOUND: "Este anexo não pertence a este card.",
             AGENT_TOOL_NOT_AVAILABLE:
                 "Esta ferramenta ainda não está disponível.",
             HEALTH_DEPENDENCY_UNAVAILABLE:
                 "O serviço está indisponível no momento.",
-            PAGINATION_CURSOR_INVALID:
-                "A navegação expirou. Recarregue a lista.",
-            PAGINATION_INDEX_MISSING:
-                "A listagem está indisponível no momento. Tente de novo em instantes.",
-            SUMMARY_INDEX_MISSING:
-                "O resumo está indisponível no momento. Tente de novo em instantes.",
-            NOTIFICATION_NOT_FOUND: "Notificação não encontrada.",
-            NOTIFICATIONS_INDEX_MISSING:
-                "As notificações estão indisponíveis no momento. Tente de novo em instantes.",
         },
     },
 };

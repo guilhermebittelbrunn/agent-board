@@ -40,7 +40,7 @@ partir de cards. Uma spec só é legítima se:
   reduz um risco de [`docs/board/DECISIONS.md`](../../docs/board/DECISIONS.md); o que não move nenhum
   gate vai para `deferred`;
 - **cabe no padrão do repo** — slice vertical `packages/sdk` → `apps/api` → `apps/app` → i18n,
-  espelhando o recurso de referência `entity`;
+  espelhando o recurso de referência `boardMember`;
 - **não arrasta custo recorrente sem número** (serviço pago, minutos de runner, tokens) — o custo
   estimado, com fonte e data, fica **escrito nos riscos**;
 - **não duplica** o que já está no código.
@@ -82,9 +82,13 @@ Uma ideia específica chegou. Mesmo rigor, escopo estreito:
    gate que a tornaria relevante.
 5. Escreva/atualize a spec + o `BACKLOG.md`.
 
-### 3. Reconciliação (`/spec --sync`)
+### 3. Reconciliação (`/spec --sync`) e fechamento (`/spec --sync <slug>`)
 
 Fechar o loop: o backlog tem de refletir o código.
+
+Com um `<slug>`, o modo é **fechamento**: roda na branch da feature, depois do `/test`, e trata só a spec
+daquela feature (§9 da skill). Confira o corte no código da branch, arquive, e mexa no `BACKLOG.md` só no
+que a entrega mudou. Os passos abaixo são da auditoria completa.
 
 1. Para **cada** spec com status `proposed`/`approved`/`in-progress`, verifique no código se as
    capacidades do corte de MVP existem hoje. Use `Grep`/`Glob`/`Read` — não confie no `status` gravado.

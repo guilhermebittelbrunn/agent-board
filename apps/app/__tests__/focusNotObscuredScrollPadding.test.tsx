@@ -14,19 +14,14 @@ vi.mock("@repo/internationalization/client", () => ({
                 footer: { back: "Voltar", confirm: "Confirmar" },
                 spinner: { loading: "Carregando" },
             },
+            apps: { app: { pages: { navbar: { homeLinkLabel: "Boards" } } } },
         },
         locale: "pt-br",
     }),
 }));
 
-vi.mock("@repo/design-system/components/ui/sidebar", () => ({
-    SidebarTrigger: () => null,
-}));
 vi.mock("@repo/design-system/components/ui/mode-toggle", () => ({
     ModeToggle: () => null,
-}));
-vi.mock("@/shared/components/ui/PanelNavbarControls", () => ({
-    default: () => null,
 }));
 vi.mock("@/shared/components/ui/ProfileDropdown", () => ({
     default: () => null,

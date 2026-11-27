@@ -1,6 +1,4 @@
-import { UserRoleLevel } from "@repo/auth/types";
-import { type RunnerDTO, UserType } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
+import type { RunnerDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,7 +28,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
     },
 }));
 
@@ -50,7 +47,7 @@ const { POST: REGISTRATION } = await import(
     "@/app/(routes)/runners/registrations/route"
 );
 
-type Person = "octo" | "admin";
+type Person = "octo";
 
 const NO_CONTENT = 204;
 const CODE_TTL_MS = 600_000;
@@ -60,26 +57,15 @@ const SHA256_HEX = /^[0-9a-f]{64}$/;
 const profileOf = (person: Person) => ({
     id: `p-${person}`,
     reference_id: `uid-${person}`,
-    type: person === "admin" ? UserType.ADMIN : UserType.COMMON,
     github: null,
 });
 
-function request(
-    as: Person,
-    method = "GET",
-    subject: Person = as
-): NextRequest {
-    const impersonating = as === "admin";
+function request(as: Person, method = "GET"): NextRequest {
     return {
         method,
         url: "http://localhost:3002/runners",
         headers: new Headers({
-            [AUTH_REQUEST_HEADER.USER_ID]: `uid-${as}`,
-            [AUTH_REQUEST_HEADER.USER_ROLE]: impersonating
-                ? UserRoleLevel.ADMIN
-                : UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: `uid-${subject}`,
+            "x-test-actor": `uid-${as}`,
         }),
         json: () => Promise.resolve({}),
         text: () => Promise.resolve("{}"),
@@ -99,7 +85,7 @@ beforeEach(() => {
         mock.mockReset();
     }
     resolveApiActorMock.mockImplementation((req: NextRequest) =>
-        Promise.resolve({ uid: req.headers.get(AUTH_REQUEST_HEADER.USER_ID) })
+        Promise.resolve({ uid: req.headers.get("x-test-actor") })
     );
     findByReferenceIdMock.mockImplementation((uid: string) =>
         Promise.resolve(profileOf(uid.replace("uid-", "") as Person))
@@ -184,12 +170,5 @@ describe("POST /runners/registrations", () => {
         expect(JSON.stringify(stored)).not.toContain(
             body.data.code.replace("-", "")
         );
-    });
-
-    it("refuses an admin impersonating the person", async () => {
-        const response = await REGISTRATION(request("admin", "POST", "octo"));
-
-        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-        expect(createRegistrationMock).not.toHaveBeenCalled();
     });
 });

@@ -2,7 +2,9 @@
 
 Esta pasta é a **entrada do ciclo de desenvolvimento** do agent-board, no mesmo formato do next-boilerplate:
 `specs/` guarda o que **ainda falta construir** e o porquê, uma spec por arquivo em `features/`; `docs/features/<slug>/` guarda como cada
-tarefa foi construída. Spec entregue **sai daqui** (`/spec --sync` move para `docs/features/<slug>/spec.md`).
+tarefa foi construída. Spec entregue **sai daqui** na própria branch que a implementou: depois do `/test`,
+o `/spec --sync <slug>` move para `docs/features/<slug>/spec.md` e atualiza o `BACKLOG.md`, e o merge leva os dois
+para `main` junto com o código.
 
 > **Este repo é uma ferramenta de uso próprio, não um core de MVPs.** Uma spec entra aqui se acelera o time que
 > usa o board. Não há "evidência de mercado": a seção equivalente é **Referências** (documentação do
@@ -11,8 +13,8 @@ tarefa foi construída. Spec entregue **sai daqui** (`/spec --sync` move para `d
 ## O ciclo
 
 ```
-/spec → /analyze <id> → /develop → /review → /test → /observe
-                       (docs/features/<slug>/ ......................)
+/spec → /analyze <id> → /develop → /review → /test → /spec --sync <slug> → PR
+                       (docs/features/<slug>/ ....................................)
 ```
 
 Rode `/analyze <id>` na primeira spec `approved` do [`BACKLOG.md`](BACKLOG.md). O `/cycle` herdado do

@@ -25,7 +25,7 @@ const OTHER_OBJECT =
 describe("avatar reference ownership", () => {
     it("refuses an object that belongs to another account", async () => {
         const { isUsablePhotoReference } = await import(
-            "@/(shared)/lib/entity-photo"
+            "@/(shared)/lib/photo-reference"
         );
         expect(isUsablePhotoReference(OTHER_OBJECT, OWNER)).toBe(false);
         expect(isUsablePhotoReference(OWN_OBJECT, OWNER)).toBe(true);

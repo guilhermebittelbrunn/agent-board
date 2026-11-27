@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/shared/lib/client";
 import { queryKeys } from "@/shared/lib/queryKeys";
 import { fillMessage } from "../(components)/boardConfigIssueMessage";
+import { stageColumnName } from "../(components)/stageColumnName";
 
 export type EditCommentInput = { eventId: string; markdown: string };
 
@@ -78,9 +79,13 @@ export const useCardEventCrud = (boardId: string, slug: string) => {
             const board = queryClient.getQueryData<BoardViewDTO>(
                 queryKeys.boards.detail(boardId)
             );
-            const column = board?.config.stages.find(
-                (stage) => stage.key === result.card.stageKey
-            )?.column;
+            const column = board
+                ? stageColumnName(
+                      board.config,
+                      result.card.stageKey,
+                      dictionary.apps.app.pages.common.boards
+                  )
+                : null;
             successAlert(
                 result.card.activeRunId !== null && column
                     ? fillMessage(detailCopy.questions.resumed, { column })

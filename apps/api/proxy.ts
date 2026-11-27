@@ -47,8 +47,7 @@ const securityOptions = buildApiOptions();
  *
  * `/files` is the exception that is authenticated: a guard is no budget when the caller
  * is a legitimate user in a loop, and every accepted request writes to the bucket and is
- * billed as storage and egress. Changing the password spends Identity Toolkit quota on
- * each attempt.
+ * billed as storage and egress.
  *
  * `/runner/register` has no guard either: the one-time code is the credential, so the
  * strict budget is what keeps guessing it slow.
@@ -59,7 +58,6 @@ const STRICT_RATE_LIMITED_PATHS = [
     "/auth/sign-in",
     "/auth/sign-in/github",
     "/files",
-    "/account/password",
     "/runner/register",
 ];
 

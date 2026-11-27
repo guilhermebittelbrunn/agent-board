@@ -17,7 +17,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 const uploadTexts =
-    getDictionary().dictionary.apps.app.pages.common.entities.form.photoUpload;
+    getDictionary().dictionary.apps.app.pages.common.account.profile
+        .avatarUpload;
 
 const BYTES_PER_KIB = 1024;
 const MAX_SIZE_MIB = 4;

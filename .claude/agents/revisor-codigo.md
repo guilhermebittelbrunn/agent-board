@@ -58,7 +58,7 @@ Nenhum outro agent do fluxo nomeia ou cria branch. Antes de montar o plano de co
      (`sdk`, `design-system`, `internationalization`, `auth`, `kanban-contract`, `shared`); vários pacotes →
      `packages`; tooling de IA → `claude`; vários apps → omita o `project` (`feat/<title>`).
    - `type` ∈ `feat`/`fix`/`style`/`chore`/`ci`/`refactor`/`perf`/`test`/`docs`.
-   - `title` = slug curto (ex.: `api/feat/entity-soft-delete`).
+   - `title` = slug curto (ex.: `api/feat/board-archive`).
 3. **Já está numa branch de feature** → **valide se ela serve para este diff**:
    - é a branch desta feature (bate com o `STATE.md`/plano/escopo) → **reutilize**, não crie outra;
    - é de outra tarefa/escopo → **não decida sozinho**: registre em "Decisões em aberto" o nome proposto

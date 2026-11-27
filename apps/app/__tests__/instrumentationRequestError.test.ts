@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { onRequestError } = await import("@/instrumentation");
 
-const errorRequest = { path: "/pt-br/entities", method: "GET", headers: {} };
+const errorRequest = { path: "/pt-br/boards", method: "GET", headers: {} };
 const errorContext = {
     routerKind: "App Router",
-    routePath: "/[locale]/entities",
+    routePath: "/[locale]/boards",
     routeType: "render",
     revalidateReason: undefined,
 } as const;
@@ -41,7 +41,7 @@ describe("instrumentation onRequestError", () => {
         );
 
         expect(warn).toHaveBeenCalledWith(
-            "[request] failed method=GET path=/pt-br/entities routeType=render digest=1837465920"
+            "[request] failed method=GET path=/pt-br/boards routeType=render digest=1837465920"
         );
     });
 
@@ -58,7 +58,7 @@ describe("instrumentation onRequestError", () => {
         );
 
         expect(warn).toHaveBeenCalledWith(
-            "[request] failed method=GET path=/pt-br/entities routeType=render requestId=3f2a1b8c-0f4a-4d0a-9e77-9f5f0a3a1c22"
+            "[request] failed method=GET path=/pt-br/boards routeType=render requestId=3f2a1b8c-0f4a-4d0a-9e77-9f5f0a3a1c22"
         );
     });
 

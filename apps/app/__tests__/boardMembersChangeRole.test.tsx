@@ -36,13 +36,7 @@ vi.mock("next/navigation", () => ({
     useRouter: () => ({ push: vi.fn() }),
     useParams: () => ({ locale: "pt-br", id: BOARD_ID }),
 }));
-vi.mock("@/shared/providers/AuthRequestPanelContext", () => ({
-    useAuthRequestPanel: () => ({ isImpersonating: false }),
-}));
 vi.mock("@/shared/components/ui/Header", () => ({ Header: () => null }));
-vi.mock("@/shared/components/ui/ImpersonationReadOnlyNotice", () => ({
-    ImpersonationReadOnlyNotice: () => null,
-}));
 
 vi.mock(
     "@/app/[locale]/(authenticated)/(common)/(pages)/boards/(hooks)/useFindBoardById",

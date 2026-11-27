@@ -245,7 +245,7 @@ describe("rate limit budgets", () => {
     it("counts the standard budget per address and actor, 60 a minute", async () => {
         const { checkRateLimit } = await loadLimiter(ARCJET_KEY);
         protectMock.mockResolvedValue(allowedDecision());
-        const incoming = new Request("http://api.test/notifications/read-all");
+        const incoming = new Request("http://api.test/boards/b1/cards/sync");
 
         await checkRateLimit(incoming, {
             budget: "standard",
@@ -285,7 +285,7 @@ describe("rate limit budgets", () => {
         protectMock.mockResolvedValue(rateLimitedDecision());
 
         await expect(
-            checkRateLimit(new Request("http://api.test/entities"), {
+            checkRateLimit(new Request("http://api.test/boards"), {
                 budget: "standard",
                 subject: "hashed-subject",
             })
@@ -305,7 +305,7 @@ describe("rate limit budgets", () => {
 
         for (const budget of ["strict", "standard"] as const) {
             await expect(
-                checkRateLimit(new Request("http://api.test/entities"), {
+                checkRateLimit(new Request("http://api.test/boards"), {
                     budget,
                     subject: "hashed-subject",
                 })
@@ -330,7 +330,7 @@ describe("rate limit shield", () => {
             shieldMock.mockReturnValue(SHIELD_RULE);
             slidingWindowMock.mockReturnValue(WINDOW_RULE);
 
-            await checkRateLimit(new Request("http://api.test/entities"), {
+            await checkRateLimit(new Request("http://api.test/boards"), {
                 budget,
                 subject: "hashed-subject",
             });
@@ -346,7 +346,7 @@ describe("rate limit shield", () => {
     it("is not built at all without a key", async () => {
         const { checkRateLimit } = await loadLimiter(undefined);
 
-        await checkRateLimit(new Request("http://api.test/entities"));
+        await checkRateLimit(new Request("http://api.test/boards"));
 
         expect(shieldMock).not.toHaveBeenCalled();
     });

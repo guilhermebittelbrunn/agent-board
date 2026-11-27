@@ -45,13 +45,13 @@ afterEach(() => {
 describe("NotFoundPage home action", () => {
     it("renders a single link to the resolved home, with no button around it", async () => {
         cookieValueMock.mockReturnValue("pt-br");
-        homePathMock.mockResolvedValue("/pt-br/admin");
+        homePathMock.mockResolvedValue("/pt-br/boards");
 
         const { container } = await renderPage();
 
         const links = container.querySelectorAll("a");
         expect(links).toHaveLength(1);
-        expect(links[0].getAttribute("href")).toBe("/pt-br/admin");
+        expect(links[0].getAttribute("href")).toBe("/pt-br/boards");
         expect(links[0].textContent).toBe("Ir para o início");
         expect(container.querySelector("button")).toBeNull();
         expect(homePathMock).toHaveBeenCalledWith("pt-br");

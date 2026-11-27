@@ -9,6 +9,9 @@ export function boardColumnTitle(
     if (isRemovedStage(column)) {
         return columnsCopy.removedStage;
     }
+    if (column.lane === "drafts") {
+        return columnsCopy.drafts;
+    }
     if (column.lane === "tasks") {
         return columnsCopy.tasks;
     }

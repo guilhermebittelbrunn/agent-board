@@ -7,7 +7,7 @@ export const GET = requireBoardApi("view", async (_req, ctx) =>
         data: toBoardView(
             ctx.board,
             ctx.access,
-            await resolveExecutorFor(ctx.subjectProfile.id)
+            await resolveExecutorFor(ctx.profile.id)
         ),
     })
 );

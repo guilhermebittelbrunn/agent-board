@@ -12,6 +12,7 @@ import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
 import { githubFileUrl } from "./githubFileUrl";
 import { latestArtifacts } from "./latestArtifacts";
 import { shortSha } from "./shortSha";
+import { stageColumnName } from "./stageColumnName";
 
 type CardArtifactsProps = {
     events: CardEventViewDTO[];
@@ -51,9 +52,8 @@ export function CardArtifacts({
             {artifacts.map((event) => {
                 const { path, commitSha } = event.artifact;
                 const stage =
-                    config.stages.find(
-                        (candidate) => candidate.key === event.stageKey
-                    )?.column ?? event.stageKey;
+                    stageColumnName(config, event.stageKey, boardsDictionary) ??
+                    event.stageKey;
                 return (
                     <li key={path}>
                         <Card className="flex-row items-start gap-3 p-4">

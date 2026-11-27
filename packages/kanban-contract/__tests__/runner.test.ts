@@ -96,6 +96,7 @@ describe("runner kinds and reasons", () => {
     it("knows the local executor and the no_runner reason", () => {
         expect(STAGE_EXECUTOR_KINDS).toContain("local");
         expect(RUN_END_REASONS).toContain("no_runner");
+        expect(RUN_END_REASONS).toContain("no_credential");
     });
 
     it("formats a code in two groups", () => {

@@ -17,6 +17,11 @@ const MISSING_CORS_ORIGIN_LINE =
 const EXIT_FAILURE = 1;
 const RATE_LIMIT_DISABLED = /rate limiting is DISABLED/;
 const MALFORMED_ARCJET_KEY = /does not start with "ajkey_"/;
+const SCHEDULED_TASKS_OFF = /saving scheduled tasks is switched off/;
+const CREDENTIALS_KEY_BYTES = 32;
+const VALID_CREDENTIALS_KEY = Buffer.alloc(CREDENTIALS_KEY_BYTES, "k").toString(
+    "base64"
+);
 
 const MANAGED_VARS = [
     "NODE_ENV",
@@ -26,6 +31,7 @@ const MANAGED_VARS = [
     "GITHUB_APP_ID",
     "GITHUB_APP_PRIVATE_KEY",
     "GITHUB_WEBHOOK_SECRET",
+    "CREDENTIALS_ENCRYPTION_KEY",
 ];
 const originalEnv = { ...process.env };
 
@@ -133,6 +139,7 @@ describe("boot notice for the rate limiter", () => {
             GITHUB_APP_ID: "12345",
             GITHUB_APP_PRIVATE_KEY: "test-key",
             GITHUB_WEBHOOK_SECRET: "test-secret",
+            CREDENTIALS_ENCRYPTION_KEY: VALID_CREDENTIALS_KEY,
         });
 
         await register();
@@ -176,4 +183,53 @@ describe("boot notice for the rate limiter", () => {
             expect(error).not.toHaveBeenCalled();
         }
     );
+});
+
+describe("boot notice of the credentials key", () => {
+    const leaveEmulator = () => {
+        for (const variable of [
+            "FIRESTORE_EMULATOR_HOST",
+            "FIREBASE_AUTH_EMULATOR_HOST",
+            "NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST",
+        ]) {
+            vi.stubEnv(variable, "");
+        }
+    };
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    it("boots and warns when the key is missing outside the emulator", async () => {
+        givenBootEnv({ NODE_ENV: "development" });
+        leaveEmulator();
+
+        await register();
+
+        expect(console.warn).toHaveBeenCalledWith(
+            expect.stringMatching(SCHEDULED_TASKS_OFF)
+        );
+        expect(getFirestoreAdminMock).toHaveBeenCalled();
+    });
+
+    it("reports an invalid key as an error, without echoing it", async () => {
+        const error = vi.spyOn(console, "error").mockImplementation(() => {
+            // capture the boot error
+        });
+        const invalidKey = "not-a-real-key-value";
+        givenBootEnv({
+            NODE_ENV: "development",
+            CREDENTIALS_ENCRYPTION_KEY: invalidKey,
+        });
+
+        await register();
+
+        expect(error).toHaveBeenCalledWith(
+            expect.stringMatching(SCHEDULED_TASKS_OFF)
+        );
+        for (const call of error.mock.calls) {
+            expect(String(call[0])).not.toContain(invalidKey);
+        }
+        expect(getFirestoreAdminMock).toHaveBeenCalled();
+    });
 });

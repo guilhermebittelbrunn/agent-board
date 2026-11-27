@@ -15,6 +15,8 @@ celular e nos dois temas (regra de ouro 11 do [`CLAUDE.md`](../../CLAUDE.md)).
 
 | Tela | Fonte | Specs |
 |------|-------|-------|
+| Landing (`/{locale}`, pública) | sem tela no desenho; o vídeo sai de [`agent-board.gif`](../design/agent-board.gif) | `app-cleanup` |
+| Cabeçalho e menu do avatar (todas as telas com sessão) | o cabeçalho de [`Main`](../design/screens/Main.dc.html) | `app-cleanup` |
 | [Entrar](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Login) | [`Login`](../design/screens/Login.dc.html) ([imagem](../design/screenshots/Login.png)) | `github-sign-in` |
 | [Meus boards](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-Boards) | [`Boards`](../design/screens/Boards.dc.html) ([imagem](../design/screenshots/Boards.png)) | `board-import`; ciclo noturno de `cycle-schedule` |
 | [Novo board](https://claude.ai/artifact/HmEgc6dwaEXChE9y3ftSEt#artboard-NewBoard) | [`NewBoard`](../design/screens/NewBoard.dc.html) ([imagem](../design/screenshots/NewBoard.png)) | `board-import`, `github-app-integration` |

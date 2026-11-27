@@ -25,6 +25,10 @@ const { store, fake, local, executorsMock } = vi.hoisted(() => ({
     executorsMock: vi.fn(),
 }));
 
+vi.mock("@/(shared)/lib/orchestrator/cycle", () => ({
+    onCycleItemSettled: vi.fn(),
+}));
+
 vi.mock("@/(shared)/repositories/run.repository", () => ({
     runRepository: {
         listActiveByBoard: () =>
@@ -41,13 +45,28 @@ vi.mock("@/(shared)/repositories/run.repository", () => ({
             }
             run.active = false;
             store.closed.push({ id: run.id, endReason: input.close.endReason });
-            return Promise.resolve({ ignored: false, nextRunId: null });
+            return Promise.resolve({
+                ignored: false,
+                cardId: run.cardId,
+                nextRunId: null,
+                next: null,
+                cycle: null,
+            });
         },
         promote: (input: {
+            pick: (runs: RunRecord[], stored: unknown) => RunRecord[];
             executorFor: (run: RunRecord) => RunRecord["executor"];
         }) => {
+            const picked = new Set(
+                input
+                    .pick(
+                        store.runs.filter((run) => run.active),
+                        { stageSettings: {} }
+                    )
+                    .map((run) => run.id)
+            );
             const started = store.runs
-                .filter((run) => run.active && run.status === "queued")
+                .filter((run) => picked.has(run.id))
                 .map((run) => {
                     run.status = "running";
                     run.executor = input.executorFor(run);
@@ -67,14 +86,18 @@ vi.mock("@/(shared)/repositories/card-event.repository", () => ({
     cardEventRepository: { appendAgentEvent: vi.fn() },
 }));
 
+vi.mock("@/(shared)/lib/pull-request/pull-request-open", () => ({
+    ensurePullRequest: vi.fn(),
+}));
+
 vi.mock("@/(shared)/lib/orchestrator/executor", () => ({
     getStageExecutor: (kind: string) =>
         ({ fake, local })[kind as "fake" | "local"] ?? null,
 }));
 
 vi.mock("@/(shared)/lib/orchestrator/executor-choice", () => ({
-    executorsForUsers: (...args: unknown[]) => executorsMock(...args),
-    resolveExecutorFor: vi.fn(),
+    executorsForRuns: (...args: unknown[]) => executorsMock(...args),
+    chooseExecutorFor: vi.fn(),
 }));
 
 const { tick } = await import("@/(shared)/lib/orchestrator/orchestrator");
@@ -154,13 +177,73 @@ describe("promotion picks the executor of whoever triggered", () => {
                 startedAt: null,
             }),
         ];
-        executorsMock.mockResolvedValue(new Map([["u1", null]]));
+        executorsMock.mockResolvedValue(
+            new Map([["q", { ok: false, refusal: "no_executor" }]])
+        );
 
         await tick(board, NOW);
 
-        expect(executorsMock).toHaveBeenCalledWith(["u1"], NOW);
+        expect(executorsMock).toHaveBeenCalledWith(
+            [expect.objectContaining({ id: "q" })],
+            board.config,
+            NOW
+        );
         expect(store.closed).toEqual([{ id: "q", endReason: "no_runner" }]);
         expect(local.dispatch).not.toHaveBeenCalled();
+    });
+
+    it("ends with no_credential a queued run whose stage nothing of the person serves", async () => {
+        store.runs = [
+            runFixture({
+                id: "q",
+                status: "queued",
+                executor: null,
+                startedAt: null,
+            }),
+        ];
+        executorsMock.mockResolvedValue(
+            new Map([["q", { ok: false, refusal: "stage_not_served" }]])
+        );
+
+        await tick(board, NOW);
+
+        expect(store.closed).toEqual([{ id: "q", endReason: "no_credential" }]);
+        expect(local.dispatch).not.toHaveBeenCalled();
+    });
+
+    it("leaves queued a run that was queued after the pump read the board", async () => {
+        store.runs = [
+            runFixture({
+                id: "q",
+                status: "queued",
+                executor: null,
+                startedAt: null,
+            }),
+        ];
+        executorsMock.mockImplementation(() => {
+            store.runs.push(
+                runFixture({
+                    id: "late",
+                    cardId: "other-card",
+                    status: "queued",
+                    executor: null,
+                    startedAt: null,
+                })
+            );
+            return Promise.resolve(
+                new Map([["q", { ok: true, executor: "local" }]])
+            );
+        });
+
+        await tick(board, NOW);
+
+        const late = store.runs.find((run) => run.id === "late");
+        expect(late).toMatchObject({ status: "queued", active: true });
+        expect(store.closed).toEqual([]);
+        expect(local.dispatch).toHaveBeenCalledTimes(1);
+        expect(local.dispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ runId: "q" })
+        );
     });
 
     it("dispatches to the local executor for a person with a runner online", async () => {
@@ -181,8 +264,8 @@ describe("promotion picks the executor of whoever triggered", () => {
         ];
         executorsMock.mockResolvedValue(
             new Map([
-                ["u1", "local"],
-                ["u2", "fake"],
+                ["q", { ok: true, executor: "local" }],
+                ["q2", { ok: true, executor: "fake" }],
             ])
         );
 

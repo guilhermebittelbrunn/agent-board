@@ -92,7 +92,7 @@ const { AppDesignProvider } = await import(
 );
 
 const ORIGIN = "http://localhost:3000";
-const DESTINATION = "/pt-br/entities";
+const DESTINATION = "/pt-br/boards";
 const STATUS_OK = 200;
 const STATUS_UNAUTHORIZED = 401;
 const STATUS_INTERNAL_ERROR = 500;

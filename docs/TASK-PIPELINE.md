@@ -9,10 +9,10 @@ Tudo em português; código e mensagens de commit em inglês.
 ## O pipeline
 
 ```
-Descobrir → Planejar  → Desenvolver → Revisar → QA        (+ opcional)
-/spec     → /analyze  → /develop    → /review → /test      /observe · /mediate
-   ↑                                                  │
-   └────────────── /spec --sync fecha o ciclo ────────┘
+Descobrir → Planejar  → Desenvolver → Revisar → QA    → Fechar               (+ opcional)
+/spec     → /analyze  → /develop    → /review → /test → /spec --sync <slug>   /observe · /mediate
+   ↑                                                           │
+   └──── a próxima branch parte do backlog já atualizado ──────┘
 
            /cycle = a linha inteira de uma vez, sem parar para perguntar
 ```
@@ -21,8 +21,11 @@ Cada papel é um **slash command** (interativo, roda no loop principal e **pergu
 apoiado por um **subagent** (o motor autônomo que faz o trabalho pesado).
 
 O ciclo é fechado de propósito. O `/spec` alimenta o pipeline a partir do backlog em
-[`specs/`](../specs/README.md); no fim, `/spec --sync` **audita o backlog contra o código** e recomeça com
-ele limpo. Sem esse retorno, o backlog vira lista de desejos — e uma lista de desejos que ninguém confere é
+[`specs/`](../specs/README.md); no fim, **na mesma branch da feature**, o `/spec --sync <slug>` confere no
+código que o corte foi entregue, arquiva a spec em `docs/features/<slug>/spec.md` e atualiza o `BACKLOG.md`. O
+merge leva código, spec arquivada e fila atualizada para `main` de uma vez, e a branch seguinte começa da
+próxima tarefa. O `/spec --sync` sem slug continua existindo como auditoria completa do backlog (deriva,
+regressão, o que escapou do fechamento). Sem esse retorno, o backlog vira lista de desejos — e uma lista de desejos que ninguém confere é
 pior que nenhuma, porque parece confiável.
 
 > Por que comandos e não só agents? Subagents rodam de forma autônoma e **não pausam para perguntar**. Os
@@ -36,7 +39,7 @@ deixou, sem depender da conversa.
 
 | Comando | Papel | O que faz |
 |---------|-------|-----------|
-| `/spec [ideia \| --sync \| --next]` | Estrategista de Produto | Varre o repo, confronta com padrões de mercado (**com fontes**) e escreve/atualiza as specs em `specs/`. `--sync` reconcilia o backlog com o código **e arquiva as specs entregues**; `--next` recomenda a próxima. |
+| `/spec [ideia \| --sync \| --next]` | Estrategista de Produto | Varre o repo, confronta com padrões de mercado (**com fontes**) e escreve/atualiza as specs em `specs/`. `--sync <slug>` **fecha a spec na branch da feature** (arquiva e atualiza a fila); `--sync` audita o backlog inteiro; `--next` recomenda a próxima. |
 | `/analyze <nome-da-spec>` | PO + Tech Lead | **O argumento padrão é o nome de uma spec** (`/analyze card-timeline`). Também aceita descrição livre ou ID/link do ClickUp; vazio, oferece as specs aprovadas do backlog. Salva **o plano** em `analyze/plan.md` + inicializa o `STATE.md`. |
 | `/develop [slug? / --force]` | Desenvolvedor | Lê o plano e **implementa** o slice vertical (SDK → API → app → i18n); smoke local; escreve `develop/handoff.md` declarando o instrumento de cada afirmação. Não cria branch nem commita. |
 | `/review [foco? / --force]` | Revisor | Revisa o diff contra [`review-checklist.md`](review-checklist.md) **por leitura** + gates estáticos, aplica correções, deixa a lista "Verificar no `/test`", **resolve a branch**, escreve `review/review.md`, **pede aprovação antes de commitar** e, ao final, pergunta se deve dar **push**. |
@@ -263,10 +266,12 @@ Depois, **cada subtarefa roda o pipeline completo**: `/develop <subtask> → /re
      dirige o app e salva os prints em test/e2e/; test=done.
 5. /observe            (opcional)
    → observação de negócio pronta para colar no card.
-6. /spec --sync
-   → confere no código que o corte de MVP foi entregue; card-timeline vira done e é MOVIDA
+6. /spec --sync card-timeline                     ← na mesma branch, antes da PR
+   → confere no código da branch que o corte de MVP foi entregue; card-timeline vira done e é MOVIDA
      (git mv specs/features/card-timeline.md docs/features/card-timeline/spec.md);
-     o BACKLOG.md a registra em "Entregues" e specs/ volta a conter só o que falta.
+     o BACKLOG.md a registra em "Entregues" e marca o que ela libera; commit docs(specs): archive card-timeline.
+7. PR + merge
+   → main recebe código, spec arquivada e backlog atualizado juntos; a próxima /analyze já parte da fila certa.
 ```
 
 ## Skills usadas pelo pipeline

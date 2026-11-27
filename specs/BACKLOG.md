@@ -7,41 +7,33 @@ a fonte do conteúdo. Contrato e frontmatter: [`README.md`](README.md). Que tela
 
 ## Ordem recomendada
 
-Nenhuma spec está `approved`. A fase 0 está entregue e falta provar o G1 (ver o
-[roadmap](../docs/board/ROADMAP.md)). Aprovar as três primeiras da triagem abaixo libera o começo da fase 1.
+Nenhuma spec pode começar agora. As cinco da noite de 2026-11-27 estão implementadas na branch
+`guilhermebittelbrunn/chore-overnight-cycle-specs`, na PR #12, com o CI verde em `26eaf1f`; quatro já estão
+arquivadas nessa branch e a `cycle-runs` segue na fatia 2. As três `proposed` restantes dependem de alguma delas.
+O primeiro passo é a tarefa direta 1 (mergear a PR #12). Depois do merge, a ordem é esta:
 
-## Aguardando triagem
-
-Todas `proposed`, na ordem sugerida. A ordem respeita `depends_on` e fecha a fase 1 (MVP local) antes da
-nuvem.
-
-| # | spec | o quê | fase | valor · esforço | próximo comando |
-|---|------|-------|------|-----------------|-----------------|
-| 1 | [`github-app-integration`](features/github-app-integration.md) | O board fala com o GitHub por um App próprio | 1 | alto · M | aprovar → `/analyze github-app-integration` |
-| 2 | [`github-sign-in`](features/github-sign-in.md) | Entrar só com a conta do GitHub | 1 | alto · M | decidir o login por e-mail → aprovar → `/analyze github-sign-in` |
-| 3 | [`board-import`](features/board-import.md) | Criar board a partir do `.kanban/board.yml` de um repositório | 1 | alto · M | depois de #1 e #2 |
-| 4 | [`board-members`](features/board-members.md) | Membros, convites e guard por papel efetivo | 1 | alto · M | depois de #3 |
-| 5 | [`card-backlog`](features/card-backlog.md) | O backlog de specs vira cards | 1 | alto · G | depois de #3 e #4 |
-| 6 | [`theme-toggle`](features/theme-toggle.md) | Tema claro e escuro no cabeçalho do board | 1 | médio · P | depois de #5 |
-| 7 | [`card-timeline`](features/card-timeline.md) | Linha do tempo do card, onde os agentes escrevem | 1 | alto · M | depois de #5 |
-| 8 | [`orchestrator`](features/orchestrator.md) | Arrastar dispara a etapa; transições automáticas | 1 | alto · G | depois de #7 |
-| 9 | [`agent-contract`](features/agent-contract.md) | Ferramentas dos agentes, com token por execução | 1 | alto · M | depois de #8 |
-| 10 | [`local-runner`](features/local-runner.md) | Etapas reais na sua máquina. Gate 2 | 1 | alto · G | depois de #9 |
-| 11 | [`execution-credentials`](features/execution-credentials.md) | Cada membro dispara com a própria credencial | 2 | alto · M | depois de #4 e #10 |
-| 12 | [`pr-flow`](features/pr-flow.md) | Abrir, acompanhar e concluir a PR | 2 | alto · M | depois de #1 e #8 |
-| 13 | [`spec-authoring`](features/spec-authoring.md) | Escrever spec no board, com as perguntas no card | 2 | alto · G | depois de #7, #8 e #9 |
-| 14 | [`cycle-runs`](features/cycle-runs.md) | Várias specs da Análise à PR sem parar | 2 | alto · G | depois de #8, #9 e #12 |
-| 15 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | 2 | médio · M | depois de #9 e #11 |
-| 16 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | 3 | médio · M | depois de #13 |
-| 17 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | 3 | médio · P | depois de #11 e #14 |
-
-`github-app-integration` passou à frente de `github-sign-in` nesta rodada: só mexe na API, não tem tela e dá
-para testar sem o App criado. O login com GitHub tem uma decisão pendente (o que fazer com o login por e-mail,
-de que o seed, o E2E e o `/test` dependem).
+| # | spec | o quê | status | valor · esforço | próximo comando |
+|---|------|-------|--------|-----------------|-----------------|
+| 1 | [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | `proposed` | médio · M | liberada depois do merge da PR #12; aprovar → `/analyze cloud-routines-runner` |
+| 2 | [`cycle-runs`](features/cycle-runs.md) (fatia 2) | Pausar e retomar, "Mudar"/"Concordo", infra na tela, aviso de `depends_on` | `in-progress` | alto · G | `/analyze cycle-runs`, depois do merge |
+| 3 | [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | `proposed` | médio · M | liberada depois do merge da PR #12; aprovar → `/analyze spec-discovery` |
+| 4 | [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | `proposed` | médio · P | depois da fatia 2 da `cycle-runs` |
 
 ## Em andamento
 
-Nenhuma.
+Implementada na branch da noite, na PR #12 aberta. Não está em `main`.
+
+| spec | o quê | situação |
+|------|-------|----------|
+| [`cycle-runs`](features/cycle-runs.md) | Várias specs da Análise à PR sem parar | Fatia 1 de 2; spec inteira aprovada em 2026-11-27 |
+
+## Aguardando triagem
+
+| spec | o quê | fase | valor · esforço | bloqueada por |
+|------|-------|------|-----------------|---------------|
+| [`cloud-routines-runner`](features/cloud-routines-runner.md) | Etapas com o notebook fechado. Gate 3 | 2 | médio · M | merge da PR #12 (`execution-credentials`) |
+| [`spec-discovery`](features/spec-discovery.md) | Propostas de spec com evidência, triadas no board | 3 | médio · M | merge da PR #12 (`spec-authoring`) |
+| [`cycle-schedule`](features/cycle-schedule.md) | O ciclo começa sozinho à noite. Gate 4 | 3 | médio · P | `cycle-runs` inteira e merge da PR #12 (`execution-credentials`) |
 
 ## Adiadas e substituídas
 
@@ -53,24 +45,49 @@ Nenhuma.
 
 ## Tarefas diretas
 
-- Os PRs de dependência do Dependabot (#3, #4, #6, #7) estão com o CI vermelho. Ver
-  [achado A2](reference/AUDIT.md#achados-e-pendências).
+1. Mergear a PR #12. Os seis jobs do CI (`changes`, `verify`, `secrets`, `audit`, `coverage`, `e2e`) passaram em
+   `26eaf1f`. O nome da branch continua fora do padrão. Ver [achado A14](reference/AUDIT.md#achados-e-pendências).
+2. Depois do merge: publicar `firestore.indexes.json` (item 10 do `docs/PRE-PRODUCTION.md`), definir
+   `CREDENTIALS_ENCRYPTION_KEY` e conferir o GitHub App (item 5). Ver [A15](reference/AUDIT.md#achados-e-pendências).
+3. Selo "Ciclo" no card pendente de um ciclo em andamento. Ver [A16](reference/AUDIT.md#achados-e-pendências).
+4. Marcar `review` como `done` no `STATE.md` das dez features da fase 1. Ver [A12](reference/AUDIT.md#achados-e-pendências).
+5. Corrigir `docs/board/DECISIONS.md:139`, `docs/board/README.md:37` e a tabela da fase 1 do `ROADMAP.md`, que
+   ainda dizem que o runner usa o Agent SDK. Ver [A11](reference/AUDIT.md#achados-e-pendências).
+6. PRs do Dependabot #3, #4, #6 e #7 seguem abertas e vermelhas. Ver [A2](reference/AUDIT.md#achados-e-pendências).
 
 ## Precisam de decisão
 
-- Aprovar `github-app-integration`, `github-sign-in` e `board-import`? **Recomendação:** sim, nessa ordem.
-- Login por e-mail e senha depois do `github-sign-in`? **Recomendação:** some da UI, mas segue aceito quando
-  o app roda contra o emulador, para o seed, o E2E e o `/test`.
-- Cliente GitHub falso quando a API roda contra o emulador? **Recomendação:** sim, com um repositório de
-  exemplo; sem ele, `board-import` não é percorrida no `/test` sem credencial real.
+- Quem virou `viewer` pode apagar a própria credencial? Hoje o `DELETE` exige `trigger`. **Recomendação:** liberar
+  o `DELETE` da própria linha para qualquer membro; apagar segredo próprio não gasta nada.
+- Ciclo parado por falha: com `onFailure: stop` e duas specs ao mesmo tempo, o próximo ciclo da fila começa antes de a spec viva terminar
+  a etapa. **Recomendação:** manter na fatia 1 e rever na fatia 2.
+- Contraste de 2,82:1 do ponto verde de checks no tema escuro, aceito no `/test` da `pr-flow`. **Recomendação:**
+  corrigir junto com a tarefa direta 3, já que mexe no mesmo quadro.
+- Três ajustes de produto vistos na `spec-authoring` e não feitos: o assistente de criação do quadro não mostra
+  Rascunhos, clicar fora do diálogo Nova spec descarta o texto e arquivos pequenos aparecem como "1 kB".
+  **Recomendação:** corrigir o segundo como tarefa direta; os outros dois podem esperar.
 
 ## Entregues
 
 | spec | data | onde |
 |------|------|------|
 | `fork-cleanup` | 2026-11-25 | [`docs/features/fork-cleanup/spec.md`](../docs/features/fork-cleanup/spec.md) (PR #1, fase 0) |
+| `github-app-integration` | 2026-11-27 | [`docs/features/github-app-integration/spec.md`](../docs/features/github-app-integration/spec.md) (PR #8) |
+| `github-sign-in` | 2026-11-27 | [`docs/features/github-sign-in/spec.md`](../docs/features/github-sign-in/spec.md) (PR #8) |
+| `board-import` | 2026-11-27 | [`docs/features/board-import/spec.md`](../docs/features/board-import/spec.md) (PR #8) |
+| `board-members` | 2026-11-27 | [`docs/features/board-members/spec.md`](../docs/features/board-members/spec.md) (PR #8) |
+| `card-backlog` | 2026-11-27 | [`docs/features/card-backlog/spec.md`](../docs/features/card-backlog/spec.md) (PR #8) |
+| `theme-toggle` | 2026-11-27 | [`docs/features/theme-toggle/spec.md`](../docs/features/theme-toggle/spec.md) (PR #8) |
+| `card-timeline` | 2026-11-27 | [`docs/features/card-timeline/spec.md`](../docs/features/card-timeline/spec.md) (PR #8) |
+| `orchestrator` | 2026-11-27 | [`docs/features/orchestrator/spec.md`](../docs/features/orchestrator/spec.md) (PR #8) |
+| `agent-contract` | 2026-11-27 | [`docs/features/agent-contract/spec.md`](../docs/features/agent-contract/spec.md) (PR #8) |
+| `local-runner` | 2026-11-27 | [`docs/features/local-runner/spec.md`](../docs/features/local-runner/spec.md) (PR #8) |
+| `spec-authoring` | 2026-11-27 | [`docs/features/spec-authoring/spec.md`](../docs/features/spec-authoring/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
+| `app-cleanup` | 2026-11-27 | [`docs/features/app-cleanup/spec.md`](../docs/features/app-cleanup/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
+| `pr-flow` | 2026-11-27 | [`docs/features/pr-flow/spec.md`](../docs/features/pr-flow/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
+| `execution-credentials` | 2026-11-27 | [`docs/features/execution-credentials/spec.md`](../docs/features/execution-credentials/spec.md) (branch `guilhermebittelbrunn/chore-overnight-cycle-specs`, PR #12, aguardando merge) |
 
 ## Contadores
 
-`proposed` 17 · `approved` 0 · `in-progress` 0 · `deferred` 2 · `superseded` 1 · entregues 1. Última
-auditoria: 2026-11-25 ([`AUDIT.md`](reference/AUDIT.md)).
+`proposed` 3 · `approved` 0 · `in-progress` 1 · `deferred` 2 · `superseded` 1 · entregues 15 (4 aguardando o
+merge da PR #12). Última auditoria: 2026-11-27, fim da rodada noturna ([`AUDIT.md`](reference/AUDIT.md)).

@@ -16,7 +16,7 @@ function requestWith(authorization?: string): Request {
     if (authorization !== undefined) {
         headers.set("authorization", authorization);
     }
-    return new Request("http://api.test/entities", {
+    return new Request("http://api.test/boards", {
         method: "POST",
         headers,
     });

@@ -10,7 +10,7 @@ area: [packages/kanban-contract, packages/sdk, apps/api, apps/app, kit]
 depends_on: [spec-authoring]
 contends_on: [packages/kanban-contract/src/agentContract.ts]
 feature: -
-updated: 2026-11-25
+updated: 2026-11-27
 ---
 
 # Descobrir specs novas pelo board
@@ -19,7 +19,7 @@ updated: 2026-11-25
 > - **O quê:** pedir ao board uma rodada de descoberta: um agente lê o código e o backlog, olha ferramentas parecidas e devolve propostas de spec, cada uma com evidência.
 > - **Por quê:** o `/spec` já faz isso no terminal; no board, as propostas ficam junto do backlog e viram rascunho com um clique.
 > - **Status:** `proposed` · valor médio · esforço M · time
-> - **Próximo passo:** aguardando triagem
+> - **Próximo passo:** aprovar; depende da `spec-authoring`, implementada na branch da noite e ainda sem merge
 
 ## Problema
 

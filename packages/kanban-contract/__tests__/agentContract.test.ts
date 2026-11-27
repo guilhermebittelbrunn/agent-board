@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
     askInputSchema,
     attachArtifactInputSchema,
+    completeStageInputSchema,
+    getAttachmentInputSchema,
     type Question,
     questionSchema,
 } from "../src/agentContract";
@@ -127,5 +129,89 @@ describe("attachArtifactInputSchema", () => {
         expect(attachArtifactInputSchema.safeParse(artifact("")).success).toBe(
             false
         );
+    });
+});
+
+describe("getAttachmentInputSchema", () => {
+    const ref = { cardId: "b1__audit-log", stage: "spec" };
+
+    it("accepts an attachment id shaped like a UUID", () => {
+        expect(
+            getAttachmentInputSchema.safeParse({
+                ...ref,
+                attachmentId: "3f0c9e1a-1b2c-4d5e-8f90-123456789abc",
+            }).success
+        ).toBe(true);
+    });
+
+    it("rejects a path or anything that is not a lowercase UUID", () => {
+        for (const attachmentId of [
+            "uploads/u1/3f0c9e1a-1b2c-4d5e-8f90-123456789abc.png",
+            "3F0C9E1A-1B2C-4D5E-8F90-123456789ABC",
+            "",
+        ]) {
+            expect(
+                getAttachmentInputSchema.safeParse({ ...ref, attachmentId })
+                    .success
+            ).toBe(false);
+        }
+    });
+});
+
+describe("completeStageInputSchema decisions", () => {
+    const base = {
+        cardId: "b1__a",
+        stage: "analyze",
+        outcome: "success",
+        summary: "ok",
+    };
+    const decision = {
+        decision: "Busca no cliente, sem índice novo.",
+        rule: "least_impact",
+        product: false,
+    };
+    const MAX_DECISIONS = 20;
+    const MAX_DECISION_TEXT = 500;
+
+    it("keeps decisions optional", () => {
+        expect(completeStageInputSchema.safeParse(base).success).toBe(true);
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: [decision],
+            }).success
+        ).toBe(true);
+    });
+
+    it("refuses a rule outside the list", () => {
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: [{ ...decision, rule: "gut_feeling" }],
+            }).success
+        ).toBe(false);
+    });
+
+    it("refuses 21 decisions and a text over 500 characters", () => {
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: Array.from(
+                    { length: MAX_DECISIONS + 1 },
+                    () => decision
+                ),
+            }).success
+        ).toBe(false);
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: [
+                    {
+                        ...decision,
+                        decision: "d".repeat(MAX_DECISION_TEXT + 1),
+                    },
+                ],
+            }).success
+        ).toBe(false);
     });
 });

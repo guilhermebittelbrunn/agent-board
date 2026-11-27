@@ -40,12 +40,12 @@ function copyFor(error: unknown, locale: "pt-br"): string {
 describe("API error code to user copy", () => {
     const forbidden = () =>
         apiError(HTTP_STATUS.FORBIDDEN, {
-            error: { code: "AUTH_REQUEST_IMPERSONATION_READ_ONLY" },
+            error: { code: "BOARD_ROLE_INSUFFICIENT" },
         });
 
     it("resolves the copy of a known code in every locale", () => {
         expect(copyFor(forbidden(), "pt-br")).toBe(
-            "Somente leitura: você está atuando como outro usuário."
+            "Seu papel neste board não permite esta ação."
         );
     });
 
@@ -163,21 +163,20 @@ describe("SDK error propagation", () => {
         const client = new BaseClient({
             project: "app",
             url: "http://localhost",
-            context: "common",
         });
         const thrown = apiError(HTTP_STATUS.FORBIDDEN, {
-            error: { code: "AUTH_REQUEST_IMPERSONATION_READ_ONLY" },
+            error: { code: "BOARD_ROLE_INSUFFICIENT" },
         });
         client.restClient.request = () => Promise.reject(thrown);
 
         const caught = await client
-            .request({ url: "/entities", method: "POST" })
+            .request({ url: "/boards", method: "POST" })
             .catch((error: unknown) => error);
 
         expect(caught).toBe(thrown);
         expect(caught).not.toBeInstanceOf(FormattedError);
         expect(copyFor(caught, "pt-br")).toBe(
-            "Somente leitura: você está atuando como outro usuário."
+            "Seu papel neste board não permite esta ação."
         );
     });
 });

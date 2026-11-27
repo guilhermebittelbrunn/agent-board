@@ -1,70 +1,11 @@
 {
   "indexes": [
     {
-      "collectionGroup": "entity",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "deletedAt", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "entity",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "deletedAt", "order": "ASCENDING" },
-        { "fieldPath": "enabled", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "entity",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "deletedAt", "order": "ASCENDING" },
-        { "fieldPath": "type", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "user",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "reference_id", "order": "ASCENDING" },
         { "fieldPath": "deletedAt", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "user",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "deletedAt", "order": "ASCENDING" },
-        { "fieldPath": "type", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "user",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "deletedAt", "order": "ASCENDING" },
-        { "fieldPath": "lastAccessAt", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notification",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notification",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "readAt", "order": "ASCENDING" }
       ]
     }
   ],

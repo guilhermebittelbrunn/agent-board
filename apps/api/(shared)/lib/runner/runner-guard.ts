@@ -21,10 +21,9 @@ const refuseToken = (code: TokenRefusal): Response =>
     );
 
 /**
- * Runner routes are called by a machine, not by a person: no cookie and no session, so
- * impersonation never applies. The runner token proves which runner calls; a missing runner
- * and a wrong secret get the same answer. Only a token whose secret matches can learn that
- * its runner was revoked.
+ * Runner routes are called by a machine, not by a person: no cookie and no session. The
+ * runner token proves which runner calls; a missing runner and a wrong secret get the
+ * same answer. Only a token whose secret matches can learn that its runner was revoked.
  */
 export function requireRunnerApi<TParams = Record<string, never>>(
     handler: (

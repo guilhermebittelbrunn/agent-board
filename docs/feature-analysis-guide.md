@@ -9,27 +9,27 @@ de aceite.
 > - Marque itens não aplicáveis como `N/A` — a maioria das tarefas usa uma fração do guia.
 > - **Toda afirmação precisa de evidência no código** (cite `arquivo.ts:linha`). Antes de propor
 >   estrutura nova, procure o helper/padrão que já existe.
-> - O recurso **`entity`** é o slice de referência de ponta a ponta — leia-o antes de desenhar qualquer
+> - Os membros do board (**`boardMember`**) são o slice de referência de ponta a ponta — leia-o antes de desenhar qualquer
 >   coisa nova (caminhos na seção 0).
 > - A saída de cada etapa é **Markdown estruturado** (tabelas, listas, títulos), salvo em
 >   `docs/features/<slug>/` — ver [`TASK-PIPELINE.md`](TASK-PIPELINE.md).
 
 ---
 
-## 0. Onde olhar primeiro (slice de referência `entity`)
+## 0. Onde olhar primeiro (slice de referência `boardMember`)
 
 | Camada | Caminho |
 |--------|---------|
-| Tipos/contrato | `packages/sdk/src/types/entity/entity.ts` |
-| Action do SDK | `packages/sdk/src/actions/entity/action.ts` (registrada em `packages/sdk/src/client/index.ts`) |
-| Rota da API | `apps/api/app/(routes)/entities/route.ts` + `entities/[id]/route.ts` |
-| Guard | `apps/api/app/(guards)/common-panel.ts` (`requireCommonPanelApi`) |
-| Validação | `apps/api/(shared)/validation/entity.schema.ts` |
-| Repositório | `apps/api/(shared)/repositories/entity.repository.ts` (+ `base.repository.ts`) |
-| Mapper | `apps/api/(shared)/mappers/entity.mapper.ts` |
-| UI + hooks | `apps/app/app/[locale]/(authenticated)/(common)/(pages)/entities/` |
-| i18n | `packages/internationalization/translations/apps/app/pages/common/entities.ts` |
-| Testes | `apps/app/__tests__/entityFormSchema.test.ts`, `apps/app/__tests__/useEntityCrud.test.tsx` |
+| Tipos/contrato | `packages/sdk/src/types/board/member.ts` |
+| Action do SDK | `packages/sdk/src/actions/boardMember/action.ts` (registrada em `packages/sdk/src/client/index.ts`) |
+| Rota da API | `apps/api/app/(routes)/boards/[id]/members/route.ts` + `members/[memberId]/route.ts` |
+| Guard | `apps/api/app/(guards)/board.ts` (`requireBoardApi`, sobre o `requireSessionApi` de `session.ts`) |
+| Validação | `apps/api/(shared)/validation/board-member.schema.ts` |
+| Repositório | `apps/api/(shared)/repositories/board-member.repository.ts` (+ `base.repository.ts`) |
+| Mapper | `apps/api/(shared)/mappers/board-member.mapper.ts` |
+| UI + hooks | `apps/app/app/[locale]/(authenticated)/(common)/(pages)/boards/(pages)/[id]/members/` + `boards/(hooks)/useBoardMemberCrud.tsx`, `useListBoardMembers.tsx` |
+| i18n | bloco `members` de `packages/internationalization/translations/apps/app/pages/common/boards.ts` |
+| Testes | `apps/api/__tests__/boardMembersRoutes.test.ts`, `boardMemberMapper.test.ts`, `apps/app/__tests__/useBoardMemberCrud.test.tsx` |
 
 Regras por escopo (auto-carregadas): `apps/api/CLAUDE.md`, `apps/app/CLAUDE.md`,
 `packages/CLAUDE.md`. Convenções detalhadas (design system/RHF): [`AGENTS.md`](../AGENTS.md).
@@ -43,7 +43,6 @@ Regras por escopo (auto-carregadas): `apps/api/CLAUDE.md`, `apps/app/CLAUDE.md`,
 - [ ] **Corte de MVP**: qual é a menor fatia vertical que entrega valor observável? O que fica para
       depois? (O board é ferramenta de uso próprio — resista a construir o caso geral.)
 - [ ] Apps impactados: `apps/app` (painel) · `apps/api` · `packages/*`.
-- [ ] **Área do painel**: comum (`(common)`), admin (`(admin)/admin`) ou ambas? Muda o guard e o layout.
 - [ ] **Papel no board**: quem pode ver e quem pode disparar? (owner/maintainer/operator/viewer, limitado
       pela permissão no GitHub — ver [`board/ACCESS.md`](board/ACCESS.md).)
 - [ ] Dependências externas (Firebase, GitHub, Claude Code, Arcjet) e vars de env novas.
@@ -69,12 +68,12 @@ Mudança de forma de documento é retrocompatível por natureza — o risco est�
 
 ### 2.1 Coleção e documento
 
-- [ ] Coleção nova ou existente? Nome no **singular** (`"entity"`, `"user"`), embora a rota seja plural.
+- [ ] Coleção nova ou existente? Nome no **singular** (`"boardMember"`, `"user"`), embora a rota seja plural.
 - [ ] Para cada campo novo: nome (dê **≥2 opções** quando não for óbvio), tipo, valor default,
       `null` permitido? e a justificativa.
 - [ ] **Escopo/ownership**: o recurso é **de um board** (card, execução, membro: toda leitura filtra pelo
-      board depois do guard de papel) ou **da pessoa** (`entity`, notificação, preferência: filtra por
-      `ctx.subjectProfile.id`)? Ver "Escopo de dados" em `docs/ARCHITECTURE.md`.
+      board depois do guard de papel) ou **da pessoa** (runner, preferência: filtra por
+      `ctx.profile.id`)? Ver "Escopo de dados" em `docs/ARCHITECTURE.md`.
 - [ ] Campos herdados do `BaseRepository`: `createdAt`, `updatedAt`, `deletedAt` são estampados
       automaticamente no `create` — **não** os declare no `CreateRequest`.
 - [ ] **Soft delete** é o padrão (`deletedAt`); `delete()` do `BaseRepository` nunca remove de fato.
@@ -83,7 +82,7 @@ Mudança de forma de documento é retrocompatível por natureza — o risco est�
 
 - [ ] Que consultas a feature exige (filtro, ordenação, busca, paginação)?
 - [ ] ⚠️ A paginação do `BaseRepository` (`paginate`) ordena sempre por `createdAt` desc e pelo id, com
-      cursor. O filtro fica no método do repositório (ex.: `entityRepository.listByUser` filtra
+      cursor. O filtro fica no método do repositório (ex.: um `listByUser` filtra
       `userId` e `deletedAt`), e cada combinação de filtro com essa ordenação exige um índice
       composto. Ordenação ou busca diferente disso é **decisão de arquitetura a registrar**, não algo a
       improvisar no handler.
@@ -111,8 +110,7 @@ O SDK é a **única porta** do front para a API; o tipo dele é o contrato. Semp
 - [ ] `CreateXRequest` / `UpdateXRequest` — o que é obrigatório em cada um.
 - [ ] Action em `packages/sdk/src/actions/<recurso>/action.ts`: métodos, path, retorno
       (`list` → `DTO[]`, `findById` → `DTO`, `create` → `DTO`, `update` → `{ id }`, `delete` → `void`).
-- [ ] Registrada no `Client` (`packages/sdk/src/client/index.ts`) e o **contexto** correto
-      (`common` | `admin`).
+- [ ] Registrada no `Client` (`packages/sdk/src/client/index.ts`).
 - [ ] Mudança de contrato **quebra** consumidor existente (`apps/app`)? Liste os usos
       (`rg` pelo nome do tipo/método) e o plano de atualização — a ordem de commit é
       SDK → API → app.
@@ -127,13 +125,12 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 ### 4.1 Rota e guard
 
 - [ ] Método(s) e path (sem prefixo `/api` — os grupos `(routes)`/`(guards)` não entram na URL).
-- [ ] **Guard**: `requireCommonPanelApi` (usuário comum; expõe `ctx.subjectProfile`, ciente de
-      impersonação), `requireAdminApi` (só admin; **não** tem `subjectProfile`) ou o guard de papel do
-      board, quando existir.
-- [ ] Rota `[id]`: genérico do guard (`requireCommonPanelApi<RouteIdParamsContext>`) +
+- [ ] **Guard**: `requireSessionApi` (recurso da pessoa; expõe `ctx.profile`) ou `requireBoardApi`
+      (recurso de um board; exige o papel efetivo).
+- [ ] Rota `[id]`: genérico do guard (`requireSessionApi<RouteIdParamsContext>`) +
       `resolveIdFromContext(ctx)`.
 - [ ] **Ownership**: recurso da pessoa usa o predicado do repositório
-      (`findOwnedBy(id, ctx.subjectProfile.id)` → `null` → 404); recurso de board, o escopo do board. Vale **em todos** os handlers que tocam
+      (ex.: `revokeOwned(id, ctx.profile.id, …)` → `false` → 404); recurso de board, o escopo do board. Vale **em todos** os handlers que tocam
       o id (404, não 403 — não vaze existência).
 - [ ] Header customizado novo? Então adicione em `allowHeaders` do CORS em `apps/api/proxy.ts`.
 
@@ -149,11 +146,11 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 ### 4.3 Persistência
 
 - [ ] Repositório estende `BaseRepository<DTO>`; mapper passado como **3º argumento do `super`**
-      (`super(db, "entity", entityMapper)`). Recurso simples pode dispensar mapper (`super(db, "user")`).
+      (`super(db, BOARD_MEMBER_TABLE, boardMemberMapper)`). Recurso simples pode dispensar mapper (`super(db, "user")`).
 - [ ] Mapper em `(shared)/mappers/<recurso>.mapper.ts` estendendo `Mapper<Entity, DTO>`:
       `toDTO` normaliza (`normalizeFirestoreInstant` para datas, `stringIfExists` para strings
       opcionais) e `toPersistence` usa **whitelist** de chaves. Exporte **uma instância**
-      (`export const entityMapper = new ...`).
+      (`export const boardMemberMapper = new ...`).
 - [ ] Normalização vive no mapper, **nunca** no handler.
 
 ### 4.4 Erros
@@ -173,14 +170,13 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 
 ### 5.1 Rotas e renderização
 
-- [ ] Onde a rota entra na árvore `app/[locale]/…` e em qual grupo
-      (`(common)/(pages)/…` vs `(admin)/admin/(pages)/…`).
+- [ ] Onde a rota entra na árvore `app/[locale]/…` (`(authenticated)/(common)/(pages)/…` para tela
+      com sessão; `(landing)` e `(unauthenticated)` são públicas).
 - [ ] **Server Component por padrão**; `"use client"` só com estado/eventos/browser API.
 - [ ] Página de lista/detalhe faz **prefetch RSC** (`QueryClient` + `prefetchQuery` +
-      `HydrationBoundary`) com a **mesma `queryKey`** do hook client — e envolvido em
-      `if (!(await isImpersonating()))`.
+      `HydrationBoundary`) com a **mesma `queryKey`** do hook client, pelo `getServerApiClient()`.
 - [ ] `loading.tsx` com `TableSkeleton`/`FormSkeleton`.
-- [ ] Entradas no `paths.ts` / `routes.tsx` / `sidebar.tsx` do grupo.
+- [ ] Entrada no `paths.ts` do grupo e título em `PANEL_PAGE_TITLES`. O app não tem sidebar: a navegação entre boards é pelo cabeçalho e pela lista.
 
 ### 5.2 Dados
 
@@ -202,7 +198,7 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
       chega.
 - [ ] Campos via `HookFormInput/Textarea/Select/Switch/DateInput/RadioGroup` dentro de
       `FormContainer`; `Footer` **dentro** do `<form>`; `Container` com `contentOnly` e `loadError`.
-- [ ] Sentinela para "sem valor" em select/radio (padrão `entityGenreUnset = "__none__"`), mapeada para
+- [ ] Sentinela para "sem valor" em select/radio (ex.: `"__none__"`), mapeada para
       `null` na mutation.
 - [ ] Lista via `Table` do design system com `searchFields`, `onRefresh`, `refreshLoading`,
       `locale.emptyText`, `rowKey`; coluna `enabled` é um `Switch` controlado; foto via
@@ -214,7 +210,7 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 - [ ] **Zero string de UI em JSX** — label, placeholder, `aria-label`, toast, título de coluna, texto
       de confirmação, `emptyText`, mensagem de Zod.
 - [ ] Chave nova existe no dicionário `pt-br`; use `/i18n-sync`.
-- [ ] Variável do dicionário com nome descritivo (`entitiesList`, `entityMessages`) — **nunca** `t`/`d`.
+- [ ] Variável do dicionário com nome descritivo (`membersCopy`, `accountProfile`) — **nunca** `t`/`d`.
 - [ ] Locale via `getDictionary()` (client/server) ou `getDictionaryForLocale(locale)` quando a rota já
       dá o `[locale]`.
 
@@ -225,9 +221,7 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
 - [ ] **Autorização espelhada no servidor.** UI oculta nunca é a única proteção: todo endpoint tem guard
       + checagem de ownership.
 - [ ] Camadas server-side envolvidas: `apps/app/proxy.ts` (redirect de sessão) → `requireSession` →
-      `requireAdmin` → guard da API. Diga em qual(is) a regra entra.
-- [ ] **Impersonação**: a feature funciona quando um admin está personificando um usuário comum? Leituras
-      RSC precisam do `isImpersonating()`; troca de usuário faz `window.location.reload()`.
+      guard da API (`requireSessionApi` / `requireBoardApi`). Diga em qual(is) a regra entra.
 - [ ] Nenhum id vindo do body é confiado sem checar vínculo com o contexto autenticado.
 - [ ] Dado sensível (token, segredo, PII) não vaza em DTO, log ou mensagem de erro.
 - [ ] Regras do Firestore e rate limit (Arcjet) precisam de ajuste? Ver [`SECURITY.md`](SECURITY.md).
@@ -242,7 +236,7 @@ Uma rota = um arquivo `app/(routes)/<recurso>/route.ts` (e `[id]/route.ts`). Han
       `@repo/design-system/hooks/useAlert` e `@repo/internationalization/client` via
       `vi.hoisted` + `vi.mock`; asserção lendo o cache (`queryClient.getQueryData`).
 - [ ] **Rota da API** com `vi.mock` do repositório **e do guard** (substituindo por um passthrough que
-      injeta `ctx.subjectProfile`), seguido de `await import(...)` da rota.
+      injeta `ctx.profile`), seguido de `await import(...)` da rota.
 - [ ] Cenários: caminho feliz + **cada** caminho de erro (validação, não encontrado, sem permissão,
       ownership de outro usuário).
 - [ ] Localização: `apps/<app>/__tests__/<assunto>.test.ts(x)` (pasta plana, não colocado).
@@ -262,8 +256,8 @@ Regra de ouro 11: front-end não está pronto sem ser percorrido com `agent-brow
 - [ ] Fluxos a percorrer, nomeados (qual tela, qual ação, qual resultado esperado).
 - [ ] Estados que precisam existir para o fluxo ser observável: normal, vazio, erro, formulário inválido,
       submit em andamento — e **como produzir cada um** (seed, dado de QA, requisição forçada).
-- [ ] Combinações que o diff torna arriscadas: **light + dark + mobile**, comum × admin ×
-      admin personificando (o `Table` é antd: cheque que respeita o tema).
+- [ ] Combinações que o diff torna arriscadas: **light + dark + mobile**, e os papéis no board
+      que o diff toca (o `Table` é antd: cheque que respeita o tema).
 - [ ] O que **não** dá para observar sem infra externa — já marcado, para virar 🔒 em vez de reprovar.
 
 ---
@@ -272,7 +266,7 @@ Regra de ouro 11: front-end não está pronto sem ser percorrido com `agent-brow
 
 Monte um quadro com casos explícitos, cobrindo:
 
-- [ ] Autorização: usuário comum × admin × admin personificando × não autenticado.
+- [ ] Autorização: com sessão × sem perfil × não autenticado.
 - [ ] Ownership: tentar acessar/editar/excluir recurso de **outro** usuário (esperado: 404).
 - [ ] Papel no board (owner × maintainer × operator × viewer × sem acesso no GitHub), quando relevante.
 - [ ] Valores-limite: mínimo/máximo de tamanho, `0`, negativo, string vazia, campo só com espaços,

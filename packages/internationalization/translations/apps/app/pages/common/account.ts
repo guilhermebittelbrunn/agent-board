@@ -1,10 +1,9 @@
 export const commonAccountPageTranslations = {
     "pt-br": {
         title: "Minha conta",
-        subtitle: "Gerencie seus dados, sua senha e suas preferências.",
+        subtitle: "Gerencie seus dados e suas preferências.",
         tabs: {
             profile: "Perfil",
-            security: "Segurança",
             preferences: "Preferências",
         },
         sectionNav: {
@@ -12,7 +11,6 @@ export const commonAccountPageTranslations = {
         },
         sections: {
             profile: "Seus dados de exibição e o e-mail da conta.",
-            security: "A senha com que você entra na conta.",
             preferences: "Como o painel aparece para você.",
         },
         profile: {
@@ -55,23 +53,6 @@ export const commonAccountPageTranslations = {
                 avatarReference: "Informe uma URL de imagem válida.",
             },
         },
-        security: {
-            passwordTitle: "Senha",
-            description:
-                "Ao trocar a senha, todas as sessões são encerradas e você precisa entrar de novo.",
-            currentPassword: "Senha atual",
-            newPassword: "Nova senha",
-            confirmPassword: "Confirmar nova senha",
-            save: "Alterar senha",
-            passwordUnavailable:
-                "Esta conta entra pelo GitHub e não tem senha para trocar.",
-            validation: {
-                required: "Informe a senha.",
-                min: "A senha deve ter ao menos 6 caracteres.",
-                newPasswordMin: "A nova senha deve ter ao menos 8 caracteres.",
-                mismatch: "As senhas não coincidem.",
-            },
-        },
         preferences: {
             title: "Tema",
             description:
@@ -86,7 +67,6 @@ export const commonAccountPageTranslations = {
         },
         messages: {
             profileUpdated: "Perfil atualizado.",
-            passwordChanged: "Senha alterada. Entre novamente para continuar.",
             preferencesUpdated: "Preferências atualizadas.",
             loadError: "Não foi possível carregar a sua conta.",
         },

@@ -43,7 +43,7 @@ export const PATCH = requireBoardApi("configure", async (req, ctx) => {
         data: toBoardView(
             updated,
             ctx.access,
-            await resolveExecutorFor(ctx.subjectProfile.id)
+            await resolveExecutorFor(ctx.profile.id)
         ),
     });
 });

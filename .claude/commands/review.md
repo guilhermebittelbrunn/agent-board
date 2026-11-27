@@ -21,6 +21,7 @@ os passos abaixo, ela vence. Nesta etapa, em resumo:
 - O gate de commit e a pergunta de push são automáticos: aplique o plano de commits sem pedir aprovação,
   só com commits novos (nunca reescreva histórico, nunca `--force`) e faça push ao final.
 - Achado bloqueante que exige reimplementar → `complete_stage(needs_rework)` com os achados no `summary`.
+- Com `--cycle <ciclo-id>`, siga a §2.1 da regra: sem `ask`, decisões em `complete_stage.decisions`.
 <!-- board-mode:end -->
 
 ## Regras de escrita (`humanizer` + `caveman`)

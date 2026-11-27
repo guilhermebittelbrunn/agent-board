@@ -5,7 +5,6 @@ import {
 } from "@tanstack/react-query";
 import { getServerApiClient } from "@/lib/server/apiServerClient";
 import { panelPageMetadata } from "@/lib/server/panelMetadata";
-import { isImpersonating } from "@/lib/server/panelSnapshot";
 import { queryKeys } from "@/shared/lib/queryKeys";
 import { BoardCredentialsClient } from "./BoardCredentialsClient";
 
@@ -21,8 +20,8 @@ export default async function BoardCredentialsPage({
     const { id } = await params;
     const queryClient = new QueryClient();
 
-    if (id && !(await isImpersonating())) {
-        const client = await getServerApiClient("common");
+    if (id) {
+        const client = await getServerApiClient();
         if (client) {
             await Promise.all([
                 queryClient.prefetchQuery({
@@ -32,6 +31,10 @@ export default async function BoardCredentialsPage({
                 queryClient.prefetchQuery({
                     queryKey: queryKeys.runners.list(),
                     queryFn: () => client.runner.list(),
+                }),
+                queryClient.prefetchQuery({
+                    queryKey: queryKeys.boards.credentials(id),
+                    queryFn: () => client.boardCredential.list(id),
                 }),
             ]);
         }

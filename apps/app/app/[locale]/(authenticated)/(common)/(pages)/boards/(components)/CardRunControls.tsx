@@ -13,12 +13,14 @@ export type CardRunCommand = "rerun" | "approve" | "stop";
 type CardRunControlsProps = {
     card: CardDTO;
     board: Pick<BoardViewDTO, "config" | "executor">;
-    /** The person can trigger stages on this board and is not impersonating. */
+    /** The person can trigger stages on this board. */
     canTrigger: boolean;
     boardsDictionary: BoardsDictionary;
     onCommand: (card: CardDTO, command: CardRunCommand) => void;
     /** The card detail already shows the orphan badge next to the column. */
     showOrphan?: boolean;
+    /** A spec draft shows its own writing status instead of the card state. */
+    showState?: boolean;
 };
 
 /** State, rework loop, why the card stopped and the run buttons, on the board and the card. */
@@ -29,6 +31,7 @@ export function CardRunControls({
     boardsDictionary,
     onCommand,
     showOrphan = true,
+    showState = true,
 }: CardRunControlsProps) {
     const cardCopy = boardsDictionary.board.card;
     const actionsCopy = cardCopy.runActions;
@@ -67,10 +70,12 @@ export function CardRunControls({
     return (
         <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-1">
-                <CardStateBadge
-                    boardsDictionary={boardsDictionary}
-                    state={displayCardState(card)}
-                />
+                {showState ? (
+                    <CardStateBadge
+                        boardsDictionary={boardsDictionary}
+                        state={displayCardState(card)}
+                    />
+                ) : null}
                 {card.lane === "stage" && card.reworkLoops > 0 ? (
                     <Badge variant="outline">
                         {fillMessage(cardCopy.reworkLoop, {

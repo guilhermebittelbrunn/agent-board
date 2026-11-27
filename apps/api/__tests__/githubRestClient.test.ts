@@ -409,3 +409,85 @@ describe("errors", () => {
         ).rejects.toMatchObject({ kind: "unavailable" });
     });
 });
+
+describe("pull requests", () => {
+    const PULLS = `/repos/${REPO.owner}/${REPO.name}/pulls`;
+    const INPUT = {
+        head: "feat/login",
+        base: "main",
+        title: "Login",
+        body: "Summary",
+        draft: true,
+    };
+    const PULL = {
+        number: 12,
+        html_url: "https://github.com/octo/repo/pull/12",
+        title: "Login",
+        draft: true,
+        head: { ref: "feat/login", sha: "abc" },
+        base: { ref: "main" },
+        commits: 3,
+    };
+
+    it("creates with a JSON body and reads the answer", async () => {
+        routes.push(
+            on(PULLS, () => json(PULL, { status: HTTP_STATUS.CREATED }))
+        );
+
+        const created = await client().createPullRequest(REPO, INPUT);
+
+        const [, init] = fetchMock.mock.calls[1];
+        expect(init.method).toBe("POST");
+        expect(JSON.parse(String(init.body))).toEqual(INPUT);
+        expect((init.headers as Record<string, string>)["Content-Type"]).toBe(
+            "application/json"
+        );
+        expect(created).toEqual({
+            number: 12,
+            url: PULL.html_url,
+            title: "Login",
+            draft: true,
+            headRef: "feat/login",
+            baseRef: "main",
+            headSha: "abc",
+            commits: 3,
+        });
+    });
+
+    it.each([
+        [{ status: HTTP_STATUS.FORBIDDEN }, "permission_denied"],
+        [{ status: HTTP_STATUS.UNPROCESSABLE_ENTITY }, "unprocessable"],
+        [
+            {
+                status: HTTP_STATUS.FORBIDDEN,
+                headers: { "x-ratelimit-remaining": "0" },
+            },
+            "rate_limited",
+        ],
+    ])("turns a refused creation %o into %s", async (init, kind) => {
+        routes.push(on(PULLS, () => json({ message: "no" }, init)));
+
+        await expect(
+            client().createPullRequest(REPO, INPUT)
+        ).rejects.toMatchObject({ kind });
+    });
+
+    it("looks up the open pull request of owner:branch", async () => {
+        routes.push(on(PULLS, () => json([PULL])));
+
+        const found = await client().findOpenPullRequest(REPO, "feat/login");
+
+        const url = new URL(fetchMock.mock.calls[1][0]);
+        expect(url.searchParams.get("head")).toBe("octo:feat/login");
+        expect(url.searchParams.get("state")).toBe("open");
+        expect(found?.number).toBe(PULL.number);
+    });
+
+    it("answers null without an open pull request", async () => {
+        routes.push(on(PULLS, () => json([])));
+
+        expect(
+            await client().findOpenPullRequest(REPO, "feat/none")
+        ).toBeNull();
+    });
+});

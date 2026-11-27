@@ -8,9 +8,9 @@ audience: time
 phase: 2
 area: [apps/api, apps/app, packages/kanban-contract]
 depends_on: [agent-contract, execution-credentials]
-contends_on: []
+contends_on: [apps/api/app/(routes)/boards/[id]/credentials/scheduled-tasks/[stageKey]/route.ts]
 feature: -
-updated: 2026-11-25
+updated: 2026-11-27
 ---
 
 # Executor na nuvem com tarefas agendadas do Claude Code
@@ -19,7 +19,7 @@ updated: 2026-11-25
 > - **O quê:** etapas rodando na nuvem da Anthropic por tarefas agendadas com gatilho de API.
 > - **Por quê:** o board não pode parar quando o notebook dorme.
 > - **Status:** `proposed` · valor médio · esforço M · time
-> - **Próximo passo:** aguardando triagem
+> - **Próximo passo:** aprovar; só pode começar depois do merge da `execution-credentials`, que está na branch da noite sem PR
 
 ## Problema
 
@@ -31,7 +31,11 @@ quem as criou.
 
 - Interface de executor — spec `orchestrator`. Contrato MCP — spec `agent-contract`.
 - `.kanban/setup.sh` gerado pelo kit para preparar o ambiente de nuvem.
-- **Lacuna:** adapter de disparo, cadastro das tarefas por etapa.
+- Cadastro da URL e do token de disparo por etapa, entregue pela `execution-credentials` na branch
+  `guilhermebittelbrunn/chore-overnight-cycle-specs` (ainda fora de `main`): coleção `credential` cifrada com
+  AES-256-GCM, rotas `boards/[id]/credentials/scheduled-tasks/[stageKey]`, seção da nuvem em Minhas credenciais e
+  escolha do executor por `stage.runners`, com o motivo `no_credential` no card.
+- **Lacuna:** adapter de disparo, guia de criação da tarefa e cadastro para a etapa `spec`.
 
 ## Referências
 
@@ -44,7 +48,13 @@ quem as criou.
 
 - [ ] Guia no board para o membro criar uma tarefa por etapa (prompt padrão que lê os parâmetros do bloco de
       disparo e roda `/<comando> <slug> --board <card>`), com o connector MCP `kanban` incluído.
-- [ ] Cadastro da URL e do token de disparo como credencial do tipo `tarefa agendada`.
+- [x] Cadastro da URL e do token de disparo como credencial do tipo `tarefa agendada`. Entregue pela
+      `execution-credentials` (2026-11-27, aguardando PR), uma credencial por etapa.
+- [ ] Cadastro também para a etapa `spec`: hoje a rota `PUT …/credentials/scheduled-tasks/<etapa>` só aceita
+      etapas de `config.stages` e a tabela de Minhas credenciais não tem linha para ela, enquanto a escolha do
+      executor já lê `specAuthoring.runners`. Um board com `specAuthoring.runners: [cloud]` recusa o rascunho
+      com `RUN_NO_CREDENTIAL_FOR_STAGE` sem lugar para cadastrar. Resolver a etapa por `stageRunnersOf` na rota e
+      acrescentar a linha.
 - [ ] Adapter que dispara com `text` contendo só campos esperados (card, slug, etapa, branch, modelo) e
       guarda a URL da sessão no `run`.
 - [ ] Erros de limite (429) e de autenticação (401) viram mensagem clara no card.
@@ -72,5 +82,7 @@ quem as criou.
 
 ## Perguntas em aberto
 
-- Uma tarefa por etapa ou uma tarefa única que recebe a etapa no texto? — **recomendação:** uma única por
-  repositório no MVP (menos cadastro), com o modelo fixo em Sonnet.
+- Uma tarefa por etapa ou uma tarefa única que recebe a etapa no texto? A recomendação original era uma única
+  por repositório no MVP (menos cadastro), com o modelo fixo em Sonnet. A `execution-credentials` já gravou o
+  cadastro por etapa. **Recomendação agora:** manter por etapa e deixar o membro repetir a mesma URL nas
+  etapas que quiser; voltar à tarefa única exigiria mudar o modelo de dados recém-feito.

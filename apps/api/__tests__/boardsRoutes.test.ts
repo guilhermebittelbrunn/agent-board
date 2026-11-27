@@ -1,7 +1,5 @@
-import { UserRoleLevel } from "@repo/auth/types";
 import { type GithubRepoRole, parseBoardConfig } from "@repo/kanban-contract";
-import { type RepositoryBoardLink, UserType } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
+import type { RepositoryBoardLink } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +39,11 @@ const {
     memberStore: { current: null as FakeBoardMemberRepository | null },
 }));
 
+vi.mock("@/(shared)/lib/storage", () => ({
+    isStorageConfigured: () => false,
+    readObject: vi.fn(),
+}));
+
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));
@@ -49,7 +52,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
     },
 }));
 
@@ -108,18 +110,11 @@ const { POST: RELOAD } = await import(
 );
 
 const OWNER_UID = "owner-uid";
-const ADMIN_UID = "admin-uid";
 const GITHUB = { id: "42", login: "octo", name: null, avatarUrl: null };
 const OWNER_PROFILE = {
     id: "p1",
     reference_id: OWNER_UID,
-    type: UserType.COMMON,
     github: GITHUB,
-};
-const ADMIN_PROFILE = {
-    id: "p0",
-    reference_id: ADMIN_UID,
-    type: UserType.ADMIN,
 };
 
 const SAMPLE_ID = "agent-board-demo--sample-app";
@@ -155,23 +150,16 @@ const storedBoard = (sha: string) => ({
 
 function request(
     url: string,
-    { method = "GET", body, impersonating = false } = {} as {
+    { method = "GET", body } = {} as {
         method?: string;
         body?: unknown;
-        impersonating?: boolean;
     }
 ): NextRequest {
-    const actor = impersonating ? ADMIN_UID : OWNER_UID;
     return {
         method,
         url: `http://localhost:3002${url}`,
         headers: new Headers({
-            [AUTH_REQUEST_HEADER.USER_ID]: actor,
-            [AUTH_REQUEST_HEADER.USER_ROLE]: impersonating
-                ? UserRoleLevel.ADMIN
-                : UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: OWNER_UID,
+            "x-test-actor": OWNER_UID,
             "content-type": "application/json",
         }),
         json: () => Promise.resolve(body ?? {}),
@@ -225,9 +213,7 @@ beforeEach(() => {
     client = createGithubFakeClient(createGithubPermissionCache());
     getGithubClientMock.mockImplementation(() => client);
     resolveApiActorMock.mockResolvedValue({ uid: OWNER_UID });
-    findByReferenceIdMock.mockImplementation((uid: string) =>
-        Promise.resolve(uid === ADMIN_UID ? ADMIN_PROFILE : OWNER_PROFILE)
-    );
+    findByReferenceIdMock.mockResolvedValue(OWNER_PROFILE);
     linksForMock.mockImplementation((ids: string[]) =>
         Promise.resolve(new Map(ids.map((id) => [id, null])))
     );
@@ -249,6 +235,7 @@ describe("GET /boards", () => {
                     ...storedBoard("abc"),
                     access: UNCHECKED_OWNER_ACCESS,
                     executor: null,
+                    storageAvailable: false,
                 },
             ],
         });
@@ -292,20 +279,6 @@ describe("GET /boards", () => {
             status: "active",
             githubId: GITHUB.id,
             userId: "p1",
-        });
-    });
-
-    it("does not claim invitations while an admin impersonates the person", async () => {
-        members.seedInvite("acme--api", "octo", "operator");
-        resolveApiActorMock.mockResolvedValue({ uid: ADMIN_UID });
-
-        const response = await LIST(
-            request("/boards", { impersonating: true })
-        );
-
-        expect(response.status).toBe(HTTP_STATUS.OK);
-        expect(members.documents.get("acme--api__octo")).toMatchObject({
-            status: "pending",
         });
     });
 });
@@ -360,6 +333,7 @@ describe("GET /boards/[id]", () => {
                 checkedAt: expect.any(String),
             },
             executor: null,
+            storageAvailable: false,
         });
     });
 });
@@ -630,8 +604,8 @@ describe("GET /boards/preview", () => {
 });
 
 describe("POST /boards", () => {
-    const create = (body: unknown, impersonating = false) =>
-        CREATE(request("/boards", { method: "POST", body, impersonating }));
+    const create = (body: unknown) =>
+        CREATE(request("/boards", { method: "POST", body }));
 
     it("creates the board with the owner, the snapshot and the sha", async () => {
         const response = await create({
@@ -766,33 +740,6 @@ describe("POST /boards", () => {
 
         expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
         expect(await errorCode(response)).toBe("VALIDATION_FAILED");
-    });
-
-    it("refuses to write while an admin impersonates the person", async () => {
-        resolveApiActorMock.mockResolvedValue({ uid: ADMIN_UID });
-
-        const response = await create(
-            { repository: "agent-board-demo/sample-app" },
-            true
-        );
-
-        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-        expect(await errorCode(response)).toBe(
-            "AUTH_REQUEST_IMPERSONATION_READ_ONLY"
-        );
-        expect(createForRepositoryMock).not.toHaveBeenCalled();
-    });
-
-    it("lets the impersonating admin read the list", async () => {
-        resolveApiActorMock.mockResolvedValue({ uid: ADMIN_UID });
-        listByOwnerMock.mockResolvedValue([]);
-
-        const response = await LIST(
-            request("/boards", { impersonating: true })
-        );
-
-        expect(response.status).toBe(HTTP_STATUS.OK);
-        expect(listByOwnerMock).toHaveBeenCalledWith(OWNER_PROFILE.id);
     });
 });
 

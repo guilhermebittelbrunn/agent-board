@@ -41,7 +41,7 @@ const STATUS_UNAUTHORIZED = 401;
 const STATUS_FORBIDDEN = 403;
 const STATUS_INTERNAL_ERROR = 500;
 const ID_TOKEN = "id-token";
-const DESTINATION = "/en/entities";
+const DESTINATION = "/en/boards";
 
 const fetchMock = vi.fn();
 const replaceMock = vi.fn();
@@ -123,7 +123,7 @@ describe("useSignedInRedirect", () => {
         expect(postLoginPathMock).toHaveBeenCalledWith({
             idToken: ID_TOKEN,
             locale: "en",
-            fallbackPath: "/en",
+            fallbackPath: "/en/boards",
         });
         expect(fetchMock).toHaveBeenCalledWith(
             "/api/auth/session",

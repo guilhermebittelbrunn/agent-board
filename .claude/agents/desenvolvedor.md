@@ -33,7 +33,7 @@ Regra completa em [`.claude/rules/writing-skills.md`](../rules/writing-skills.md
 - Respeite as **decisões já consolidadas** no plano (não as reabra).
 - Se uma "Pergunta em aberto" ainda pendente **bloquear** parte da implementação, não chute: implemente o
   que é seguro e registre o bloqueio em "Decisões em aberto" no retorno.
-- **Leia o slice de referência `entity`** (seção 0 de `docs/feature-analysis-guide.md`) antes de escrever
+- **Leia o slice de referência `boardMember`** (seção 0 de `docs/feature-analysis-guide.md`) antes de escrever
   código novo — copie o padrão, não invente outro.
 - Os `CLAUDE.md` de `apps/api`, `apps/app` e `packages` são carregados automaticamente ao
   trabalhar em cada árvore; [`AGENTS.md`](../../AGENTS.md) tem os detalhes de design system/RHF.
@@ -49,7 +49,7 @@ Sempre **contrato primeiro**, front por último — é a ordem que evita retraba
 2. **`apps/api`** — schema Zod em `(shared)/validation/`, repositório estendendo `BaseRepository<DTO>`
    (mapper como 3º arg do `super`), mapper em `(shared)/mappers/` e a rota em `app/(routes)/<recurso>/`.
 3. **`apps/app`** — `queryKeys`, hooks de dados, `(validations)`, `(components)`, páginas
-   (com prefetch RSC + `loading.tsx`), entradas em `paths.ts`/`routes.tsx`/`sidebar.tsx`.
+   (com prefetch RSC + `loading.tsx`), entrada em `paths.ts` e título em `PANEL_PAGE_TITLES`.
 4. **`packages/internationalization`** — chaves novas no dicionário pt-br + `apiErrors` para cada código
    de erro novo.
 
@@ -74,9 +74,9 @@ Detalhe completo em [`docs/review-checklist.md`](../../docs/review-checklist.md)
 exatamente isso. O essencial:
 
 - **API**: handler é `export const GET = guard(async (req, ctx) => …)`; guard sempre
-  (`requireCommonPanelApi`/`requireAdminApi`); recurso **da pessoa** com CRUD (como `entity`) põe o
-  predicado no repositório (`findOwnedBy(id, ctx.subjectProfile.id)` → `null` → 404); leitura simples
-  (como `notification`) pode usar `if (!row || row.userId !== ctx.subjectProfile.id) → 404`; body via
+  (`requireSessionApi` para o que é da pessoa, `requireBoardApi` para o que é de um board); recurso **da
+  pessoa** põe o predicado no repositório (como `runnerRepository.revokeOwned(id, ctx.profile.id, …)` →
+  `false` → 404); leitura simples pode usar `if (!row || row.userId !== ctx.profile.id) → 404`; body via
   `parseRequestJson`, patch via
   `omitUndefined`, id via `resolveIdFromContext` + `RouteIdParamsContext`; erro é
   `{ error: { code } }` + `HTTP_STATUS`, nunca stack trace; normalização de data/string opcional vive **no
@@ -85,7 +85,7 @@ exatamente isso. O essencial:
   `useFindXById`+`findXById` no mesmo arquivo com `enabled` coerente; toggle de `enabled` é otimista via
   `setQueryData` com rollback, **sem** `invalidateQueries`; formulário com `HookForm*` +
   `FormContainer` + `Footer` **dentro** do `<form>` + `Container`; lista via `Table` com `searchFields`/
-  `onRefresh`; prefetch RSC com a mesma `queryKey` e envolto em `isImpersonating()`; no servidor use
+  `onRefresh`; prefetch RSC com a mesma `queryKey`; no servidor use
   `getServerApiClient` (nunca o singleton).
 - **i18n**: **zero string de UI em JSX** — inclusive `aria-label`, `emptyText`, toast, título de coluna e
   mensagem de Zod (schemas são factories `buildXFormSchema(dictionary)`). Variável do dicionário com nome

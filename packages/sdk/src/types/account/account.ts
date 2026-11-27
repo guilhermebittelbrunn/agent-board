@@ -13,12 +13,3 @@ export type UpdateAccountRequest = {
     avatar?: string | null;
     preferences?: Partial<UserPreferences>;
 };
-
-export type ChangePasswordRequest = {
-    currentPassword: string;
-    password: string;
-};
-
-export type AccountConfirmation = {
-    confirmed: boolean;
-};

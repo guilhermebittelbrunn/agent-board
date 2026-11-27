@@ -241,7 +241,7 @@ describe("AuthProvider quando o servidor grava a sessão depois do login", () =>
                     },
                     {
                         resolveDefaultPostLoginPath: async () =>
-                            "/pt-br/entities",
+                            "/pt-br/boards",
                     }
                 )}
             </LocaleProvider>
@@ -255,7 +255,7 @@ describe("AuthProvider quando o servidor grava a sessão depois do login", () =>
         expect(successAlertMock).toHaveBeenCalledWith(
             copyFor("pt-br").onSuccess
         );
-        expect(pushMock).toHaveBeenCalledWith("/pt-br/entities");
+        expect(pushMock).toHaveBeenCalledWith("/pt-br/boards");
         expect(errorAlertMock).not.toHaveBeenCalled();
     });
 

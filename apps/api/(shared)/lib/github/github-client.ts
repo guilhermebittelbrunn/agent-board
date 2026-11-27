@@ -21,6 +21,25 @@ export type GithubRepository = GithubRepositoryRef & {
 
 export type GithubFile = { content: string; sha: string };
 
+export type GithubPullRequest = {
+    number: number;
+    url: string;
+    title: string;
+    draft: boolean;
+    headRef: string;
+    baseRef: string;
+    headSha: string;
+    commits: number | null;
+};
+
+export type GithubPullRequestInput = {
+    head: string;
+    base: string;
+    title: string;
+    body: string;
+    draft: boolean;
+};
+
 export type GithubClient = {
     listInstallationRepositories(): Promise<GithubRepository[]>;
     readFile(
@@ -32,6 +51,14 @@ export type GithubClient = {
         repo: GithubRepositoryRef,
         username: string
     ): Promise<GithubRepoRole>;
+    createPullRequest(
+        repo: GithubRepositoryRef,
+        input: GithubPullRequestInput
+    ): Promise<GithubPullRequest>;
+    findOpenPullRequest(
+        repo: GithubRepositoryRef,
+        head: string
+    ): Promise<GithubPullRequest | null>;
 };
 
 let restClient: GithubClient | null = null;

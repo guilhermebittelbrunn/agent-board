@@ -118,3 +118,119 @@ describe("resolveTransition", () => {
         expect(next.state).toBe("idle");
     });
 });
+
+describe("resolveTransition on the pull request stage", () => {
+    const result = parseBoardConfig({
+        version: 1,
+        name: "board",
+        stages: [
+            { key: "test", column: "Testando", command: "/test" },
+            {
+                key: "pr",
+                column: "Aguardando PR",
+                command: "/observe",
+                pullRequest: {},
+            },
+        ],
+    });
+    if (!result.success) {
+        throw new Error("fixture must be valid");
+    }
+    const prConfig = result.data;
+
+    it("keeps the card on the stage, idle, after a success", () => {
+        const next = resolveTransition({
+            config: prConfig,
+            current: { stageKey: "pr", state: "running", reworkLoops: 1 },
+            outcome: "success",
+            approvalGateEnabled: false,
+        });
+
+        expect(next).toEqual({ stageKey: "pr", state: "idle", reworkLoops: 1 });
+    });
+
+    it("still fails like any stage", () => {
+        const next = resolveTransition({
+            config: prConfig,
+            current: { stageKey: "pr", state: "running", reworkLoops: 0 },
+            outcome: "failed",
+            approvalGateEnabled: false,
+        });
+
+        expect(next.state).toBe("failed");
+    });
+});
+
+describe("resolveTransition inside a cycle", () => {
+    const result = parseBoardConfig({
+        version: 1,
+        name: "board",
+        stages: [
+            {
+                key: "analyze",
+                column: "Análise",
+                command: "/analyze",
+                approval: "required",
+            },
+            {
+                key: "test",
+                column: "Testando",
+                command: "/test",
+                approval: "optional",
+                onRework: "analyze",
+            },
+            {
+                key: "pr",
+                column: "Aguardando PR",
+                command: "/observe",
+                pullRequest: {},
+            },
+        ],
+    });
+    if (!result.success) {
+        throw new Error("fixture must be valid");
+    }
+    const cycleConfig = result.data;
+
+    it("skips required and optional approval", () => {
+        for (const stageKey of ["analyze", "test"]) {
+            const next = resolveTransition({
+                config: cycleConfig,
+                current: { stageKey, state: "running", reworkLoops: 0 },
+                outcome: "success",
+                approvalGateEnabled: true,
+                cycle: { holdStageKey: null },
+            });
+            expect(next.state).toBe("queued");
+        }
+    });
+
+    it("leaves the card idle on the hold stage", () => {
+        const next = resolveTransition({
+            config: cycleConfig,
+            current: { stageKey: "test", state: "running", reworkLoops: 0 },
+            outcome: "success",
+            approvalGateEnabled: false,
+            cycle: { holdStageKey: "test" },
+        });
+        expect(next).toEqual({
+            stageKey: "test",
+            state: "idle",
+            reworkLoops: 0,
+        });
+    });
+
+    it("waits for a person at the rework limit, as outside a cycle", () => {
+        const next = resolveTransition({
+            config: {
+                ...cycleConfig,
+                limits: { ...cycleConfig.limits, maxReworkLoops: 1 },
+            },
+            current: { stageKey: "test", state: "running", reworkLoops: 1 },
+            outcome: "needs_rework",
+            approvalGateEnabled: false,
+            cycle: { holdStageKey: null },
+        });
+        expect(next.state).toBe("waiting_input");
+    });
+});

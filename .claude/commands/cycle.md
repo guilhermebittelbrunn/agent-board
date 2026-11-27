@@ -1,5 +1,5 @@
 ---
-description: Roda o ciclo inteiro sem parar — /spec --sync, escolhe a próxima spec do backlog e leva ela por /analyze → /develop → /review → /test, acumulando as perguntas para o fim. Adota a recomendação quando precisa decidir, registra as pendências de infra em docs/PRE-PRODUCTION.md e nunca commita sozinho.
+description: Roda o ciclo inteiro sem parar — /spec --sync, escolhe a próxima spec do backlog e leva ela por /analyze → /develop → /review → /test e fecha a spec na própria branch (/spec --sync <slug>), acumulando as perguntas para o fim. Adota a recomendação quando precisa decidir, registra as pendências de infra em docs/PRE-PRODUCTION.md e nunca commita sozinho.
 argument-hint: "[id da spec | --audit-only | --no-audit (exige id) | --max-rounds N]"
 allowed-tools: Agent, AskUserQuestion, Read, Write, Edit, Grep, Glob, Bash, Skill
 ---
@@ -71,8 +71,9 @@ Salvo `--no-audit`, acione o subagent **`estrategista-produto`** em modo reconci
 
 O princípio, que você repete no prompt: **verificar o código, não o `status` gravado.** Cada item do corte
 de MVP é reconferido no código-fonte com evidência `arquivo.ts:linha`. Spec só vira `done` com o corte
-inteiro confirmado — e o critério de "entregue" inclui **PR mergeada em `main` e CI verde no SHA de
-merge**, não apenas código no disco.
+inteiro confirmado. Normalmente quem arquiva é o fechamento da rodada anterior (Passo 5.1), na branch da
+feature; aqui a auditoria pega o que escapou: feature que pulou o fechamento, deriva e regressão. Para
+`depends_on`, só conta como satisfeita a spec já arquivada **em `main`**.
 
 Peça também: corrigir a **deriva** de referências nas specs (elas apodrecem a cada entrega), reconferir os
 **achados** e as **pendências sem dono** um a um, remedir os **gates**, recalcular os **lotes paralelos** a
@@ -118,7 +119,7 @@ com `spec: <id>`.
 
 1. onde a **spec** já recomenda uma escolha → adote a spec;
 2. onde a spec é omissa mas há **padrão vigente no repo** → siga o padrão (o slice de referência é
-   `entity`);
+   `boardMember`);
 3. onde resta ambiguidade real → **escolha o menor raio de impacto**, implemente essa, e registre em
    "Perguntas em aberto" com: a pergunta, as opções, **a que foi adotada** e por quê.
 
@@ -212,6 +213,21 @@ defeito só existia em `next dev`, e deixar só um teste fixando o contrato.
 Ao atingir `--max-rounds` (padrão 2) sem convergir, **pare** e leve o defeito ao usuário no relatório final,
 com o repro e o que já foi tentado.
 
+## Passo 5.1 — Fechar a spec na branch da feature
+
+Com `test = done` no `STATE.md` e `spec: <id>` preenchido, acione o **`estrategista-produto`** no modo
+**fechamento** (`/spec --sync <slug>`), instruindo-o a seguir o §9 da skill
+[`spec-audit`](../skills/spec-audit/SKILL.md). Ele confere o corte no código desta branch, arquiva a spec em
+`docs/features/<slug>/spec.md` e atualiza o `BACKLOG.md` só no que a entrega mudou.
+
+É isso que faz o merge levar o backlog já correto para `main`: a próxima rodada começa sabendo o que esta
+entregou, sem ter de reconstruir pelo código. Se a feature foi uma fatia de um corte maior, o fechamento
+mantém a spec em `specs/` como `in-progress`, com a nota do que falta; isso também é resultado válido.
+
+`test` em `blocked` (o loop do Passo 5 não convergiu) → **não feche**; registre no relatório.
+
+O movimento entra no plano de commits como `docs(specs): archive <id>`, antes do `docs(features): <slug>`.
+
 ## Passo 6 — Registrar as pendências de infra
 
 Tudo que **exige ação externa** (console de provedor, DNS, cartão de crédito, variável em produção, IAM,
@@ -261,7 +277,7 @@ relatório é o usuário saber **onde olhar com desconfiança**.
 
 ## Passo 8 — Fechar
 
-Sugira o próximo passo concreto: aprovar os commits, depois `git push`, PR, e **`/cycle` de novo** depois do
+Sugira o próximo passo concreto: aprovar os commits (o fechamento da spec incluído), depois `git push`, PR, e **`/cycle` de novo** depois do
 merge — a spec entregue sai do backlog e a cadeia de dependências se move.
 
 ## Se a sessão cair no meio

@@ -30,11 +30,7 @@ export function createSessionAuthority(
     project: Project
 ): SessionAuthority {
     const clientFor = (credential: string, userAgent: string | null) => {
-        const client = new Client({
-            url: url ?? "",
-            project,
-            context: "common",
-        });
+        const client = new Client({ url: url ?? "", project });
         client.setAuthorizationHeader(credential);
         if (userAgent) {
             client.setHeader("User-Agent", userAgent);

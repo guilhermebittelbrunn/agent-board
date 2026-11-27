@@ -8,12 +8,20 @@ export type CardMoveDecision =
 
 /**
  * Whether a person may take this card to Tasks or Done. Entering a stage column triggers
- * the stage instead, and a card with a live run stays where it is until the run ends.
+ * the stage instead, a card with a live run stays where it is until the run ends, and a
+ * spec draft leaves Drafts only when its spec is approved.
  */
 export function decideCardMove(
     card: Pick<CardRecord, "lane" | "ready" | "activeRunId">,
     target: MoveCardRequest
 ): CardMoveDecision {
+    if (card.lane === "drafts") {
+        return {
+            ok: false,
+            code: "CARD_DRAFT_NOT_APPROVED",
+            status: HTTP_STATUS.CONFLICT,
+        };
+    }
     if (card.activeRunId !== null) {
         return {
             ok: false,

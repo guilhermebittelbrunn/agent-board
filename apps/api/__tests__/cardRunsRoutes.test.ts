@@ -1,12 +1,9 @@
-import { UserRoleLevel } from "@repo/auth/types";
 import { parseBoardConfig } from "@repo/kanban-contract";
-import {
-    type BoardViewDTO,
-    type CardDTO,
-    type TriggerStageResultDTO,
-    UserType,
+import type {
+    BoardViewDTO,
+    CardDTO,
+    TriggerStageResultDTO,
 } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -35,9 +32,11 @@ const {
     stopRunMock,
     getStageExecutorMock,
     updateStageSettingsMock,
-    resolveExecutorForMock,
+    chooseExecutorForMock,
+    ensurePullRequestMock,
 } = vi.hoisted(() => ({
-    resolveExecutorForMock: vi.fn(),
+    ensurePullRequestMock: vi.fn(),
+    chooseExecutorForMock: vi.fn(),
     triggerStageMock: vi.fn(),
     stopRunMock: vi.fn(),
     getStageExecutorMock: vi.fn(),
@@ -51,6 +50,11 @@ const {
     cardStore: { current: null as FakeCardRepository | null },
 }));
 
+vi.mock("@/(shared)/lib/storage", () => ({
+    isStorageConfigured: () => false,
+    readObject: vi.fn(),
+}));
+
 vi.mock("@/(shared)/lib/resolve-api-actor", () => ({
     resolveApiActor: (...args: unknown[]) => resolveApiActorMock(...args),
 }));
@@ -59,7 +63,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
     },
 }));
 
@@ -107,6 +110,10 @@ vi.mock("@/(shared)/lib/orchestrator/orchestrator", () => ({
     stopRun: (...args: unknown[]) => stopRunMock(...args),
 }));
 
+vi.mock("@/(shared)/lib/pull-request/pull-request-open", () => ({
+    ensurePullRequest: (...args: unknown[]) => ensurePullRequestMock(...args),
+}));
+
 vi.mock("@/(shared)/lib/orchestrator/executor", () => ({
     getStageExecutor: () => getStageExecutorMock(),
 }));
@@ -114,10 +121,16 @@ vi.mock("@/(shared)/lib/orchestrator/executor", () => ({
 vi.mock("@/(shared)/lib/orchestrator/executor-mode", () => ({
     resolveStageExecutorMode: () =>
         getStageExecutorMock() === null ? null : "fake",
+    chooseStageExecutorMode: () =>
+        getStageExecutorMock() === null
+            ? { ok: false, refusal: "no_executor" }
+            : { ok: true, executor: "fake" },
 }));
 
 vi.mock("@/(shared)/lib/orchestrator/executor-choice", () => ({
-    resolveExecutorFor: (...args: unknown[]) => resolveExecutorForMock(...args),
+    chooseExecutorFor: (...args: unknown[]) => chooseExecutorForMock(...args),
+    resolveExecutorFor: () =>
+        Promise.resolve(getStageExecutorMock() === null ? null : "fake"),
 }));
 
 const { POST: TRIGGER } = await import(
@@ -125,6 +138,9 @@ const { POST: TRIGGER } = await import(
 );
 const { POST: STOP } = await import(
     "@/app/(routes)/boards/[id]/cards/[slug]/stop/route"
+);
+const { POST: OPEN_PULL_REQUEST } = await import(
+    "@/app/(routes)/boards/[id]/cards/[slug]/pull-request/route"
 );
 const { PATCH: STAGE_SETTINGS } = await import(
     "@/app/(routes)/boards/[id]/stage-settings/route"
@@ -165,7 +181,6 @@ const PEOPLE = {
     operator: { id: "p-operator", githubId: "3", login: "qa-writer" },
     reader: { id: "p-reader", githubId: "4", login: "qa-reader" },
     stranger: { id: "p-stranger", githubId: "5", login: "newcomer" },
-    admin: { id: "p-admin", githubId: "", login: "" },
 } as const;
 type Person = keyof typeof PEOPLE;
 
@@ -174,33 +189,19 @@ const profileOf = (person: Person) => {
     return {
         id,
         reference_id: `uid-${person}`,
-        type: person === "admin" ? UserType.ADMIN : UserType.COMMON,
-        github:
-            person === "admin"
-                ? null
-                : { id: githubId, login, name: null, avatarUrl: null },
+        github: { id: githubId, login, name: null, avatarUrl: null },
     };
 };
 
 function request(
     as: Person,
-    {
-        method = "GET",
-        body,
-        subject = as,
-    }: { method?: string; body?: unknown; subject?: Person } = {}
+    { method = "GET", body }: { method?: string; body?: unknown } = {}
 ): NextRequest {
-    const impersonating = as === "admin";
     return {
         method,
         url: `http://localhost:3002/boards/${BOARD_ID}/cards`,
         headers: new Headers({
-            [AUTH_REQUEST_HEADER.USER_ID]: `uid-${as}`,
-            [AUTH_REQUEST_HEADER.USER_ROLE]: impersonating
-                ? UserRoleLevel.ADMIN
-                : UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: `uid-${subject}`,
+            "x-test-actor": `uid-${as}`,
             "content-type": "application/json",
         }),
         json: () => Promise.resolve(body ?? {}),
@@ -246,19 +247,24 @@ beforeEach(() => {
         stopRunMock,
         getStageExecutorMock,
         updateStageSettingsMock,
-        resolveExecutorForMock,
+        chooseExecutorForMock,
+        ensurePullRequestMock,
     ]) {
         mock.mockReset();
     }
     client = createGithubFakeClient(createGithubPermissionCache());
     getGithubClientMock.mockImplementation(() => client);
     getStageExecutorMock.mockReturnValue(FAKE_EXECUTOR);
-    resolveExecutorForMock.mockImplementation(() =>
-        Promise.resolve(getStageExecutorMock() === null ? null : "fake")
+    chooseExecutorForMock.mockImplementation(() =>
+        Promise.resolve(
+            getStageExecutorMock() === null
+                ? { ok: false, refusal: "no_executor" }
+                : { ok: true, executor: "fake" }
+        )
     );
     findBoardMock.mockResolvedValue(boardWith());
     resolveApiActorMock.mockImplementation((req: NextRequest) =>
-        Promise.resolve({ uid: req.headers.get(AUTH_REQUEST_HEADER.USER_ID) })
+        Promise.resolve({ uid: req.headers.get("x-test-actor") })
     );
     findByReferenceIdMock.mockImplementation((uid: string) =>
         Promise.resolve(profileOf(uid.replace("uid-", "") as Person))
@@ -382,9 +388,25 @@ describe("POST /boards/[id]/cards/[slug]/runs", () => {
         expect(triggerStageMock).not.toHaveBeenCalled();
     });
 
+    it("answers 409 RUN_NO_CREDENTIAL_FOR_STAGE when nothing the person owns serves the stage", async () => {
+        chooseExecutorForMock.mockResolvedValue({
+            ok: false,
+            refusal: "stage_not_served",
+        });
+
+        const response = await trigger({ stageKey: "analyze" });
+
+        expect(response.status).toBe(HTTP_STATUS.CONFLICT);
+        expect(await errorCode(response)).toBe("RUN_NO_CREDENTIAL_FOR_STAGE");
+        expect(triggerStageMock).not.toHaveBeenCalled();
+    });
+
     it("asks for the executor of the person who triggers, not a global one", async () => {
         getStageExecutorMock.mockReturnValue(null);
-        resolveExecutorForMock.mockResolvedValue("local");
+        chooseExecutorForMock.mockResolvedValue({
+            ok: true,
+            executor: "local",
+        });
         triggerStageMock.mockResolvedValue({
             ok: false,
             code: "CARD_RUN_ACTIVE",
@@ -393,7 +415,11 @@ describe("POST /boards/[id]/cards/[slug]/runs", () => {
 
         const response = await trigger({ stageKey: "analyze" });
 
-        expect(resolveExecutorForMock).toHaveBeenCalledWith("p-operator");
+        expect(chooseExecutorForMock).toHaveBeenCalledWith(
+            "p-operator",
+            expect.any(Date),
+            expect.objectContaining({ key: "analyze" })
+        );
         expect(response.status).not.toBe(HTTP_STATUS.SERVICE_UNAVAILABLE);
         expect(triggerStageMock).toHaveBeenCalled();
     });
@@ -418,20 +444,6 @@ describe("POST /boards/[id]/cards/[slug]/runs", () => {
             expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
             expect(await errorCode(response)).toBe("VALIDATION_FAILED");
         }
-        expect(triggerStageMock).not.toHaveBeenCalled();
-    });
-
-    it("refuses an admin impersonating the operator", async () => {
-        const response = await TRIGGER(
-            request("admin", {
-                method: "POST",
-                body: { stageKey: "analyze" },
-                subject: "operator",
-            }),
-            cardContext(SLUG)
-        );
-
-        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
         expect(triggerStageMock).not.toHaveBeenCalled();
     });
 });
@@ -531,5 +543,55 @@ describe("PATCH /boards/[id]/stage-settings", () => {
             expect(await errorCode(response)).toBe("VALIDATION_FAILED");
         }
         expect(updateStageSettingsMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("POST /boards/[id]/cards/[slug]/pull-request", () => {
+    const openPullRequest = (as: Person = "operator", slug = SLUG) =>
+        OPEN_PULL_REQUEST(request(as, { method: "POST" }), cardContext(slug));
+
+    it("opens the pull request as the operator and answers the card", async () => {
+        const card = await runningCard();
+        ensurePullRequestMock.mockResolvedValue({ ok: true, card });
+
+        const response = await openPullRequest();
+
+        expect(response.status).toBe(HTTP_STATUS.OK);
+        expect((await dataOf<CardDTO>(response)).slug).toBe(SLUG);
+        expect(ensurePullRequestMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                cardId: card.id,
+                dispatchAs: { userId: PEOPLE.operator.id, login: "qa-writer" },
+            })
+        );
+    });
+
+    it.each([
+        ["CARD_NOT_IN_PULL_REQUEST_STAGE", HTTP_STATUS.CONFLICT],
+        ["GITHUB_APP_NOT_CONFIGURED", HTTP_STATUS.SERVICE_UNAVAILABLE],
+        ["GITHUB_APP_PERMISSION_MISSING", HTTP_STATUS.SERVICE_UNAVAILABLE],
+        ["GITHUB_PULL_REQUEST_REJECTED", HTTP_STATUS.UNPROCESSABLE_ENTITY],
+    ])("answers %s with %i", async (code, status) => {
+        ensurePullRequestMock.mockResolvedValue({ ok: false, code, status });
+
+        const response = await openPullRequest();
+
+        expect(response.status).toBe(status);
+        expect(await errorCode(response)).toBe(code);
+    });
+
+    it("refuses a viewer before reaching GitHub", async () => {
+        const response = await openPullRequest("reader");
+
+        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
+        expect(ensurePullRequestMock).not.toHaveBeenCalled();
+    });
+
+    it("answers 404 for a card that is not on the board", async () => {
+        const response = await openPullRequest("operator", "missing-card");
+
+        expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
+        expect(await errorCode(response)).toBe("CARD_NOT_FOUND");
+        expect(ensurePullRequestMock).not.toHaveBeenCalled();
     });
 });

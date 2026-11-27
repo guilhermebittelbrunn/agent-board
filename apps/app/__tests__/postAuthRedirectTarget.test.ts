@@ -9,18 +9,18 @@ const FALLBACK = "/pt-br";
  */
 describe("postAuthRedirectTarget", () => {
     it("accepts a locale-prefixed same-origin path", () => {
-        expect(postAuthRedirectTarget("/pt-br/entities", FALLBACK)).toBe(
-            "/pt-br/entities"
+        expect(postAuthRedirectTarget("/pt-br/boards", FALLBACK)).toBe(
+            "/pt-br/boards"
         );
-        expect(postAuthRedirectTarget("/pt-br/admin/users", FALLBACK)).toBe(
-            "/pt-br/admin/users"
+        expect(postAuthRedirectTarget("/pt-br/boards/x", FALLBACK)).toBe(
+            "/pt-br/boards/x"
         );
         expect(postAuthRedirectTarget("/pt-br", FALLBACK)).toBe("/pt-br");
     });
 
     it("accepts a percent-encoded path", () => {
-        expect(postAuthRedirectTarget("%2Fpt-br%2Fentities", FALLBACK)).toBe(
-            "/pt-br/entities"
+        expect(postAuthRedirectTarget("%2Fpt-br%2Fboards", FALLBACK)).toBe(
+            "/pt-br/boards"
         );
     });
 
@@ -47,9 +47,9 @@ describe("postAuthRedirectTarget", () => {
     });
 
     it("rejects a path without a known locale prefix", () => {
-        expect(postAuthRedirectTarget("/entities", FALLBACK)).toBe(FALLBACK);
-        expect(postAuthRedirectTarget("/fr/entities", FALLBACK)).toBe(FALLBACK);
-        expect(postAuthRedirectTarget("/pt-brx/entities", FALLBACK)).toBe(
+        expect(postAuthRedirectTarget("/boards", FALLBACK)).toBe(FALLBACK);
+        expect(postAuthRedirectTarget("/fr/boards", FALLBACK)).toBe(FALLBACK);
+        expect(postAuthRedirectTarget("/pt-brx/boards", FALLBACK)).toBe(
             FALLBACK
         );
     });
@@ -71,18 +71,18 @@ describe("postAuthRedirectTarget", () => {
 
     it("rejects a path whose dot segments leave every locale", () => {
         expect(postAuthRedirectTarget("/pt-br/..", FALLBACK)).toBe(FALLBACK);
-        expect(postAuthRedirectTarget("/pt-br/../entities", FALLBACK)).toBe(
+        expect(postAuthRedirectTarget("/pt-br/../boards", FALLBACK)).toBe(
             FALLBACK
         );
     });
 
     it("accepts dot segments that stay inside a locale, returning the path unchanged", () => {
-        expect(postAuthRedirectTarget("/pt-br/x/../entities", FALLBACK)).toBe(
-            "/pt-br/x/../entities"
+        expect(postAuthRedirectTarget("/pt-br/x/../boards", FALLBACK)).toBe(
+            "/pt-br/x/../boards"
         );
         expect(
-            postAuthRedirectTarget("/pt-br/x/../../pt-br/entities", FALLBACK)
-        ).toBe("/pt-br/x/../../pt-br/entities");
+            postAuthRedirectTarget("/pt-br/x/../../pt-br/boards", FALLBACK)
+        ).toBe("/pt-br/x/../../pt-br/boards");
     });
 
     it("keeps the query of an accepted deep link", () => {
@@ -95,7 +95,7 @@ describe("postAuthRedirectTarget", () => {
     });
 
     it("rejects a relative path", () => {
-        expect(postAuthRedirectTarget("entities", FALLBACK)).toBe(FALLBACK);
+        expect(postAuthRedirectTarget("boards", FALLBACK)).toBe(FALLBACK);
         expect(postAuthRedirectTarget("../pt-br", FALLBACK)).toBe(FALLBACK);
     });
 

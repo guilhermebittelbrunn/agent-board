@@ -1,11 +1,10 @@
 import type BaseClient from "../../client/base";
 import type { Response } from "../../client/type";
-import type { UserPreferences, UserType } from "../../types";
+import type { UserPreferences } from "../../types";
 
 /** Only what the front-ends read. A field the API adds to the profile stays out until it is listed here. */
 export type AuthMePayload = {
     uid: string;
-    type: UserType | null;
     email: string | null;
     preferences: UserPreferences | null;
 };

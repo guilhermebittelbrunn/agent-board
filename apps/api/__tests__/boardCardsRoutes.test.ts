@@ -1,7 +1,5 @@
-import { UserRoleLevel } from "@repo/auth/types";
 import { parseBoardConfig } from "@repo/kanban-contract";
-import { type CardDTO, UserType } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
+import type { CardDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,7 +42,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
     },
 }));
 
@@ -139,7 +136,6 @@ const PEOPLE = {
     operator: { id: "p-operator", githubId: "3", login: "qa-writer" },
     reader: { id: "p-reader", githubId: "4", login: "qa-reader" },
     stranger: { id: "p-stranger", githubId: "5", login: "newcomer" },
-    admin: { id: "p-admin", githubId: "", login: "" },
 } as const;
 type Person = keyof typeof PEOPLE;
 
@@ -148,33 +144,19 @@ const profileOf = (person: Person) => {
     return {
         id,
         reference_id: `uid-${person}`,
-        type: person === "admin" ? UserType.ADMIN : UserType.COMMON,
-        github:
-            person === "admin"
-                ? null
-                : { id: githubId, login, name: null, avatarUrl: null },
+        github: { id: githubId, login, name: null, avatarUrl: null },
     };
 };
 
 function request(
     as: Person,
-    {
-        method = "GET",
-        body,
-        subject = as,
-    }: { method?: string; body?: unknown; subject?: Person } = {}
+    { method = "GET", body }: { method?: string; body?: unknown } = {}
 ): NextRequest {
-    const impersonating = as === "admin";
     return {
         method,
         url: `http://localhost:3002/boards/${BOARD_ID}/cards`,
         headers: new Headers({
-            [AUTH_REQUEST_HEADER.USER_ID]: `uid-${as}`,
-            [AUTH_REQUEST_HEADER.USER_ROLE]: impersonating
-                ? UserRoleLevel.ADMIN
-                : UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: `uid-${subject}`,
+            "x-test-actor": `uid-${as}`,
             "content-type": "application/json",
         }),
         json: () => Promise.resolve(body ?? {}),
@@ -226,7 +208,7 @@ beforeEach(() => {
             Promise.resolve({ ...meta, syncedAt: meta.syncedAt.toISOString() })
     );
     resolveApiActorMock.mockImplementation((req: NextRequest) =>
-        Promise.resolve({ uid: req.headers.get(AUTH_REQUEST_HEADER.USER_ID) })
+        Promise.resolve({ uid: req.headers.get("x-test-actor") })
     );
     findByReferenceIdMock.mockImplementation((uid: string) =>
         Promise.resolve(profileOf(uid.replace("uid-", "") as Person))
@@ -353,16 +335,6 @@ describe("POST /boards/[id]/cards/sync", () => {
 
         expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
         expect(await errorCode(response)).toBe("BOARD_NOT_FOUND");
-    });
-
-    it("refuses to sync while impersonating", async () => {
-        const response = await SYNC(
-            request("admin", { method: "POST", subject: "owner" }),
-            boardContext
-        );
-
-        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-        expect(cards.documents.size).toBe(0);
     });
 
     it("refuses a board whose backlog is manual", async () => {

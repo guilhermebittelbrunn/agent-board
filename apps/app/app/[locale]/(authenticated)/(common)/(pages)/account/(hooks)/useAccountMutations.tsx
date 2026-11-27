@@ -1,9 +1,6 @@
 import useAlert from "@repo/design-system/hooks/useAlert";
 import { getDictionary } from "@repo/internationalization/client";
-import type {
-    ChangePasswordRequest,
-    UpdateAccountRequest,
-} from "@repo/sdk/src/types";
+import type { UpdateAccountRequest } from "@repo/sdk/src/types";
 import FormattedError from "@repo/shared/utils/helpers/formattedError";
 import { handleClientError } from "@repo/shared/utils/helpers/handleClientError";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -43,16 +40,8 @@ export const useAccountMutations = () => {
         onError: (error) => errorAlert(formatClientError(error)),
     });
 
-    const changePasswordMutation = useMutation({
-        mutationFn: (body: ChangePasswordRequest) =>
-            apiClient.account.changePassword(body),
-        onSuccess: () => successAlert(accountMessages.passwordChanged),
-        onError: (error) => errorAlert(formatClientError(error)),
-    });
-
     return {
         updateProfileMutation,
         updatePreferencesMutation,
-        changePasswordMutation,
     };
 };

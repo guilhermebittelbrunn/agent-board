@@ -14,16 +14,11 @@ import {
 const AUTHENTICATED_DIR = join(__dirname, "../app/[locale]/(authenticated)");
 const PANEL_AREAS = [
     { dir: join(AUTHENTICATED_DIR, "(common)/(pages)"), prefix: [] },
-    {
-        dir: join(AUTHENTICATED_DIR, "(admin)/admin/(pages)"),
-        prefix: ["admin"],
-    },
 ];
-const AREA_HOME_ROUTES = new Set(["/", "/admin"]);
 
 type PanelPageFolder = { route: string; dir: string };
 
-/** Every folder with a `page.tsx` in the two panel areas, as the route after the locale. */
+/** Every folder with a `page.tsx` in the panel, as the route after the locale. */
 const discoverPanelPages = (): PanelPageFolder[] =>
     PANEL_AREAS.flatMap(({ dir, prefix }) =>
         readdirSync(dir, { recursive: true, encoding: "utf8" })
@@ -40,11 +35,9 @@ const discoverPanelPages = (): PanelPageFolder[] =>
                     dir: join(dir, ...folder),
                 };
             })
-    ).filter(({ route }) => !AREA_HOME_ROUTES.has(route));
+    );
 
 const registeredRoutes = Object.keys(PANEL_PAGE_TITLES) as PanelPageRoute[];
-
-const isAdminRoute = (route: string) => route.startsWith("/admin");
 
 const WHITESPACE = /\s+/g;
 
@@ -58,8 +51,8 @@ afterEach(() => {
 
 describe("panelTitleTemplate", () => {
     it("titles the area home with the area name and the brand, and every other screen through the template", () => {
-        expect(panelTitleTemplate("Administração", "Marca")).toEqual({
-            default: "Administração | Marca",
+        expect(panelTitleTemplate("Boards", "Marca")).toEqual({
+            default: "Boards | Marca",
             template: "%s | Marca",
         });
     });
@@ -67,8 +60,8 @@ describe("panelTitleTemplate", () => {
     it("uses the configured brand by default", () => {
         vi.stubEnv("NEXT_PUBLIC_APP_NAME", "QA Brand");
 
-        expect(panelTitleTemplate("Administration")).toEqual({
-            default: "Administration | QA Brand",
+        expect(panelTitleTemplate("Boards")).toEqual({
+            default: "Boards | QA Brand",
             template: "%s | QA Brand",
         });
     });
@@ -76,7 +69,7 @@ describe("panelTitleTemplate", () => {
     it("falls back to the default brand when none is configured", () => {
         vi.stubEnv("NEXT_PUBLIC_APP_NAME", "");
 
-        expect(panelTitleTemplate("Administration").template).toBe(
+        expect(panelTitleTemplate("Boards").template).toBe(
             `%s | ${DEFAULT_BRAND_NAME}`
         );
     });
@@ -84,7 +77,6 @@ describe("panelTitleTemplate", () => {
 
 describe.each(locales)("PANEL_PAGE_TITLES in %s", (locale) => {
     const dictionary = globalTranslations[locale];
-    const navbar = dictionary.apps.app.pages.navbar;
     const titleOf = (route: PanelPageRoute) =>
         PANEL_PAGE_TITLES[route](dictionary);
 
@@ -94,20 +86,11 @@ describe.each(locales)("PANEL_PAGE_TITLES in %s", (locale) => {
         }
     });
 
-    it.each([
-        ["common", false, navbar.environmentCommon],
-        ["admin", true, navbar.environmentAdmin],
-    ])(
-        "gives each %s screen a title of its own, different from the area name",
-        (_area, admin, areaName) => {
-            const titles = registeredRoutes
-                .filter((route) => isAdminRoute(route) === admin)
-                .map(titleOf);
+    it("gives each screen a title of its own", () => {
+        const titles = registeredRoutes.map(titleOf);
 
-            expect(new Set(titles).size).toBe(titles.length);
-            expect(titles).not.toContain(areaName);
-        }
-    );
+        expect(new Set(titles).size).toBe(titles.length);
+    });
 });
 
 describe("panel screens on disk", () => {
@@ -149,17 +132,17 @@ describe("panelPageMetadata", () => {
     it.each(locales)(
         "titles the screen in the segment's language (%s)",
         async (locale) => {
-            expect((await metadataFor("/entities", locale)).title).toBe(
+            expect((await metadataFor("/boards", locale)).title).toBe(
                 globalTranslations[locale].apps.app.pages.common.routes.platform
-                    .entities.list
+                    .boards.list
             );
         }
     );
 
     it("falls back to the default language when the segment is not a supported locale", async () => {
-        expect((await metadataFor("/admin/users", "xx")).title).toBe(
-            globalTranslations["pt-br"].apps.app.pages.admin.routes.platform
-                .users.list
+        expect((await metadataFor("/boards/new", "xx")).title).toBe(
+            globalTranslations["pt-br"].apps.app.pages.common.routes.platform
+                .boards.create
         );
     });
 });

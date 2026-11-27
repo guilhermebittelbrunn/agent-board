@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { openAccountFromMenu } from "../support/accountMenu";
 import { LOCALE, ptBr } from "../support/dictionary";
 import { AUTH_STATE } from "../support/paths";
 
@@ -14,29 +15,30 @@ const expectQueryParam = async (page: Page, key: string, value: string) => {
 };
 
 // The section is derived from the URL on every render. These checks need the real Next
-// router: a tab click rewrites the URL through the History API, and a sidebar link is a
+// router: a tab click rewrites the URL through the History API, and a menu link is a
 // client navigation, and both must reach useSearchParams without a reload.
-test("the account section follows the URL, the sidebar and the tabs", async ({
+test("the account section follows the avatar menu and the tabs", async ({
     page,
 }) => {
-    await page.goto(`${accountPath}?tab=security`);
+    await page.goto(`/${LOCALE}/boards`);
+
+    await openAccountFromMenu(page, "preferences");
+    await expectQueryParam(page, "tab", "preferences");
     await expect(
         page.getByRole("heading", { level: 1, name: accountCopy.title })
     ).toBeVisible();
     await expect(
-        page.getByRole("heading", { level: 2, name: accountCopy.tabs.security })
+        page.getByRole("heading", {
+            level: 2,
+            name: accountCopy.tabs.preferences,
+        })
     ).toBeVisible();
 
-    const sidebarProfileLink = page.getByRole("link", {
-        name: accountCopy.tabs.profile,
-        exact: true,
-    });
-    await sidebarProfileLink.click();
+    await openAccountFromMenu(page, "profile");
     await expectQueryParam(page, "tab", "profile");
     await expect(
         page.getByRole("heading", { level: 2, name: accountCopy.tabs.profile })
     ).toBeVisible();
-    await expect(sidebarProfileLink).toHaveAttribute("aria-current", "page");
 
     await page
         .getByRole("tablist", { name: accountCopy.sectionNav.label })
@@ -49,12 +51,6 @@ test("the account section follows the URL, the sidebar and the tabs", async ({
             name: accountCopy.tabs.preferences,
         })
     ).toBeVisible();
-    await expect(
-        page.getByRole("link", {
-            name: accountCopy.tabs.preferences,
-            exact: true,
-        })
-    ).toHaveAttribute("aria-current", "page");
 });
 
 test("a link without a section lands on the profile", async ({ page }) => {
@@ -69,7 +65,7 @@ test("a link without a section lands on the profile", async ({ page }) => {
 test("a removed section lands on the profile and keeps the other parameters", async ({
     page,
 }) => {
-    await page.goto(`${accountPath}?tab=billing&from=menu`);
+    await page.goto(`${accountPath}?tab=security&from=menu`);
 
     await expect(
         page

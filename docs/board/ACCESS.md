@@ -15,10 +15,14 @@ Um GitHub App próprio, separado do Claude GitHub App (que as sessões do Claude
 |------------------|----------|
 | Metadata: read | Consultar a permissão de cada membro no repositório |
 | Contents: read | Ler `.kanban/board.yml`, `specs/` e `docs/features/` |
-| Pull requests: read & write | Abrir a PR do card na coluna Aguardando PR e acompanhar reviews |
+| Pull requests: read & write | Abrir a PR do card na coluna Aguardando PR (`POST /repos/{o}/{r}/pulls`) e achar a PR aberta da branch |
 | Issues: read | Comentários gerais da PR |
 | Checks: read | Estado do CI da PR |
-| Webhooks | `pull_request`, `pull_request_review`, `pull_request_review_comment`, `issue_comment`, `check_suite`, `member`, `installation_repositories` |
+| Webhooks | `pull_request`, `pull_request_review`, `issue_comment`, `check_suite` (estado da PR do card) e `installation_repositories` (chega sem assinar). `member` e `pull_request_review_comment` ficam de fora: o primeiro exige Administration, e o segundo repetiria cada comentário que já chega dentro do `pull_request_review` |
+
+Sem `Pull requests: write` no repositório, o GitHub responde 403 ao criar a PR. O board grava
+`GITHUB_APP_PERMISSION_MISSING` no card, que mostra o erro e o botão "Tentar de novo"
+(`POST /boards/:id/cards/:slug/pull-request`, papel `operator` ou acima); nada responde 500.
 
 A permissão de um membro vem de `GET /repos/{owner}/{repo}/collaborators/{username}/permission` com o token de instalação. O campo `role_name` (`read`, `triage`, `write`, `maintain`, `admin`) é o `GithubRepoRole` do `@repo/kanban-contract`; usuário sem acesso vira `none`.
 
@@ -53,7 +57,9 @@ Ordem de escolha da credencial quando alguém dispara uma etapa:
 2. Se ele não tiver, a **API key do board**, se o `owner` configurou.
 3. Se nada servir, o disparo é recusado e o motivo aparece no card.
 
-Commits e PR saem no nome de quem executou. `viewer` nunca dispara. Toda execução grava em `runs` quem disparou, com qual credencial e o modelo.
+Os commits saem no nome de quem executou cada etapa. A PR é aberta pelo board com o token de instalação,
+então o autor dela no GitHub é o bot do App (`<app>[bot]`). O `/mediate` disparado por comentário roda no
+executor de quem disparou a etapa de PR. `viewer` nunca dispara. Toda execução grava em `runs` quem disparou, com qual credencial e o modelo.
 
 Regra da Anthropic que isso respeita: o login de uma assinatura do Claude é para uso próprio. O board nunca usa a assinatura de uma pessoa para rodar o que outra disparou; quando a credencial não é de quem disparou, é uma API key.
 

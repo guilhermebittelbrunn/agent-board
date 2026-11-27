@@ -44,12 +44,18 @@ function templateFor(issue: BoardConfigIssue, messages: IssueMessages): string {
             return messages.notAllowed;
         case "stage_key_duplicated":
             return messages.stageKeyDuplicated;
+        case "stage_key_reserved":
+            return messages.stageKeyReserved;
         case "rework_target_invalid":
             return issue.params.suggestion === undefined
                 ? messages.reworkTargetInvalidNoSuggestion
                 : messages.reworkTargetInvalid;
         case "base_branch_unprotected":
             return messages.baseBranchUnprotected;
+        case "pull_request_stage_duplicated":
+            return messages.pullRequestStageDuplicated;
+        case "pull_request_stage_not_last":
+            return messages.pullRequestStageNotLast;
         case "yaml_syntax":
             return issue.params.line === undefined
                 ? messages.yamlSyntaxNoPosition

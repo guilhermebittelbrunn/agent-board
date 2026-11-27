@@ -21,6 +21,7 @@ import {
     toAnswers,
 } from "../(validations)/cardEventSchemas";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
+import { stageColumnName } from "./stageColumnName";
 
 type CardQuestionsProps = {
     questions: Question[];
@@ -214,8 +215,7 @@ export function CardQuestions({
     const titleId = useId();
     const questionsCopy = boardsDictionary.cardDetail.questions;
     const stage =
-        config.stages.find((candidate) => candidate.key === stageKey)?.column ??
-        stageKey;
+        stageColumnName(config, stageKey, boardsDictionary) ?? stageKey;
     const title =
         questions.length === 1
             ? fillMessage(questionsCopy.titleOne, { stage })

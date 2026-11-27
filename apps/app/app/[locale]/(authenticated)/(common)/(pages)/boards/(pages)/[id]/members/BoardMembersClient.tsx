@@ -14,9 +14,7 @@ import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../../paths";
 import { BoardMembersTable } from "../../../(components)/BoardMembersTable";
 import { BoardRolesGuide } from "../../../(components)/BoardRolesGuide";
@@ -47,7 +45,6 @@ export function BoardMembersClient() {
         changeMemberRoleMutation,
         removeMemberMutation,
     } = useBoardMemberCrud(id);
-    const { isImpersonating } = useAuthRequestPanel();
     const [memberToChange, setMemberToChange] = useState<BoardMemberDTO | null>(
         null
     );
@@ -63,7 +60,7 @@ export function BoardMembersClient() {
     const isLoading = isBoardLoading || areMembersLoading;
 
     const actorRole: BoardRole | null = board?.access.effectiveRole ?? null;
-    const canManage = canManageMembers(actorRole) && !isImpersonating;
+    const canManage = canManageMembers(actorRole);
     const rolesToGrant = useMemo(
         () => (canManage ? grantableRoles(actorRole) : []),
         [canManage, actorRole]
@@ -77,7 +74,6 @@ export function BoardMembersClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,
@@ -93,6 +89,7 @@ export function BoardMembersClient() {
                             boardsDictionary={boardsDictionary}
                             links={{
                                 board: routes.boards.detail(id).url,
+                                cycles: routes.boards.cycles(id).url,
                                 settings: routes.boards.settings(id).url,
                                 members: routes.boards.members(id).url,
                                 credentials: routes.boards.credentials(id).url,
@@ -112,7 +109,6 @@ export function BoardMembersClient() {
             >
                 {board ? (
                     <div className="flex w-full flex-col gap-6">
-                        <ImpersonationReadOnlyNotice />
                         {rolesToGrant.length > 0 ? (
                             <InviteMemberForm
                                 boardsDictionary={boardsDictionary}

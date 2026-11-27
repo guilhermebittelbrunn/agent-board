@@ -9,14 +9,13 @@ import { useEffect, useState } from "react";
 import { env } from "@/env";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../../paths";
 import { BoardSectionNav } from "../../../(components)/BoardSectionNav";
 import { RevokeRunnerDialog } from "../../../(components)/RevokeRunnerDialog";
 import { RunnerList } from "../../../(components)/RunnerList";
 import { RunnerRegistrationPanel } from "../../../(components)/RunnerRegistrationPanel";
+import { ScheduledTaskSection } from "../../../(components)/ScheduledTaskSection";
 import { useFindBoardById } from "../../../(hooks)/useFindBoardById";
 import { useListRunners } from "../../../(hooks)/useListRunners";
 import { useRunnerCrud } from "../../../(hooks)/useRunnerCrud";
@@ -42,7 +41,6 @@ function useNow(active: boolean): number {
 export function BoardCredentialsClient() {
     const params = useParams<{ id: string }>();
     const id = typeof params.id === "string" ? params.id : "";
-    const { isImpersonating } = useAuthRequestPanel();
     const [registration, setRegistration] = useState<OpenRegistration | null>(
         null
     );
@@ -100,7 +98,6 @@ export function BoardCredentialsClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,
@@ -116,6 +113,7 @@ export function BoardCredentialsClient() {
                             boardsDictionary={boardsDictionary}
                             links={{
                                 board: routes.boards.detail(id).url,
+                                cycles: routes.boards.cycles(id).url,
                                 settings: routes.boards.settings(id).url,
                                 members: routes.boards.members(id).url,
                                 credentials: routes.boards.credentials(id).url,
@@ -139,7 +137,6 @@ export function BoardCredentialsClient() {
                             aria-labelledby="runners-title"
                             className="flex min-w-0 flex-col gap-4"
                         >
-                            <ImpersonationReadOnlyNotice />
                             <div className="flex flex-col gap-1">
                                 <h2
                                     className="font-semibold"
@@ -154,14 +151,14 @@ export function BoardCredentialsClient() {
                             <RunnerList
                                 board={board}
                                 boardsDictionary={boardsDictionary}
-                                canRevoke={!isImpersonating}
+                                canRevoke
                                 onRevoke={setRunnerToRevoke}
                                 runners={runners}
                             />
                             <RunnerRegistrationPanel
                                 apiUrl={API_URL}
                                 boardsDictionary={boardsDictionary}
-                                canGenerate={!isImpersonating}
+                                canGenerate
                                 expired={expired}
                                 isGenerating={
                                     createRegistrationMutation.isPending
@@ -171,15 +168,29 @@ export function BoardCredentialsClient() {
                                 registration={registration}
                             />
                         </section>
-                        <aside className="flex flex-col gap-2 rounded-md border p-4 text-sm">
-                            <h2 className="font-semibold">
-                                {credentialsCopy.howItRuns.title}
-                            </h2>
-                            <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
-                                <li>{credentialsCopy.howItRuns.own}</li>
-                                <li>{credentialsCopy.howItRuns.refused}</li>
-                            </ol>
+                        <aside className="order-last flex flex-col gap-4 lg:order-none lg:row-span-2">
+                            <div className="flex flex-col gap-2 rounded-md border p-4 text-sm">
+                                <h2 className="font-semibold">
+                                    {credentialsCopy.howItRuns.title}
+                                </h2>
+                                <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+                                    <li>{credentialsCopy.howItRuns.own}</li>
+                                    <li>{credentialsCopy.howItRuns.refused}</li>
+                                </ol>
+                            </div>
+                            <div className="flex flex-col gap-2 rounded-md border p-4 text-sm">
+                                <h2 className="font-semibold">
+                                    {credentialsCopy.secrets.title}
+                                </h2>
+                                <p className="text-muted-foreground">
+                                    {credentialsCopy.secrets.body}
+                                </p>
+                            </div>
                         </aside>
+                        <ScheduledTaskSection
+                            board={board}
+                            boardsDictionary={boardsDictionary}
+                        />
                         <RevokeRunnerDialog
                             boardsDictionary={boardsDictionary}
                             isPending={revokeMutation.isPending}

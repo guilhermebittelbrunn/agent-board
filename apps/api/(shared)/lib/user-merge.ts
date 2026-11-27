@@ -3,13 +3,12 @@ import {
     type GithubIdentity,
     githubIdentitySchema,
 } from "@repo/kanban-contract";
-import { type UserDTO, UserType } from "@repo/sdk/src/types";
+import type { UserDTO } from "@repo/sdk/src/types";
 import { logEvent } from "@repo/shared/utils/helpers/log";
 import type { UserRecord } from "firebase-admin/auth";
 import { mergeAuthAndFirestore } from "../mappers/user.mapper";
 import { userRepository } from "../repositories/user.repository";
 import { revokeAccountAccess } from "./account-access";
-import { emitNotificationQuietly } from "./notifications";
 import { adminAuthErrorReason } from "./toolkit-error-codes";
 
 export const USER_COLLECTION = "user";
@@ -51,7 +50,7 @@ export async function getMergedUserFromIdToken(
 }
 
 /**
- * An archived profile means the admin took this account's access away: signing in again
+ * An archived profile means this account's access was taken away: signing in again
  * must not hand it a fresh profile. Accounts archived while still enabled in Firebase
  * Auth are disabled here, on their first contact; a failure is retried on the next one.
  */
@@ -73,29 +72,11 @@ async function findOrCreateProfile(uid: string): Promise<UserDTO | null> {
     return createDefaultUserProfile(uid);
 }
 
-/** The welcome notice is quiet on purpose: a failed notice must not undo the profile. */
-export async function createDefaultUserProfile(
+export function createDefaultUserProfile(
     uid: string,
     dto?: Partial<UserDTO>
 ): Promise<UserDTO> {
-    const defaultProps = {
-        type: UserType.COMMON,
-        reference_id: uid,
-        ...dto,
-    };
-
-    const created = await userRepository.create({ ...defaultProps });
-
-    if (created.type === UserType.COMMON) {
-        await emitNotificationQuietly({
-            userId: created.id,
-            type: "welcome",
-            params: {},
-            dedupeKey: created.id,
-        });
-    }
-
-    return created;
+    return userRepository.create({ reference_id: uid, ...dto });
 }
 
 export async function getMergedUserByFirestoreDocId(

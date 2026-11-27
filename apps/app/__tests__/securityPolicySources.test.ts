@@ -44,7 +44,7 @@ const API_URL = "http://localhost:3002";
 const TAG_MANAGER = "https://www.googletagmanager.com";
 const STORAGE_ORIGIN = "https://storage.googleapis.com";
 const ORIGIN = "http://localhost:3000";
-const PATH = "/pt-br/entities";
+const PATH = "/pt-br/boards";
 
 function makeRequest(): NextRequest {
     const href = `${ORIGIN}${PATH}`;

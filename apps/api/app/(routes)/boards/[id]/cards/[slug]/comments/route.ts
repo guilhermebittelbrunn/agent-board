@@ -33,11 +33,11 @@ export const POST = requireBoardApi<CardRouteParams>(
         }
         const event = await cardEventRepository.appendComment(
             card,
-            personAuthor(ctx.subjectProfile),
+            personAuthor(ctx.profile),
             parsed.value.markdown
         );
         return Response.json(
-            { data: toCardEventView(event, ctx.subjectProfile.id) },
+            { data: toCardEventView(event, ctx.profile.id) },
             { status: HTTP_STATUS.CREATED }
         );
     }
