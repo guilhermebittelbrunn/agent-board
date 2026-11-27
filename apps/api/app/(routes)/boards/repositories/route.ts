@@ -5,10 +5,10 @@ import {
     toBoardRepository,
 } from "@/(shared)/lib/board-import";
 import { boardRepository } from "@/(shared)/repositories/board.repository";
-import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
+import { requireSessionApi } from "@/app/(guards)/session";
 
-export const GET = requireCommonPanelApi(async (_req, ctx) => {
-    const listed = await listAdminRepositories(ctx.subjectProfile);
+export const GET = requireSessionApi(async (_req, ctx) => {
+    const listed = await listAdminRepositories(ctx.profile);
     if (!listed.ok) {
         return listed.response;
     }
@@ -16,7 +16,7 @@ export const GET = requireCommonPanelApi(async (_req, ctx) => {
     const ids = listed.repositories.map((repository) =>
         boardIdForRepository(repository.fullName)
     );
-    const links = await boardRepository.linksFor(ids, ctx.subjectProfile.id);
+    const links = await boardRepository.linksFor(ids, ctx.profile.id);
 
     const data: ImportableRepositoryDTO[] = listed.repositories.map(
         (repository, index) => ({

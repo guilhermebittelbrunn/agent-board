@@ -34,7 +34,7 @@ export const POST = requireBoardApi("trigger", async (req, ctx) => {
     if (!parsed.ok) {
         return parsed.response;
     }
-    if ((await resolveExecutorFor(ctx.subjectProfile.id)) === null) {
+    if ((await resolveExecutorFor(ctx.profile.id)) === null) {
         return errorResponse(
             "RUN_EXECUTOR_UNAVAILABLE",
             HTTP_STATUS.SERVICE_UNAVAILABLE
@@ -47,13 +47,13 @@ export const POST = requireBoardApi("trigger", async (req, ctx) => {
 
     const attachments = await resolveDraftAttachments(
         parsed.value.attachments,
-        ctx.subjectProfile.id
+        ctx.profile.id
     );
     if (!attachments.ok) {
         return errorResponse(attachments.code, attachments.status);
     }
 
-    const by = { userId: ctx.subjectProfile.id, login: ctx.member.login };
+    const by = { userId: ctx.profile.id, login: ctx.member.login };
     let created: Awaited<ReturnType<typeof createSpecDraft>>;
     try {
         created = await createSpecDraft({

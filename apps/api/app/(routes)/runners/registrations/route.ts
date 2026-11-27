@@ -6,15 +6,15 @@ import {
     mintRunnerCode,
 } from "@/(shared)/lib/runner/runner-code";
 import { runnerRepository } from "@/(shared)/repositories/runner.repository";
-import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
+import { requireSessionApi } from "@/app/(guards)/session";
 
 /** A one-time code that registers a runner for the signed-in person within ten minutes. */
-export const POST = requireCommonPanelApi(async (_req, ctx) => {
+export const POST = requireSessionApi(async (_req, ctx) => {
     const now = new Date();
     const code = mintRunnerCode();
     const expiresAt = new Date(now.getTime() + RUNNER_CODE_TTL_MS);
     await runnerRepository.createRegistration({
-        userId: ctx.subjectProfile.id,
+        userId: ctx.profile.id,
         codeHash: hashRunnerCode(code),
         expiresAt,
         now,

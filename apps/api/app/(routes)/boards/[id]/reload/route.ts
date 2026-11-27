@@ -37,12 +37,12 @@ export const POST = requireBoardApi("configure", async (_req, ctx) => {
     const board: BoardViewDTO = toBoardView(
         ctx.board,
         ctx.access,
-        await resolveExecutorFor(ctx.subjectProfile.id)
+        await resolveExecutorFor(ctx.profile.id)
     );
     const { id } = board;
 
     const target = await resolveImportTarget(
-        ctx.subjectProfile,
+        ctx.profile,
         board.repository.fullName
     );
     if (!target.ok) {

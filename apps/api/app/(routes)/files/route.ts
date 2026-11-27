@@ -6,11 +6,11 @@ import {
     signReadUrl,
 } from "@/(shared)/lib/storage";
 import { parseUploadedImage } from "@/(shared)/validation/file.schema";
-import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
+import { requireSessionApi } from "@/app/(guards)/session";
 
 const STATUS_CREATED = 201;
 
-export const POST = requireCommonPanelApi(async (req, ctx) => {
+export const POST = requireSessionApi(async (req, ctx) => {
     if (!isStorageConfigured()) {
         return Response.json(
             { error: { code: "STORAGE_NOT_CONFIGURED" } },
@@ -24,7 +24,7 @@ export const POST = requireCommonPanelApi(async (req, ctx) => {
     }
 
     const { body, contentType, extension, size } = parsed.value;
-    const path = buildObjectPath(ctx.subjectProfile.id, extension);
+    const path = buildObjectPath(ctx.profile.id, extension);
 
     // Signing is inside the same refusal as the write: an object the caller cannot be
     // handed a link to is of no use to them, and an unhandled throw here would answer

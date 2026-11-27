@@ -26,7 +26,7 @@ export const POST = requireBoardApi("trigger", async (req, ctx) => {
     }
 
     const { body, contentType, extension, name, size } = parsed.value;
-    const path = buildObjectPath(ctx.subjectProfile.id, extension);
+    const path = buildObjectPath(ctx.profile.id, extension);
     try {
         await putObject(path, body, contentType);
     } catch {

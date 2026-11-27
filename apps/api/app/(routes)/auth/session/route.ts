@@ -6,8 +6,8 @@ import { sessionRepository } from "@/(shared)/repositories/session.repository";
 const NO_CONTENT = 204;
 
 /**
- * No panel guard: the session belongs to the credential, so an admin signing out while
- * impersonating ends their own session, and no context header decides whose it is.
+ * No session guard: the session belongs to the credential, so whoever signs out ends
+ * their own session even without a profile, and no request header decides whose it is.
  */
 export async function GET(req: NextRequest) {
     const credential = await resolveApiCredential(req);

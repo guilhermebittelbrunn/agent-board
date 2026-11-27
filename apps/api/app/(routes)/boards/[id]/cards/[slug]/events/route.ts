@@ -22,9 +22,7 @@ export const GET = requireBoardApi<CardRouteParams>(
         }
         const events = await cardEventRepository.listByCard(card.id);
         return Response.json({
-            data: events.map((event) =>
-                toCardEventView(event, ctx.subjectProfile.id)
-            ),
+            data: events.map((event) => toCardEventView(event, ctx.profile.id)),
         });
     }
 );

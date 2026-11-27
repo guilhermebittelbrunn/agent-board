@@ -67,7 +67,7 @@ export const POST = requireBoardApi<CardRouteParams>(
             card,
             file,
             config: ctx.board.config,
-            by: { userId: ctx.subjectProfile.id, login: ctx.member.login },
+            by: { userId: ctx.profile.id, login: ctx.member.login },
             order: nextTasksOrder(
                 (await cardRepository.listByBoard(ctx.board.id)).filter(
                     (candidate) => candidate.lane === "tasks"

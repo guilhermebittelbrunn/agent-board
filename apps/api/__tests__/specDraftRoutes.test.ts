@@ -1,12 +1,9 @@
-import { UserRoleLevel } from "@repo/auth/types";
 import { parseBoardConfig } from "@repo/kanban-contract";
-import {
-    type CardDTO,
-    type CreateSpecDraftResultDTO,
-    type UploadedAttachmentDTO,
-    UserType,
+import type {
+    CardDTO,
+    CreateSpecDraftResultDTO,
+    UploadedAttachmentDTO,
 } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,7 +81,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
     },
 }));
 
@@ -178,16 +174,12 @@ const profileOf = (person: Person) => {
     return {
         id,
         reference_id: `uid-${person}`,
-        type: UserType.COMMON,
         github: { id: githubId, login, name: null, avatarUrl: null },
     };
 };
 
 const authHeaders = (as: Person) => ({
-    [AUTH_REQUEST_HEADER.USER_ID]: `uid-${as}`,
-    [AUTH_REQUEST_HEADER.USER_ROLE]: UserRoleLevel.COMMON,
-    [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-    [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: `uid-${as}`,
+    "x-test-actor": `uid-${as}`,
 });
 
 function request(as: Person, body?: unknown): NextRequest {
@@ -281,7 +273,7 @@ beforeEach(() => {
     isStorageConfiguredMock.mockReturnValue(true);
     findBoardMock.mockResolvedValue(BOARD);
     resolveApiActorMock.mockImplementation((req: NextRequest) =>
-        Promise.resolve({ uid: req.headers.get(AUTH_REQUEST_HEADER.USER_ID) })
+        Promise.resolve({ uid: req.headers.get("x-test-actor") })
     );
     findByReferenceIdMock.mockImplementation((uid: string) =>
         Promise.resolve(profileOf(uid.replace("uid-", "") as Person))

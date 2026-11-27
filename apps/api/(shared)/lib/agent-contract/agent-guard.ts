@@ -29,9 +29,9 @@ const notFound = (code: "BOARD_NOT_FOUND" | "CARD_NOT_FOUND"): Response =>
 
 /**
  * Agent routes are called by a Claude Code session, not by a person: no cookie, no
- * session, so impersonation never applies and the panel guards do not fit. The run token
- * proves which run is calling; a missing run and a wrong secret get the same answer, so
- * the token does not reveal which run ids exist.
+ * session, so the session guard does not fit. The run token proves which run is calling;
+ * a missing run and a wrong secret get the same answer, so the token does not reveal
+ * which run ids exist.
  */
 export function requireAgentApi<TParams = Record<string, never>>(
     handler: (

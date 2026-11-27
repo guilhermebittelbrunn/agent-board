@@ -1,7 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { UserRoleLevel } from "@repo/auth/types";
-import { UserType } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,7 +29,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
         update: (...args: unknown[]) => updateMock(...args),
     },
 }));
@@ -69,15 +65,11 @@ const OTHER_OWNER_ID = `emu-other-${randomUUID()}`;
 const ownerProfile = (avatar: string | null = null) => ({
     id: OWNER_ID,
     reference_id: OWNER_UID,
-    type: UserType.COMMON,
     avatar,
 });
 
 const ownerHeaders = () => ({
-    [AUTH_REQUEST_HEADER.USER_ID]: OWNER_UID,
-    [AUTH_REQUEST_HEADER.USER_ROLE]: UserRoleLevel.COMMON,
-    [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-    [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: OWNER_UID,
+    "x-test-actor": OWNER_UID,
 });
 
 const objectPath = (ownerId: string) =>

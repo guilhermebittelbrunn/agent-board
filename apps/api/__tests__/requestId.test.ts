@@ -33,7 +33,7 @@ type ProxyRequestOptions = {
 function makeRequest({
     origin,
     method = "GET",
-    path = "/entities",
+    path = "/boards",
     inboundRequestId,
 }: ProxyRequestOptions = {}): NextRequest {
     const headers = new Headers();

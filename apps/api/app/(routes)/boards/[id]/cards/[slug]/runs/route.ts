@@ -24,7 +24,7 @@ export const POST = requireBoardApi<CardRouteParams>(
         if (!parsed.ok) {
             return parsed.response;
         }
-        if ((await resolveExecutorFor(ctx.subjectProfile.id)) === null) {
+        if ((await resolveExecutorFor(ctx.profile.id)) === null) {
             return errorResponse(
                 "RUN_EXECUTOR_UNAVAILABLE",
                 HTTP_STATUS.SERVICE_UNAVAILABLE
@@ -35,7 +35,7 @@ export const POST = requireBoardApi<CardRouteParams>(
             board: ctx.board,
             slug: ctx.params.slug,
             stageKey: parsed.value.stageKey,
-            by: { userId: ctx.subjectProfile.id, login: ctx.member.login },
+            by: { userId: ctx.profile.id, login: ctx.member.login },
         });
         if (!result.ok) {
             return errorResponse(result.code, result.status);

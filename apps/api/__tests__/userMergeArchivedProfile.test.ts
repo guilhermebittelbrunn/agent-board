@@ -1,4 +1,3 @@
-import { UserType } from "@repo/sdk/src/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -19,10 +18,6 @@ const {
     hasArchivedProfileMock: vi.fn(),
     createMock: vi.fn(),
     logEventMock: vi.fn(),
-}));
-
-vi.mock("@/(shared)/lib/notifications", () => ({
-    emitNotificationQuietly: vi.fn(),
 }));
 
 vi.mock("@repo/auth/server", () => ({
@@ -74,7 +69,6 @@ function liveProfile() {
     return {
         id: "profile-1",
         reference_id: UID,
-        type: UserType.COMMON,
         createdAt: "2026-01-01T00:00:00.000Z",
         deletedAt: null,
     };
@@ -133,7 +127,6 @@ describe("getMergedUserByUid never recreates an archived profile", () => {
         expect(createMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 reference_id: UID,
-                type: UserType.COMMON,
             })
         );
         expect(updateUserMock).not.toHaveBeenCalled();

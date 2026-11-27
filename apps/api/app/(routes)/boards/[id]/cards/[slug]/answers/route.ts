@@ -47,7 +47,7 @@ export const POST = requireBoardApi<CardRouteParams>(
         const result = await cardEventRepository.answer({
             cardId: card.id,
             questionEventId: parsed.value.questionEventId,
-            author: personAuthor(ctx.subjectProfile),
+            author: personAuthor(ctx.profile),
             answers: parsed.value.answers,
         });
         if (!result.ok) {
@@ -60,7 +60,7 @@ export const POST = requireBoardApi<CardRouteParams>(
             await resumeAfterAnswer({
                 board: ctx.board,
                 slug: ctx.params.slug,
-                by: { userId: ctx.subjectProfile.id, login: ctx.member.login },
+                by: { userId: ctx.profile.id, login: ctx.member.login },
             });
         } catch (error) {
             logEvent("orchestrator", "resume_after_answer_failed", {
@@ -71,7 +71,7 @@ export const POST = requireBoardApi<CardRouteParams>(
         const current = await cardRepository.findById(card.id);
         return Response.json({
             data: {
-                event: toCardEventView(result.event, ctx.subjectProfile.id),
+                event: toCardEventView(result.event, ctx.profile.id),
                 card: toCardDTO(current ?? result.card),
             },
         });

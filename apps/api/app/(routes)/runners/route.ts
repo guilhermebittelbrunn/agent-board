@@ -1,11 +1,11 @@
 import { toRunnerDTO } from "@/(shared)/mappers/runner.mapper";
 import { runnerRepository } from "@/(shared)/repositories/runner.repository";
-import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
+import { requireSessionApi } from "@/app/(guards)/session";
 
 /** The person's own runners, never anyone else's, and never a token or its hash. */
-export const GET = requireCommonPanelApi(async (_req, ctx) => {
+export const GET = requireSessionApi(async (_req, ctx) => {
     const now = new Date();
-    const runners = await runnerRepository.listByUser(ctx.subjectProfile.id);
+    const runners = await runnerRepository.listByUser(ctx.profile.id);
     const runs = await runnerRepository.findRunsByIds(
         runners
             .map((runner) => runner.currentRunId)

@@ -184,9 +184,9 @@ describe("mergeAuthAndFirestore", () => {
 });
 
 describe("toSessionUser", () => {
-    const SESSION_KEYS = ["email", "preferences", "type", "uid"];
+    const SESSION_KEYS = ["email", "preferences", "uid"];
 
-    it("keeps exactly the four session fields and drops the internal ones", () => {
+    it("keeps exactly the three session fields and drops the internal ones, the old type included", () => {
         const merged = mergeAuthAndFirestore(
             authRecord({
                 customClaims: { role: "admin" },
@@ -208,7 +208,6 @@ describe("toSessionUser", () => {
         expect(Object.keys(sessionUser).sort()).toEqual(SESSION_KEYS);
         expect(sessionUser).toEqual({
             uid: "auth-uid-1",
-            type: "common",
             email: "qa-common@example.com",
             preferences: { theme: "dark", locale: "en" },
         });
@@ -221,13 +220,12 @@ describe("toSessionUser", () => {
 
         expect(sessionUser).toEqual({
             uid: "auth-uid-1",
-            type: null,
             email: null,
             preferences: null,
         });
     });
 
-    it("refuses a type outside the known roles and non-object nested fields", () => {
+    it("refuses non-string and non-object fields", () => {
         const sessionUser = toSessionUser({
             uid: "auth-uid-1",
             type: "superuser",
@@ -237,7 +235,6 @@ describe("toSessionUser", () => {
 
         expect(sessionUser).toEqual({
             uid: "auth-uid-1",
-            type: null,
             email: null,
             preferences: null,
         });

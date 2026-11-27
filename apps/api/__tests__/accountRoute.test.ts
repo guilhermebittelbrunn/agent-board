@@ -1,6 +1,3 @@
-import { UserRoleLevel } from "@repo/auth/types";
-import { UserType } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +26,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
         update: (...args: unknown[]) => updateMock(...args),
     },
 }));
@@ -65,7 +61,6 @@ const OWNER_UID = "common-9";
 const OWNER_PROFILE = {
     id: "profile-1",
     reference_id: OWNER_UID,
-    type: UserType.COMMON,
     avatar: null as string | null,
     preferences: undefined as unknown,
 };
@@ -77,10 +72,7 @@ function request(method: string, body?: unknown): NextRequest {
         method,
         url: "http://localhost:3002/account",
         headers: new Headers({
-            [AUTH_REQUEST_HEADER.USER_ID]: OWNER_UID,
-            [AUTH_REQUEST_HEADER.USER_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: OWNER_UID,
+            "x-test-actor": OWNER_UID,
         }),
         json: () => Promise.resolve(body ?? {}),
     } as unknown as NextRequest;
@@ -199,34 +191,6 @@ describe("/account", () => {
 
         expect(response.status).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
         expect(await codeOf(response)).toBe("ACCOUNT_UPDATE_FAILED");
-    });
-
-    it("refuses every write while impersonating", async () => {
-        const impersonated = {
-            method: "PUT",
-            url: "http://localhost:3002/account",
-            headers: new Headers({
-                [AUTH_REQUEST_HEADER.USER_ID]: "admin-1",
-                [AUTH_REQUEST_HEADER.USER_ROLE]: UserRoleLevel.ADMIN,
-                [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-                [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: OWNER_UID,
-            }),
-            json: () => Promise.resolve({ displayName: "Ana" }),
-        } as unknown as NextRequest;
-        resolveApiActorMock.mockResolvedValue({
-            uid: "admin-1",
-            email: "admin@example.com",
-        });
-        findByReferenceIdMock.mockResolvedValue({
-            id: "admin-profile",
-            reference_id: "admin-1",
-            type: UserType.ADMIN,
-        });
-
-        const response = await PUT(impersonated);
-
-        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-        expect(updateMock).not.toHaveBeenCalled();
     });
 
     it("refuses a caller without a valid credential", async () => {

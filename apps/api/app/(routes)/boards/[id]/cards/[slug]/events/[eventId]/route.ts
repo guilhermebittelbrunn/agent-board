@@ -45,7 +45,7 @@ async function findOwnComment(
             ),
         };
     }
-    if (!isOwnComment(event, ctx.subjectProfile.id)) {
+    if (!isOwnComment(event, ctx.profile.id)) {
         return {
             ok: false,
             response: errorResponse(
@@ -80,7 +80,7 @@ export const PATCH = requireBoardApi<EventRouteParams>(
             return errorResponse("CARD_EVENT_NOT_FOUND", HTTP_STATUS.NOT_FOUND);
         }
         return Response.json({
-            data: toCardEventView(edited, ctx.subjectProfile.id),
+            data: toCardEventView(edited, ctx.profile.id),
         });
     }
 );

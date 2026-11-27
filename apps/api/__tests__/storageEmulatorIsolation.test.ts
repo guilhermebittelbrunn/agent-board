@@ -1,6 +1,3 @@
-import { UserRoleLevel } from "@repo/auth/types";
-import { UserType } from "@repo/sdk/src/types";
-import { AUTH_REQUEST_HEADER } from "@repo/shared/utils/helpers/auth-request-headers";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -45,7 +42,6 @@ vi.mock("@/(shared)/repositories/user.repository", () => ({
     userRepository: {
         findByReferenceId: (...args: unknown[]) =>
             findByReferenceIdMock(...args),
-        touchLastAccess: vi.fn(),
     },
 }));
 
@@ -59,7 +55,7 @@ vi.mock("@/(shared)/validation/file.schema", async (importOriginal) => ({
 const { isStorageConfigured, putObject, signReadUrl } = await import(
     "@/(shared)/lib/storage"
 );
-const { withPhotoUrl } = await import("@/(shared)/lib/entity-photo");
+const { withAvatarUrl } = await import("@/(shared)/lib/account-avatar");
 const { POST } = await import("@/app/(routes)/files/route");
 
 const REAL_BUCKET = "next-boilerplate-576d0.firebasestorage.app";
@@ -71,7 +67,6 @@ const OWNER_UID = "common-9";
 const OWNER_PROFILE = {
     id: "p2",
     reference_id: OWNER_UID,
-    type: UserType.COMMON,
 };
 const OWNED_OBJECT_PATH = `uploads/${OWNER_PROFILE.id}/11111111-2222-4333-8444-555555555555.png`;
 const SIGNED_URL = "https://storage.googleapis.com/bucket/object?X-Goog-Sig=1";
@@ -91,21 +86,16 @@ function uploadRequest(): NextRequest {
         method: "POST",
         url: "http://localhost:3002/files",
         headers: new Headers({
-            [AUTH_REQUEST_HEADER.USER_ID]: OWNER_UID,
-            [AUTH_REQUEST_HEADER.USER_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_ROLE]: UserRoleLevel.COMMON,
-            [AUTH_REQUEST_HEADER.REQUEST_USER_ID]: OWNER_UID,
+            "x-test-actor": OWNER_UID,
         }),
         formData: () => Promise.resolve(new FormData()),
     } as unknown as NextRequest;
 }
 
-const photoEntity = () =>
-    ({
-        id: "e1",
-        name: "Seeded Unit",
-        photo: OWNED_OBJECT_PATH,
-    }) as never;
+const accountWithAvatar = () => ({
+    uid: OWNER_UID,
+    avatar: OWNED_OBJECT_PATH,
+});
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -207,21 +197,21 @@ describe("POST /files against an emulated stack", () => {
     });
 });
 
-describe("reading an entity photo against an emulated stack", () => {
+describe("reading an account avatar against an emulated stack", () => {
     it("does not sign a read url for a stored object", async () => {
         vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", AUTH_EMULATOR_HOST);
 
-        const result = await withPhotoUrl(photoEntity());
+        const result = await withAvatarUrl(accountWithAvatar());
 
-        expect(result.photoUrl).toBeNull();
+        expect(result.avatarUrl).toBeNull();
         expect(bucketMock).not.toHaveBeenCalled();
         expect(getSignedUrlMock).not.toHaveBeenCalled();
     });
 
     it("signs a read url again with no emulator host", async () => {
-        const result = await withPhotoUrl(photoEntity());
+        const result = await withAvatarUrl(accountWithAvatar());
 
-        expect(result.photoUrl).toBe(SIGNED_URL);
+        expect(result.avatarUrl).toBe(SIGNED_URL);
         expect(getSignedUrlMock).toHaveBeenCalledTimes(1);
     });
 });

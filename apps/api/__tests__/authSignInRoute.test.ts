@@ -53,7 +53,6 @@ const USER = {
 };
 const SESSION_USER = {
     uid: SESSION.localId,
-    type: "common",
     email: EMAIL,
     preferences: { theme: "dark", locale: "pt-br" },
 };

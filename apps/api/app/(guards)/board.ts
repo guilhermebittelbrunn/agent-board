@@ -5,12 +5,9 @@ import {
     resolveBoardAccess,
 } from "@/(shared)/lib/board-access";
 import type { BoardMemberRecord } from "@/(shared)/mappers/board-member.mapper";
-import {
-    type CommonPanelAuthContext,
-    requireCommonPanelApi,
-} from "./common-panel";
+import { requireSessionApi, type SessionAuthContext } from "./session";
 
-export type BoardAuthContext = CommonPanelAuthContext & {
+export type BoardAuthContext = SessionAuthContext & {
     board: BoardDTO;
     member: BoardMemberRecord;
     access: BoardAccessDTO;
@@ -33,13 +30,12 @@ export function requireBoardApi<
 ) {
     type BoardRouteContext = { params: TParams | Promise<TParams> };
 
-    return requireCommonPanelApi<BoardRouteContext>(async (req, ctx) => {
+    return requireSessionApi<BoardRouteContext>(async (req, ctx) => {
         const params = await ctx.params;
         const resolved = await resolveBoardAccess({
             boardId: params.id,
-            profile: ctx.subjectProfile,
+            profile: ctx.profile,
             capability,
-            isImpersonating: ctx.authRequest.isImpersonating,
         });
         if (!resolved.ok) {
             return resolved.response;

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { UserType } from "@repo/sdk/src/types";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -38,7 +37,6 @@ describe("userRepository.hasArchivedProfile against the Firestore emulator", () 
         const referenceId = newReferenceId("soft-deleted");
         const created = await userRepository.create({
             reference_id: referenceId,
-            type: UserType.COMMON,
         } as Parameters<typeof userRepository.create>[0]);
 
         expect(await userRepository.hasArchivedProfile(referenceId)).toBe(
@@ -55,7 +53,6 @@ describe("userRepository.hasArchivedProfile against the Firestore emulator", () 
         const referenceId = newReferenceId("live");
         await writeRawProfile({
             reference_id: referenceId,
-            type: UserType.COMMON,
             deletedAt: null,
         });
 
@@ -68,7 +65,6 @@ describe("userRepository.hasArchivedProfile against the Firestore emulator", () 
         const referenceId = newReferenceId("no-field");
         await writeRawProfile({
             reference_id: referenceId,
-            type: UserType.COMMON,
         });
 
         expect(await userRepository.hasArchivedProfile(referenceId)).toBe(
@@ -86,12 +82,10 @@ describe("userRepository.hasArchivedProfile against the Firestore emulator", () 
         const referenceId = newReferenceId("mixed");
         await writeRawProfile({
             reference_id: referenceId,
-            type: UserType.COMMON,
             deletedAt: null,
         });
         await writeRawProfile({
             reference_id: referenceId,
-            type: UserType.COMMON,
             deletedAt: new Date(),
         });
 

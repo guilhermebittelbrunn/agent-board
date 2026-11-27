@@ -17,20 +17,17 @@ import {
 } from "@/(shared)/mappers/board-member.mapper";
 import { boardRepository } from "@/(shared)/repositories/board.repository";
 import { parseCreateBoard } from "@/(shared)/validation/board.schema";
-import { requireCommonPanelApi } from "@/app/(guards)/common-panel";
+import { requireSessionApi } from "@/app/(guards)/session";
 
 const errorResponse = (code: string, status: number) =>
     Response.json({ error: { code } }, { status });
 
-export const GET = requireCommonPanelApi(async (_req, ctx) => {
-    const boards = await listBoardsOf(
-        ctx.subjectProfile,
-        ctx.authRequest.isImpersonating
-    );
+export const GET = requireSessionApi(async (_req, ctx) => {
+    const boards = await listBoardsOf(ctx.profile);
     return Response.json({ data: boards });
 });
 
-export const POST = requireCommonPanelApi(async (req, ctx) => {
+export const POST = requireSessionApi(async (req, ctx) => {
     const parsedBody = await parseRequestJson(req);
     if (!parsedBody.ok) {
         return parsedBody.response;
@@ -40,7 +37,7 @@ export const POST = requireCommonPanelApi(async (req, ctx) => {
         return parsed.response;
     }
 
-    const profile = ctx.subjectProfile;
+    const profile = ctx.profile;
     const target = await resolveImportTarget(profile, parsed.value.repository);
     if (!target.ok) {
         return target.response;

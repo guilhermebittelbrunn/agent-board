@@ -10,7 +10,7 @@ export const POST = requireBoardApi<CardRouteParams>(
         const result = await stopRun({
             board: ctx.board,
             slug: ctx.params.slug,
-            by: { userId: ctx.subjectProfile.id, login: ctx.member.login },
+            by: { userId: ctx.profile.id, login: ctx.member.login },
         });
         if (!result.ok) {
             return Response.json(

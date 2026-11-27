@@ -36,16 +36,16 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     // ALTERNATIVA (NÃO ativa) — só se um dia expor coleções direto ao cliente.
     //
-    // ATENÇÃO ao modelo de dados: o escopo de `entity` é `entity.userId`, que
+    // ATENÇÃO ao modelo de dados: o escopo de `runner` é `runner.userId`, que
     // guarda o ID do documento de perfil (coleção `user`), NÃO o UID do
     // Firebase Auth. A ponte UID → perfil é resolvida na API. Regras no cliente
     // exigiriam ler o perfil aqui (custoso). Por isso o acesso direto de
     // cliente NÃO é recomendado.
     //
-    // Exemplo ilustrativo (assumindo entity.userId == request.auth.uid):
+    // Exemplo ilustrativo (assumindo runner.userId == request.auth.uid):
     //   function isSignedIn() { return request.auth != null; }
     //   function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
-    //   match /entity/{entityId} {
+    //   match /runner/{runnerId} {
     //     allow read, update, delete: if isOwner(resource.data.userId);
     //     allow create: if isSignedIn()
     //       && request.resource.data.userId == request.auth.uid;

@@ -34,7 +34,6 @@ const USER = {
 };
 const SESSION_USER = {
     uid: UID,
-    type: "common",
     email: USER.email,
     preferences: { theme: "dark", locale: "pt-br" },
 };

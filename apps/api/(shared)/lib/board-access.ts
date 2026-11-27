@@ -13,10 +13,8 @@ import type { BoardAccessDTO, BoardDTO, UserDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import {
     type BoardMemberRecord,
-    boardMemberMapper,
     effectiveRoleOf,
     type MemberIdentity,
-    ownerMemberWrite,
     toBoardAccess,
 } from "@/(shared)/mappers/board-member.mapper";
 import { boardRepository } from "@/(shared)/repositories/board.repository";
@@ -72,13 +70,11 @@ const boardNotFound = () => refuse("BOARD_NOT_FOUND", HTTP_STATUS.NOT_FOUND);
 
 /**
  * Who the person is on this board. A board created before members existed gets its owner
- * document here. While impersonating nothing is written: an invitation is the invited
- * person's to claim, and a write on someone's behalf has no trustworthy author.
+ * document here, and a pending invitation for the person's login is claimed.
  */
 async function findMembership(
     board: BoardDTO,
-    identity: MemberIdentity,
-    isImpersonating: boolean
+    identity: MemberIdentity
 ): Promise<BoardMemberRecord | null> {
     const active = await boardMemberRepository.findActive(
         board.id,
@@ -89,21 +85,9 @@ async function findMembership(
     }
 
     if (board.ownerUserId === identity.userId) {
-        if (isImpersonating) {
-            const { id, document } = ownerMemberWrite(
-                board.id,
-                identity,
-                null,
-                new Date()
-            );
-            return boardMemberMapper.toDTO({ id, ...document });
-        }
         return boardMemberRepository.createOwnerMember(board.id, identity);
     }
 
-    if (isImpersonating) {
-        return null;
-    }
     const pending = await boardMemberRepository.findPending(
         board.id,
         identity.github.login
@@ -140,10 +124,9 @@ export async function resolveBoardAccess(input: {
     boardId: string;
     profile: UserDTO;
     capability: BoardCapability;
-    isImpersonating: boolean;
     now?: Date;
 }): Promise<BoardAccess> {
-    const { profile, capability, isImpersonating } = input;
+    const { profile, capability } = input;
     const now = input.now ?? new Date();
 
     const board = await boardRepository.findById(input.boardId);
@@ -155,11 +138,10 @@ export async function resolveBoardAccess(input: {
         return boardNotFound();
     }
 
-    const member = await findMembership(
-        board,
-        { userId: profile.id, github },
-        isImpersonating
-    );
+    const member = await findMembership(board, {
+        userId: profile.id,
+        github,
+    });
     if (!member) {
         return boardNotFound();
     }
@@ -196,7 +178,7 @@ export async function resolveBoardAccess(input: {
     };
 
     // Written before refusing, so the members screen shows who lost the repository.
-    if (stale && !isImpersonating) {
+    if (stale) {
         await boardMemberRepository.recordCheck(member.id, {
             githubRole,
             checkedAt: now,

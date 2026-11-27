@@ -55,7 +55,7 @@ export const POST = requireBoardApi<CardRouteParams>(
         const moved = await cardRepository.move(card.id, {
             lane: target.lane,
             order,
-            movedByUserId: ctx.subjectProfile.id,
+            movedByUserId: ctx.profile.id,
         });
         if (!moved.ok) {
             return errorResponse(moved.code, MOVE_REFUSAL_STATUS[moved.code]);
