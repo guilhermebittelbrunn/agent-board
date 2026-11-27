@@ -1,11 +1,4 @@
-import type { EntityDTO } from "@repo/sdk/src/types";
-import { logEvent } from "@repo/shared/utils/helpers/log";
-import {
-    isOwnedBy,
-    isStorageConfigured,
-    isStorageObjectPath,
-    signReadUrl,
-} from "./storage";
+import { isOwnedBy, isStorageObjectPath } from "./storage";
 
 const ABSOLUTE_URL_RE = /^https?:\/\//i;
 
@@ -58,36 +51,3 @@ export const isUsablePhotoReference = (
     ownerId: string
 ): boolean =>
     isAllowedExternalImageUrl(value) || isOwnStorageObject(value, ownerId);
-
-/**
- * `photoUrl` only ever exists on the way out. The document keeps the reference, so an
- * expiring signature can never be written back by an update that spreads the DTO.
- */
-export async function withPhotoUrl(entity: EntityDTO): Promise<EntityDTO> {
-    if (!entity.photo) {
-        return { ...entity, photoUrl: null };
-    }
-
-    if (isAbsoluteHttpUrl(entity.photo)) {
-        return { ...entity, photoUrl: entity.photo };
-    }
-
-    // Signing is refused for anything that is not a well-formed object path, so a value
-    // that predates the current validation cannot be turned into a working link.
-    if (!(isStorageConfigured() && isStorageObjectPath(entity.photo))) {
-        return { ...entity, photoUrl: null };
-    }
-
-    try {
-        const { url } = await signReadUrl(entity.photo);
-        return { ...entity, photoUrl: url };
-    } catch {
-        // A bucket that refuses to sign is a misconfiguration of one record's image,
-        // not a reason to fail the whole read: the row renders without a thumbnail.
-        logEvent("storage", "sign-url-failed", { resource: "entity-photo" });
-        return { ...entity, photoUrl: null };
-    }
-}
-
-export const withPhotoUrls = (list: EntityDTO[]): Promise<EntityDTO[]> =>
-    Promise.all(list.map(withPhotoUrl));
