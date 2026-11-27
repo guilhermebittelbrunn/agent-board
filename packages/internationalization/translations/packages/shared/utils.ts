@@ -131,6 +131,16 @@ export const sharedUtilsTranslations = {
                 "Já existem specs com nomes parecidos com este pedido. Mude o começo do texto e tente de novo.",
             RUN_EXECUTOR_UNAVAILABLE:
                 "Nenhum runner seu está online. Inicie o runner e tente de novo.",
+            RUN_NO_CREDENTIAL_FOR_STAGE:
+                "Nenhuma credencial sua serve a esta etapa. Veja Minhas credenciais.",
+            CREDENTIALS_ENCRYPTION_NOT_CONFIGURED:
+                "O cadastro de credenciais da nuvem está desligado neste ambiente.",
+            CREDENTIAL_STAGE_NOT_FOUND: "Esta etapa não existe no board.",
+            CREDENTIAL_STAGE_NOT_CLOUD:
+                "O board.yml não permite nuvem nesta etapa.",
+            CREDENTIAL_FIRE_URL_INVALID:
+                "Use a Fire URL do gatilho de API da tarefa agendada.",
+            CREDENTIAL_NOT_FOUND: "Credencial não encontrada.",
             RUNNER_TOKEN_INVALID: "Token do runner inválido.",
             RUNNER_REVOKED: "Este runner foi revogado. Registre de novo.",
             RUNNER_CODE_INVALID:

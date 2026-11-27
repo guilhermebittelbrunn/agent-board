@@ -198,6 +198,8 @@ export const commonBoardsPageTranslations = {
                     stopped: "Parado por {login}.",
                     noRunner:
                         "Nenhum runner seu pegou esta etapa. Inicie o runner e rode de novo.",
+                    noCredential:
+                        "Você não tem credencial que sirva a {column}. Veja Minhas credenciais.",
                     awaitingApproval: "Plano pronto · aguarda sua aprovação",
                     awaitingMerge: "Aguardando o merge",
                 },
@@ -713,9 +715,67 @@ export const commonBoardsPageTranslations = {
             },
             howItRuns: {
                 title: "Com que credencial cada disparo roda",
-                own: "Um runner seu que esteja online.",
+                own: "Um runner seu que esteja online, se o board.yml deixar a etapa rodar no runner local.",
                 refused:
                     "Se nenhum servir, o disparo é recusado e o motivo aparece no card.",
+            },
+            cloud: {
+                title: "Nuvem: tarefas agendadas por etapa",
+                description:
+                    "Uma tarefa agendada do Claude Code, com gatilho de API, para cada etapa. O board guarda a URL e o token cifrados. Por enquanto as etapas rodam só no runner local.",
+                disabled: "O cadastro na nuvem está desligado neste ambiente.",
+                columns: {
+                    stage: "Etapa",
+                    status: "Situação",
+                    url: "URL de disparo",
+                    token: "Token",
+                    action: "Ação",
+                },
+                status: {
+                    saved: "Cadastrada",
+                    missing: "Não cadastrada",
+                    localOnly: "Só no runner local",
+                },
+                localOnlyHint: "o board.yml não permite nuvem",
+                urlHint: "…/routines/••••{last4}",
+                tokenEnding: "terminando em {last4}",
+                empty: "—",
+                add: "Cadastrar",
+                replace: "Trocar",
+                remove: "Remover",
+                addAria: "Cadastrar a tarefa agendada de {stage}",
+                replaceAria: "Trocar a tarefa agendada de {stage}",
+                removeAria: "Remover a tarefa agendada de {stage}",
+                dialog: {
+                    title: "Tarefa agendada de {stage}",
+                    description:
+                        "Cole a Fire URL e o token do gatilho de API da tarefa. O token aparece uma vez só no Claude Code.",
+                    fireUrl: "Fire URL",
+                    fireUrlPlaceholder:
+                        "https://api.anthropic.com/v1/claude_code/routines/trig_…/fire",
+                    fireUrlInvalid:
+                        "Use a Fire URL do gatilho de API da tarefa agendada.",
+                    token: "Token",
+                    tokenInvalid:
+                        "Cole o token inteiro, com pelo menos 20 caracteres.",
+                    save: "Salvar",
+                    saving: "Salvando…",
+                    cancel: "Cancelar",
+                    saved: "Tarefa agendada de {stage} salva.",
+                },
+                removeDialog: {
+                    title: "Remover a tarefa agendada de {stage}?",
+                    description:
+                        "O board apaga a URL e o token guardados. A tarefa continua existindo no Claude Code.",
+                    confirm: "Remover",
+                    removing: "Removendo…",
+                    cancel: "Cancelar",
+                    removed: "Tarefa agendada de {stage} removida.",
+                },
+            },
+            secrets: {
+                title: "Segredos",
+                body: "Tokens e URLs de disparo ficam cifrados na API. Aqui você vê só os últimos caracteres e pode remover a qualquer hora.",
             },
         },
     },
