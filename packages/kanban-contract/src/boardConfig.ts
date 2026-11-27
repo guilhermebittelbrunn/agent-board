@@ -214,6 +214,7 @@ export const boardConfigSchema = z
         }
     });
 
+export type RunnerKind = z.infer<typeof runnerKindSchema>;
 export type StageConfig = z.infer<typeof stageConfigSchema>;
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
 export type SpecAuthoringConfig = z.infer<typeof specAuthoringConfigSchema>;

@@ -18,6 +18,7 @@ export const RUN_END_REASONS = [
     "dispatch_failed",
     "stopped",
     "no_runner",
+    "no_credential",
 ] as const;
 export type RunEndReason = (typeof RUN_END_REASONS)[number];
 
