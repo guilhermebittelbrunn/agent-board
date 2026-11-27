@@ -58,6 +58,43 @@ describe("boardMapper.toDTO", () => {
     });
 });
 
+describe("boardMapper.toDTO config", () => {
+    it("fills the fields a board imported before them does not store", () => {
+        const { specAuthoring: _specAuthoring, ...stored } = config ?? {};
+        const legacy = {
+            ...stored,
+            stages: config?.stages.map(
+                ({ runners: _runners, ...stage }) => stage
+            ),
+            limits: { maxReworkLoops: 2, maxTurnsPerStage: 200 },
+        };
+
+        const dto = boardMapper.toDTO({ id: "b", config: legacy });
+
+        expect(dto.config.specAuthoring).toEqual({
+            command: "/spec",
+            agent: "estrategista-produto",
+            model: "opus",
+            effort: "high",
+            runners: ["local", "cloud"],
+            path: "specs/features/{slug}.md",
+        });
+        expect(dto.config.stages.every((stage) => stage.runners)).toBe(true);
+        expect(dto.config.limits).toEqual(config?.limits);
+    });
+
+    it("keeps a stored config the current rules refuse as it is", () => {
+        const refused = {
+            ...config,
+            stages: [{ key: "spec", column: "Spec", command: "/spec" }],
+        };
+
+        const dto = boardMapper.toDTO({ id: "b", config: refused });
+
+        expect(dto.config).toBe(refused);
+    });
+});
+
 describe("boardMapper.toDTO backlogSync", () => {
     it("turns the last sync instant into ISO", () => {
         const dto = boardMapper.toDTO({

@@ -1,4 +1,4 @@
-import type { BoardConfig } from "@repo/kanban-contract";
+import { type BoardConfig, parseBoardConfig } from "@repo/kanban-contract";
 import type {
     BoardBacklogSyncDTO,
     BoardConfigSourceDTO,
@@ -64,6 +64,16 @@ export function withoutUndefined<T>(value: T): T {
     return out as T;
 }
 
+/**
+ * The stored config is the one parsed at import or at the last reload, so a board read
+ * after the schema gained a field (`specAuthoring`, `stages[].runners`, ...) lacks it.
+ * Parsing again fills those defaults; a config the current rules refuse stays as stored.
+ */
+function toBoardConfig(value: unknown): BoardConfig {
+    const parsed = parseBoardConfig(value);
+    return parsed.success ? parsed.data : (value as BoardConfig);
+}
+
 function toBacklogSync(value: unknown): BoardBacklogSyncDTO | null {
     if (value === null || typeof value !== "object") {
         return null;
@@ -115,6 +125,7 @@ class BoardMapper extends Mapper<BoardFirestoreRow, BoardDTO> {
         const { id, ...record } = row;
         const repository = asRecord(record.repository);
         const source = asRecord(record.configSource);
+        const config = toBoardConfig(record.config);
 
         return {
             id,
@@ -129,7 +140,7 @@ class BoardMapper extends Mapper<BoardFirestoreRow, BoardDTO> {
                 defaultBranch: String(repository.defaultBranch ?? ""),
                 private: Boolean(repository.private ?? false),
             } satisfies BoardRepositoryDTO,
-            config: record.config as BoardConfig,
+            config,
             configSource: {
                 path: String(source.path ?? ""),
                 ref: String(source.ref ?? ""),
@@ -137,10 +148,7 @@ class BoardMapper extends Mapper<BoardFirestoreRow, BoardDTO> {
                 readAt: normalizeFirestoreInstant(source.readAt),
             },
             backlogSync: toBacklogSync(record.backlogSync),
-            stageSettings: toStageSettings(
-                record.stageSettings,
-                record.config as BoardConfig | undefined
-            ),
+            stageSettings: toStageSettings(record.stageSettings, config),
             createdAt: normalizeFirestoreInstant(record.createdAt),
             updatedAt: normalizeFirestoreInstant(record.updatedAt),
             deletedAt:
