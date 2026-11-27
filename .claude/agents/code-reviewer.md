@@ -35,7 +35,7 @@ então só a metade da conversa se aplica:
 
 1. **Determine o escopo**: por padrão o diff atual — `git diff --merge-base origin/main` (ou `git diff` se
    não houver base). Se o usuário indicar arquivos/commit, use-os.
-2. Leia os arquivos alterados e os vizinhos relevantes. O **slice de referência `entity`** (seção 0 de
+2. Leia os arquivos alterados e os vizinhos relevantes. O **slice de referência `boardMember`** (seção 0 de
    [`docs/feature-analysis-guide.md`](../../docs/feature-analysis-guide.md)) é o padrão contra o qual você
    compara.
 3. **Aplique o checklist**: [`docs/review-checklist.md`](../../docs/review-checklist.md) é a **fonte única**

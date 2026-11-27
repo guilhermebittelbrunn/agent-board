@@ -1,6 +1,6 @@
 # API (`apps/api`)
 
-Regras de escopo para a API Next — rotas, validação, auth na borda. O Claude carrega este arquivo automaticamente ao trabalhar em `apps/api`. Veja também o [`CLAUDE.md`](../../CLAUDE.md) raiz (regras de ouro) e o [`AGENTS.md`](../../AGENTS.md) (padrões detalhados). Recurso de referência: `entity` (`app/(routes)/entities/`).
+Regras de escopo para a API Next — rotas, validação, auth na borda. O Claude carrega este arquivo automaticamente ao trabalhar em `apps/api`. Veja também o [`CLAUDE.md`](../../CLAUDE.md) raiz (regras de ouro) e o [`AGENTS.md`](../../AGENTS.md) (padrões detalhados). Recurso de referência: membros do board (`app/(routes)/boards/[id]/members/`).
 
 ## Rotas
 
@@ -9,7 +9,7 @@ Regras de escopo para a API Next — rotas, validação, auth na borda. O Claude
 
 ## Camadas
 
-- **Guards** (`app/(guards)`): auth/session antes da lógica (`requireCommonPanelApi`, `requireAdminApi`; o guard de papel do board nasce na spec `board-members`, composto sobre o `requireCommonPanelApi`). Para rota `[id]`, parametrize com `RouteIdParamsContext`.
+- **Guards** (`app/(guards)`): auth/session antes da lógica (`requireSessionApi` resolve a pessoa e o perfil em `ctx.profile`; `requireBoardApi` compõe sobre ele e exige o papel efetivo no board). Para rota `[id]`, parametrize com `RouteIdParamsContext`.
 - **Repositórios / adapters** (`(shared)/repositories`): isolam persistência; contratos alinhados ao `@repo/sdk` na borda. Entrada/saída "crua" do Firestore ainda pode exigir normalização mínima (ex.: `Timestamp` → ISO); evite camadas DTO redundantes (`findDtoById`) quando a rota já valida posse.
 - **Mappers** (`(shared)/mappers`): use quando DTO de API ≠ modelo interno; para recursos simples prefira um helper pequeno no repositório em vez de ficheiros só para isso.
 
@@ -28,8 +28,8 @@ Regras de escopo para a API Next — rotas, validação, auth na borda. O Claude
 
 ## Segurança e i18n
 
-- Repetir checagens de permissão mesmo que o front já restrinja rotas. Cheque o escopo em todo handler que recebe id. Recurso da pessoa: predicado no repositório (`entityRepository.findOwnedBy(id, ctx.subjectProfile.id)` → `null` → 404), ou a checagem `row.userId !== ctx.subjectProfile.id` → 404 numa leitura simples como `notification`. Recurso de um board: escopo do board depois do guard de papel. Ver "Escopo de dados" em `docs/ARCHITECTURE.md`.
-- Respostas de erro para o cliente expõem um **`error.code`** estável (ex.: `ENTITY_NOT_FOUND`, `VALIDATION_FAILED`), nunca stack trace nem mensagens internas como copy principal.
+- Repetir checagens de permissão mesmo que o front já restrinja rotas. Cheque o escopo em todo handler que recebe id. Recurso da pessoa: predicado no repositório (`runnerRepository.revokeOwned(id, ctx.profile.id, …)` → `false` → 404), ou a checagem `row.userId !== ctx.profile.id` → 404 numa leitura simples. Recurso de um board: escopo do board depois do guard de papel. Ver "Escopo de dados" em `docs/ARCHITECTURE.md`.
+- Respostas de erro para o cliente expõem um **`error.code`** estável (ex.: `BOARD_MEMBER_NOT_FOUND`, `VALIDATION_FAILED`), nunca stack trace nem mensagens internas como copy principal.
 - Ao adicionar um código de erro novo, adicione a chave em `translations/packages/shared/utils.ts` (`apiErrors`) — use a skill `/i18n-sync`. O teste `__tests__/apiErrorCodesTranslated.test.ts` falha se esquecer.
 
 ## Compartilhamento

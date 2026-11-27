@@ -40,7 +40,7 @@ partir de cards. Uma spec só é legítima se:
   reduz um risco de [`docs/board/DECISIONS.md`](../../docs/board/DECISIONS.md); o que não move nenhum
   gate vai para `deferred`;
 - **cabe no padrão do repo** — slice vertical `packages/sdk` → `apps/api` → `apps/app` → i18n,
-  espelhando o recurso de referência `entity`;
+  espelhando o recurso de referência `boardMember`;
 - **não arrasta custo recorrente sem número** (serviço pago, minutos de runner, tokens) — o custo
   estimado, com fonte e data, fica **escrito nos riscos**;
 - **não duplica** o que já está no código.

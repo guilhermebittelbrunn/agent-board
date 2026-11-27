@@ -18,7 +18,7 @@ escopo: [`apps/app/CLAUDE.md`](../../../apps/app/CLAUDE.md) (front) e
   (`globalTranslations`).
 - No app: `const { dictionary, locale } = getDictionary()` — client de
   `@repo/internationalization/client`, server de `@repo/internationalization/server`. Acesso por caminho,
-  ex.: `dictionary.apps.app.pages.common.entities.messages.created`.
+  ex.: `dictionary.apps.app.pages.common.boards.members.invite.success`.
 - `locales` e `getDefaultLocale` ficam em `packages/internationalization/utils.ts`. O segmento `[locale]`
   da URL continua existindo (hoje só aceita `pt-br`); no servidor ele chega pelo header
   `x-request-locale` que o proxy repassa.
@@ -26,13 +26,13 @@ escopo: [`apps/app/CLAUDE.md`](../../../apps/app/CLAUDE.md) (front) e
 ## Adicionar/editar chaves de UI
 
 1. **Localize ou crie a folha** sob o caminho que reflete onde o texto aparece (ex.: página comum →
-   `translations/apps/app/pages/common/<recurso>.ts`). Espelhe `entities.ts` como modelo de estrutura
-   (`title`, `fields`, `messages`, `table`, etc.).
+   `translations/apps/app/pages/common/<recurso>.ts`). Espelhe o bloco `members` de `boards.ts` como modelo de
+   estrutura (título, campos, mensagens, tabela).
 2. **Adicione a chave dentro de `"pt-br"`**, com nome estável e descritivo (`messages.created`,
    `fields.name.label`).
 3. **Conecte no `index.ts`** do diretório (e acima, se for folha nova) para que apareça em
    `globalTranslations`.
-4. No app, a variável que guarda a fatia do dictionary tem nome descritivo (`entitiesMessages`), nunca
+4. No app, a variável que guarda a fatia do dictionary tem nome descritivo (`membersCopy`), nunca
    `t`/`d`.
 5. Mensagens de Zod: injete via `buildXSchema(dictionary)` em vez de texto fixo no schema compartilhado.
 

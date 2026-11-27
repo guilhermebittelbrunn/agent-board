@@ -29,7 +29,7 @@ Regra completa em [`.claude/rules/writing-skills.md`](../rules/writing-skills.md
 - ⛔ **Nada de `caveman` no plano nem em nenhum arquivo.** O que fica no repo é português normal.
 
 > **Este repo é um boilerplate para gerar MVPs.** Prefira sempre a **menor fatia vertical** que entrega
-> valor observável, seguindo o slice de referência `entity`, ao caso geral perfeito. Se a tarefa pede
+> valor observável, seguindo o slice de referência `boardMember`, ao caso geral perfeito. Se a tarefa pede
 > abstração antes de existir o segundo caso de uso, registre isso como recomendação de escopo.
 
 ## Entrada
@@ -82,14 +82,14 @@ A descrição e os comentários quase sempre apontam para o material que **é a 
    preenche. Consulte também [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) e, quando a tarefa
    tocar auth/env, [`AUTH-PANEL.md`](../../docs/AUTH-PANEL.md) / [`SETUP.md`](../../docs/SETUP.md) /
    [`SECURITY.md`](../../docs/SECURITY.md); quando tocar o board, [`docs/board/`](../../docs/board/README.md).
-3. **Leia o slice de referência `entity`** antes de desenhar qualquer coisa nova (a seção 0 do guia lista
+3. **Leia o slice de referência `boardMember`** antes de desenhar qualquer coisa nova (a seção 0 do guia lista
    os 10 caminhos). Tudo que você propor deve espelhar esse padrão ou justificar o desvio.
 4. Mapeie o código relevante. Para acelerar, **dispare subagents `Explore` em paralelo** quando o escopo
    for amplo (ex.: um para `apps/api`, um para `apps/app`, um para `packages/sdk` + i18n).
 5. Os `CLAUDE.md` aninhados (`apps/api`, `apps/app`, `packages`) são as regras acionáveis por
    área e [`AGENTS.md`](../../AGENTS.md) tem os detalhes de design system/RHF.
-6. **Procure precedentes**: features análogas já implementadas (`entity` para CRUD e upload, `users` para
-   área admin, `notification` para evento por pessoa). Use como checklist — revela todos os pontos que aquela
+6. **Procure precedentes**: features análogas já implementadas (`boardMember` para CRUD sob um board,
+   `runner` para recurso da pessoa, a conta para upload de avatar). Use como checklist — revela todos os pontos que aquela
    mudança tocou.
 7. **Tarefa de "ajustar algo que já existe"**: **mapeie cada campo/elemento exigido à sua origem de dado
    real** — já existe no DTO do SDK? precisa de campo novo no documento? precisa de tela de
@@ -170,19 +170,19 @@ docs/features/<slug>/
 Siga as seções 1 a 9 do `feature-analysis-guide.md`, marcando `N/A` o que não se aplica:
 
 - Contexto, objetivos, **fora de escopo** e o **corte de MVP**.
-- Apps impactados; área do painel (comum × admin).
+- Apps impactados; guard (`requireSessionApi` × `requireBoardApi`) e papel no board.
 - **Dados (Firestore)**: coleção, campos novos (nome, tipo, default, `null`?, justificativa), ownership
   (`userId`), soft delete, consultas necessárias e o **limite real do `BaseRepository`** (sem paginação,
   sem `orderBy`, filtro em memória) — se o volume torna isso inviável, é decisão de arquitetura a
   registrar, não algo a improvisar.
-- **Contrato `@repo/sdk`**: DTO, `Create/UpdateRequest`, action, contexto (`common`/`admin`), e quem
+- **Contrato `@repo/sdk`**: DTO, `Create/UpdateRequest`, action, e quem
   quebra.
 - **API**: rota/método, guard, ownership, schema Zod, repositório/mapper, **códigos de erro novos +
   status** (e as entradas correspondentes em `apiErrors`).
 - **Front**: rotas/grupos, prefetch RSC, `queryKeys`, hooks, formulário (campos × componente
   `HookForm*`), tabela, estados.
 - **i18n**: árvore de chaves novas (pt-br).
-- **Autorização/segurança**, incluindo comportamento sob **impersonação**.
+- **Autorização/segurança**, incluindo o papel efetivo no board quando o recurso é de um board.
 - **Testes** a criar — nomeie o **nível** de cada um e prefira o mais barato que prova o comportamento
   (schema, mapper, hook, rota com `vi.mock` do repositório e do guard). Só planeje teste que exija processo
   externo (emulador do Firebase, app servindo) quando o objeto do teste for a **infra**: consulta real que

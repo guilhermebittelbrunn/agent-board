@@ -157,7 +157,7 @@ dizer o que ele subiu, o que reutilizou e que derrubou o que era dele. Se ele n�
 
 ## Passo 5 — Cross-check
 
-Liste os ambientes a conferir quando a mudança os afetar: comum × admin × impersonação, mobile ×
+Liste os ambientes a conferir quando a mudança os afetar: papéis no board, mobile ×
 desktop, light × dark. Registre os
 follow-ups.
 

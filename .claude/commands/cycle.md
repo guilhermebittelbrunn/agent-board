@@ -118,7 +118,7 @@ com `spec: <id>`.
 
 1. onde a **spec** já recomenda uma escolha → adote a spec;
 2. onde a spec é omissa mas há **padrão vigente no repo** → siga o padrão (o slice de referência é
-   `entity`);
+   `boardMember`);
 3. onde resta ambiguidade real → **escolha o menor raio de impacto**, implemente essa, e registre em
    "Perguntas em aberto" com: a pergunta, as opções, **a que foi adotada** e por quê.
 

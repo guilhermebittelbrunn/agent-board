@@ -166,7 +166,7 @@ Use exatamente esta estrutura:
 
 | # | Comentário (autor · arquivo:linha) | Itens | Resultado |
 |---|------------------------------------|-------|-----------|
-| 1 | @revisor · `entities/[id]/route.ts:34` | 4 | 2 ✅ · 1 📦 · 1 ❌ |
+| 1 | @revisor · `boards/[id]/members/route.ts:34` | 4 | 2 ✅ · 1 📦 · 1 ❌ |
 | 2 | @fulano · geral | 1 | 1 ✅ |
 
 **Total:** X ✅ · X 🩹 · X ✔️ · X ❌ · X 📦 · X 🎯 · X ⏳ · X ❓
