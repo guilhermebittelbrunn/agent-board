@@ -15,6 +15,7 @@ import { BoardSectionNav } from "../../../(components)/BoardSectionNav";
 import { RevokeRunnerDialog } from "../../../(components)/RevokeRunnerDialog";
 import { RunnerList } from "../../../(components)/RunnerList";
 import { RunnerRegistrationPanel } from "../../../(components)/RunnerRegistrationPanel";
+import { ScheduledTaskSection } from "../../../(components)/ScheduledTaskSection";
 import { useFindBoardById } from "../../../(hooks)/useFindBoardById";
 import { useListRunners } from "../../../(hooks)/useListRunners";
 import { useRunnerCrud } from "../../../(hooks)/useRunnerCrud";
@@ -166,15 +167,29 @@ export function BoardCredentialsClient() {
                                 registration={registration}
                             />
                         </section>
-                        <aside className="flex flex-col gap-2 rounded-md border p-4 text-sm">
-                            <h2 className="font-semibold">
-                                {credentialsCopy.howItRuns.title}
-                            </h2>
-                            <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
-                                <li>{credentialsCopy.howItRuns.own}</li>
-                                <li>{credentialsCopy.howItRuns.refused}</li>
-                            </ol>
+                        <aside className="order-last flex flex-col gap-4 lg:order-none lg:row-span-2">
+                            <div className="flex flex-col gap-2 rounded-md border p-4 text-sm">
+                                <h2 className="font-semibold">
+                                    {credentialsCopy.howItRuns.title}
+                                </h2>
+                                <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+                                    <li>{credentialsCopy.howItRuns.own}</li>
+                                    <li>{credentialsCopy.howItRuns.refused}</li>
+                                </ol>
+                            </div>
+                            <div className="flex flex-col gap-2 rounded-md border p-4 text-sm">
+                                <h2 className="font-semibold">
+                                    {credentialsCopy.secrets.title}
+                                </h2>
+                                <p className="text-muted-foreground">
+                                    {credentialsCopy.secrets.body}
+                                </p>
+                            </div>
                         </aside>
+                        <ScheduledTaskSection
+                            board={board}
+                            boardsDictionary={boardsDictionary}
+                        />
                         <RevokeRunnerDialog
                             boardsDictionary={boardsDictionary}
                             isPending={revokeMutation.isPending}

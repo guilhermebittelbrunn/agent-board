@@ -32,6 +32,10 @@ export default async function BoardCredentialsPage({
                     queryKey: queryKeys.runners.list(),
                     queryFn: () => client.runner.list(),
                 }),
+                queryClient.prefetchQuery({
+                    queryKey: queryKeys.boards.credentials(id),
+                    queryFn: () => client.boardCredential.list(id),
+                }),
             ]);
         }
     }
