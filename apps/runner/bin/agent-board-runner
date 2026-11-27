@@ -1,0 +1,5 @@
+#!/bin/sh
+# Resolves the link to this file, so the CLI next to it runs wherever the command is called.
+# exec hands the terminal's signals straight to node: a Ctrl+C reaches the runner once.
+DIR=$(dirname "$(realpath "$0")")
+exec node --experimental-strip-types --disable-warning=ExperimentalWarning "$DIR/../src/cli.ts" "$@"
