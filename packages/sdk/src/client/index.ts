@@ -6,6 +6,7 @@ import AuthActions from "../actions/auth/action";
 import BoardActions from "../actions/board/action";
 import BoardCardActions from "../actions/boardCard/action";
 import BoardCredentialActions from "../actions/boardCredential/action";
+import BoardCycleActions from "../actions/boardCycle/action";
 import BoardDraftActions from "../actions/boardDraft/action";
 import BoardMemberActions from "../actions/boardMember/action";
 import FileActions from "../actions/file/action";
@@ -18,6 +19,7 @@ export class Client extends BaseClient {
     board!: BoardActions;
     boardCard!: BoardCardActions;
     boardCredential!: BoardCredentialActions;
+    boardCycle!: BoardCycleActions;
     boardDraft!: BoardDraftActions;
     boardMember!: BoardMemberActions;
     file!: FileActions;
@@ -32,6 +34,7 @@ export class Client extends BaseClient {
         this.board = new BoardActions(this);
         this.boardCard = new BoardCardActions(this);
         this.boardCredential = new BoardCredentialActions(this);
+        this.boardCycle = new BoardCycleActions(this);
         this.boardDraft = new BoardDraftActions(this);
         this.boardMember = new BoardMemberActions(this);
         this.file = new FileActions(this);

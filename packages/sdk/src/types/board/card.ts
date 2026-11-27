@@ -80,6 +80,8 @@ export type CardDTO = {
     lastRun: CardLastRunDTO | null;
     pullRequest: CardPullRequestDTO | null;
     pullRequestError: CardPullRequestErrorDTO | null;
+    /** The cycle the card runs in; `null` outside a cycle. */
+    cycleId: string | null;
     movedAt: string | null;
     syncedAt: string;
     createdAt: string;

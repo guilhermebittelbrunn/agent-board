@@ -4,6 +4,7 @@ import type {
     CardLane,
     Question,
     ResolvedAnswer,
+    StageDecision,
     StageOutcome,
 } from "@repo/kanban-contract";
 import type { CardDTO } from "./card";
@@ -41,6 +42,8 @@ export type CardEventDTO =
           type: "report";
           markdown: string;
           outcome: StageOutcome;
+          /** What the agent decided without asking; empty outside a cycle. */
+          decisions: StageDecision[];
       })
     | (CardEventBase & {
           type: "comment";
