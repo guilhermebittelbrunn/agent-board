@@ -30,10 +30,14 @@ const card = (overrides: Partial<CardRecord> = {}): CardRecord => ({
         path: "specs/features/search-cards.md",
         sha: "x",
         status: "approved",
+        ref: null,
     },
     ready: true,
     orphan: false,
     lane: "tasks",
+    origin: "repository",
+    request: null,
+    specApproval: null,
     stageKey: null,
     state: "idle",
     pendingAsk: null,
@@ -344,6 +348,89 @@ describe("planCompletion", () => {
                 reworkLoops: 0,
             },
             next: null,
+        });
+    });
+});
+
+describe("the spec stage of a draft", () => {
+    const draft = (overrides: Partial<CardRecord> = {}) =>
+        card({
+            slug: "slack-alerts",
+            lane: "drafts",
+            stageKey: "spec",
+            origin: "board",
+            ready: false,
+            branch: "feat/slack-alerts",
+            ...overrides,
+        });
+
+    it("runs the spec stage on a draft without asking for readiness", () => {
+        expect(decideTrigger(draft(), "spec", config)).toMatchObject({
+            ok: true,
+            stage: {
+                key: "spec",
+                command: "/spec",
+                agent: "estrategista-produto",
+            },
+            branch: "feat/slack-alerts",
+            resetReworkLoops: false,
+        });
+    });
+
+    it("refuses the spec stage outside Drafts and a normal stage on a draft", () => {
+        expect(decideTrigger(card(), "spec", config)).toEqual({
+            ok: false,
+            code: "CARD_STAGE_NOT_FOUND",
+            status: 422,
+        });
+        expect(decideTrigger(draft(), "analyze", config)).toEqual({
+            ok: false,
+            code: "CARD_DRAFT_NOT_APPROVED",
+            status: 409,
+        });
+    });
+
+    it("keeps the draft in Drafts while the spec stage is queued", () => {
+        const plan = planTrigger(draft(), {
+            stageKey: "spec",
+            config,
+            by: OCTO,
+            now: NOW,
+        });
+
+        expect(plan).toMatchObject({
+            ok: true,
+            run: { stageKey: "spec", command: "/spec", model: "opus" },
+            card: { lane: "drafts", stageKey: "spec", state: "queued" },
+        });
+    });
+
+    it("never moves the draft on its own after a round", () => {
+        const completeWith = (
+            outcome: "success" | "needs_input" | "needs_rework" | "failed"
+        ) =>
+            planCompletion({
+                card: { state: "running", reworkLoops: 0 },
+                run: { stageKey: "spec" },
+                outcome,
+                config,
+                stageSettings: {},
+            });
+
+        expect(completeWith("success")).toEqual({
+            card: {
+                lane: "drafts",
+                stageKey: "spec",
+                state: "idle",
+                reworkLoops: 0,
+            },
+            next: null,
+        });
+        expect(completeWith("needs_input").card.state).toBe("waiting_input");
+        expect(completeWith("needs_rework").card.state).toBe("failed");
+        expect(completeWith("failed").card).toMatchObject({
+            lane: "drafts",
+            state: "failed",
         });
     });
 });

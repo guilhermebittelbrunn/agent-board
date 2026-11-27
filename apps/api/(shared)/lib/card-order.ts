@@ -7,7 +7,12 @@ type Sortable = {
     movedAt: string | null;
 };
 
-const LANE_RANK: Record<CardLane, number> = { tasks: 0, stage: 1, done: 2 };
+const LANE_RANK: Record<CardLane, number> = {
+    drafts: 0,
+    tasks: 1,
+    stage: 2,
+    done: 3,
+};
 
 /**
  * Tasks by the board's order, every other lane oldest move first. The slug breaks ties, so

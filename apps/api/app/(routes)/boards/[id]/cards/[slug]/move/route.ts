@@ -15,6 +15,7 @@ const errorResponse = (code: string, status: number) =>
 const MOVE_REFUSAL_STATUS = {
     CARD_NOT_FOUND: HTTP_STATUS.NOT_FOUND,
     CARD_RUN_ACTIVE: HTTP_STATUS.CONFLICT,
+    CARD_DRAFT_NOT_APPROVED: HTTP_STATUS.CONFLICT,
 } as const;
 
 /** Takes a card to Tasks or Done; entering a stage is the `runs` route. */

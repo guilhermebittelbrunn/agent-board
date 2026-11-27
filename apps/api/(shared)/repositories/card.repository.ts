@@ -22,7 +22,23 @@ export type CardMovePatch = {
 
 export type CardMoveResult =
     | { ok: true; card: CardRecord }
-    | { ok: false; code: "CARD_NOT_FOUND" | "CARD_RUN_ACTIVE" };
+    | {
+          ok: false;
+          code:
+              | "CARD_NOT_FOUND"
+              | "CARD_RUN_ACTIVE"
+              | "CARD_DRAFT_NOT_APPROVED";
+      };
+
+/** Why a draft write was refused when the transaction read the card again. */
+export type DraftWriteRefusal =
+    | "CARD_NOT_FOUND"
+    | "CARD_NOT_DRAFT"
+    | "CARD_RUN_ACTIVE"
+    | "CARD_SPEC_NOT_READY";
+
+const isLiveRun = (value: unknown): boolean =>
+    typeof value === "string" && value.length > 0;
 
 /** Firestore refuses a batch with more than 500 writes. */
 const BATCH_SIZE = 500;
@@ -102,7 +118,10 @@ class CardRepository extends BaseRepository<CardRecord> {
             if (!(snapshot.exists && data) || data.deletedAt != null) {
                 return "CARD_NOT_FOUND" as const;
             }
-            if (typeof data.activeRunId === "string" && data.activeRunId) {
+            if (data.lane === "drafts") {
+                return "CARD_DRAFT_NOT_APPROVED" as const;
+            }
+            if (isLiveRun(data.activeRunId)) {
                 return "CARD_RUN_ACTIVE" as const;
             }
             transaction.update(ref, {
@@ -123,6 +142,93 @@ class CardRepository extends BaseRepository<CardRecord> {
         return card
             ? { ok: true, card }
             : { ok: false, code: "CARD_NOT_FOUND" };
+    }
+
+    /** A discarded draft keeps its document, so its id (and its branch) stay taken. */
+    async isIdTaken(id: string): Promise<boolean> {
+        if (!isUsableDocumentId(id)) {
+            return true;
+        }
+        const snapshot = await this.db.collection(this.table).doc(id).get();
+        return snapshot.exists;
+    }
+
+    /** `null` when another request created the same id first. */
+    async createDraft(
+        id: string,
+        document: Record<string, unknown>
+    ): Promise<CardRecord | null> {
+        const ref = this.db.collection(this.table).doc(id);
+        const created = await this.db.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(ref);
+            if (snapshot.exists) {
+                return false;
+            }
+            transaction.create(ref, document);
+            return true;
+        });
+        return created ? this.findById(id) : null;
+    }
+
+    /**
+     * Moves an approved draft to Tasks. A run, a question or a failed round that appeared
+     * after the route read the card is checked again here, so nothing unfinished gets approved.
+     */
+    async approveDraft(
+        id: string,
+        patch: Record<string, unknown>
+    ): Promise<
+        { ok: true; card: CardRecord } | { ok: false; code: DraftWriteRefusal }
+    > {
+        const ref = this.db.collection(this.table).doc(id);
+        const refusal = await this.db.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(ref);
+            const data = snapshot.data();
+            if (!(snapshot.exists && data) || data.deletedAt != null) {
+                return "CARD_NOT_FOUND" as const;
+            }
+            if (data.lane !== "drafts") {
+                return "CARD_NOT_DRAFT" as const;
+            }
+            if (
+                isLiveRun(data.activeRunId) ||
+                data.pendingAsk != null ||
+                data.state !== "idle"
+            ) {
+                return "CARD_SPEC_NOT_READY" as const;
+            }
+            transaction.update(ref, patch);
+            return null;
+        });
+        if (refusal !== null) {
+            return { ok: false, code: refusal };
+        }
+        const card = await this.findById(id);
+        return card
+            ? { ok: true, card }
+            : { ok: false, code: "CARD_NOT_FOUND" };
+    }
+
+    async discardDraft(
+        id: string,
+        at: Date
+    ): Promise<DraftWriteRefusal | null> {
+        const ref = this.db.collection(this.table).doc(id);
+        return await this.db.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(ref);
+            const data = snapshot.data();
+            if (!(snapshot.exists && data) || data.deletedAt != null) {
+                return "CARD_NOT_FOUND" as const;
+            }
+            if (data.lane !== "drafts") {
+                return "CARD_NOT_DRAFT" as const;
+            }
+            if (isLiveRun(data.activeRunId)) {
+                return "CARD_RUN_ACTIVE" as const;
+            }
+            transaction.update(ref, { deletedAt: at, updatedAt: at });
+            return null;
+        });
     }
 }
 

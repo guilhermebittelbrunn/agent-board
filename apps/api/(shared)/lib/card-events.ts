@@ -5,6 +5,7 @@ import {
     type BoardConfig,
     type CardEventAuthor,
     type CompleteStageInput,
+    findStageConfig,
     type PostUpdateInput,
     type ResolvedAnswer,
     resolveAnswers,
@@ -52,9 +53,7 @@ export function agentEventFromTool(
     event: AgentEventInput,
     ctx: { card: Pick<CardDTO, "id" | "boardId" | "lane">; config: BoardConfig }
 ): AgentEventResult {
-    const stage = ctx.config.stages.find(
-        (candidate) => candidate.key === event.input.stage
-    );
+    const stage = findStageConfig(ctx.config, event.input.stage);
     if (stage === undefined) {
         return { ok: false, code: "CARD_STAGE_NOT_FOUND" };
     }

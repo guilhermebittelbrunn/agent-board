@@ -67,6 +67,78 @@ describe("cardMapper", () => {
         });
     });
 
+    it("reads an old document as a repository card with its spec on the base branch", () => {
+        const card = cardMapper.toDTO({ id: "b__x", boardId: "b", slug: "x" });
+
+        expect(card).toMatchObject({
+            origin: "repository",
+            request: null,
+            specApproval: null,
+            spec: { ref: null },
+        });
+    });
+
+    it("keeps a draft's stage key and hides the bucket path of its attachments", () => {
+        const record = cardMapper.toDTO({
+            id: "b__slack-alerts",
+            boardId: "b",
+            slug: "slack-alerts",
+            lane: "drafts",
+            stageKey: "spec",
+            origin: "board",
+            spec: {
+                path: "specs/features/slack-alerts.md",
+                sha: "",
+                status: "",
+                ref: "feat/slack-alerts",
+            },
+            request: {
+                text: "Avisar no Slack",
+                attachments: [
+                    {
+                        id: "3f0c9e1a-1b2c-4d5e-8f90-123456789abc",
+                        name: "print.png",
+                        contentType: "image/png",
+                        size: 10,
+                        path: "uploads/u1/3f0c9e1a-1b2c-4d5e-8f90-123456789abc.png",
+                    },
+                    {
+                        id: "x",
+                        name: "bad",
+                        contentType: "application/zip",
+                        path: "p",
+                    },
+                ],
+                requestedBy: { userId: "u1", login: "octo" },
+                requestedAt: Timestamp.fromDate(new Date(AT)),
+            },
+        });
+
+        expect(record).toMatchObject({
+            lane: "drafts",
+            stageKey: "spec",
+            origin: "board",
+            spec: { ref: "feat/slack-alerts" },
+        });
+        expect(record.request?.attachments).toHaveLength(1);
+        expect(record.request?.attachments[0]?.path).toContain("uploads/u1/");
+
+        const dto = toCardDTO(record);
+        expect(dto.request).toEqual({
+            text: "Avisar no Slack",
+            attachments: [
+                {
+                    id: "3f0c9e1a-1b2c-4d5e-8f90-123456789abc",
+                    name: "print.png",
+                    contentType: "image/png",
+                    size: 10,
+                },
+            ],
+            requestedBy: { userId: "u1", login: "octo" },
+            requestedAt: AT,
+        });
+    });
+
     it("reads the live run and the last run, dropping an incomplete one", () => {
         const card = cardMapper.toDTO({
             id: "b__x",

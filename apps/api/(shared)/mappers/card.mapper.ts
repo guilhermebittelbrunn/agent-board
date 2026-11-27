@@ -1,10 +1,13 @@
 import {
+    type AttachmentType,
     CARD_LANES,
     CARD_STATES,
     type CardLane,
     type CardLastRun,
+    type CardOrigin,
     type CardPendingAsk,
     type CardState,
+    isAttachmentType,
     RUN_END_REASONS,
     RUN_STATUSES,
     type RunEndReason,
@@ -12,7 +15,12 @@ import {
     STAGE_OUTCOMES,
     type StageOutcome,
 } from "@repo/kanban-contract";
-import type { CardDTO } from "@repo/sdk/src/types";
+import type {
+    CardAttachmentDTO,
+    CardDTO,
+    CardRequestDTO,
+    CardSpecApprovalDTO,
+} from "@repo/sdk/src/types";
 import type { AllOptional } from "@repo/shared/utils";
 import { normalizeFirestoreInstant } from "@repo/shared/utils";
 import Mapper from "./Mapper";
@@ -21,8 +29,18 @@ export const CARD_TABLE = "card";
 
 export type CardFirestoreRow = Record<string, unknown> & { id: string };
 
+/** `path` is the object in the bucket; it stays in the API. */
+export type CardAttachmentRecord = CardAttachmentDTO & { path: string };
+
+export type CardRequestRecord = Omit<CardRequestDTO, "attachments"> & {
+    attachments: CardAttachmentRecord[];
+};
+
 /** The stored card as the API sees it; `CardDTO` is what leaves the API. */
-export type CardRecord = CardDTO & { movedByUserId: string | null };
+export type CardRecord = Omit<CardDTO, "request"> & {
+    request: CardRequestRecord | null;
+    movedByUserId: string | null;
+};
 
 /**
  * Slugs only hold lowercase letters, digits and single hyphens, so `__` splits the board id
@@ -39,6 +57,9 @@ const PERSISTED_KEYS = [
     "ready",
     "orphan",
     "lane",
+    "origin",
+    "request",
+    "specApproval",
     "stageKey",
     "state",
     "reworkLoops",
@@ -81,6 +102,63 @@ function toPendingAsk(value: unknown): CardPendingAsk | null {
     return { eventId, stageKey, count: asCount(pending.count) };
 }
 
+const asOrigin = (value: unknown): CardOrigin =>
+    value === "board" ? "board" : "repository";
+
+function toAttachment(value: unknown): CardAttachmentRecord | null {
+    const attachment = asRecord(value);
+    const id = textOrNull(attachment.id);
+    const path = textOrNull(attachment.path);
+    const contentType = String(attachment.contentType ?? "");
+    if (id === null || path === null || !isAttachmentType(contentType)) {
+        return null;
+    }
+    return {
+        id,
+        name: String(attachment.name ?? id),
+        contentType: contentType as AttachmentType,
+        size: asCount(attachment.size),
+        path,
+    };
+}
+
+function toRequest(value: unknown): CardRequestRecord | null {
+    if (value == null) {
+        return null;
+    }
+    const request = asRecord(value);
+    const requestedBy = asRecord(request.requestedBy);
+    const attachments = Array.isArray(request.attachments)
+        ? request.attachments
+              .map(toAttachment)
+              .filter(
+                  (attachment): attachment is CardAttachmentRecord =>
+                      attachment !== null
+              )
+        : [];
+    return {
+        text: String(request.text ?? ""),
+        attachments,
+        requestedBy: {
+            userId: String(requestedBy.userId ?? ""),
+            login: String(requestedBy.login ?? ""),
+        },
+        requestedAt: normalizeFirestoreInstant(request.requestedAt),
+    };
+}
+
+function toSpecApproval(value: unknown): CardSpecApprovalDTO | null {
+    if (value == null) {
+        return null;
+    }
+    const approval = asRecord(value);
+    return {
+        userId: String(approval.userId ?? ""),
+        login: String(approval.login ?? ""),
+        at: normalizeFirestoreInstant(approval.at),
+    };
+}
+
 function toLastRun(value: unknown): CardLastRun | null {
     const run = asRecord(value);
     const id = textOrNull(run.id);
@@ -114,6 +192,7 @@ class CardMapper extends Mapper<CardFirestoreRow, CardRecord> {
             asLane(record.lane) === "stage" && stageKey === null
                 ? "tasks"
                 : asLane(record.lane);
+        const keepsStageKey = lane === "stage" || lane === "drafts";
 
         return {
             id,
@@ -124,11 +203,15 @@ class CardMapper extends Mapper<CardFirestoreRow, CardRecord> {
                 path: String(spec.path ?? ""),
                 sha: String(spec.sha ?? ""),
                 status: String(spec.status ?? ""),
+                ref: textOrNull(spec.ref),
             },
             ready: record.ready === true,
             orphan: record.orphan === true,
             lane,
-            stageKey: lane === "stage" ? stageKey : null,
+            origin: asOrigin(record.origin),
+            request: toRequest(record.request),
+            specApproval: toSpecApproval(record.specApproval),
+            stageKey: keepsStageKey ? stageKey : null,
             state: asState(record.state),
             pendingAsk: toPendingAsk(record.pendingAsk),
             reworkLoops: asCount(record.reworkLoops),
@@ -162,6 +245,17 @@ class CardMapper extends Mapper<CardFirestoreRow, CardRecord> {
 export const cardMapper = new CardMapper();
 
 export function toCardDTO(card: CardRecord): CardDTO {
-    const { movedByUserId: _movedBy, ...dto } = card;
-    return dto;
+    const { movedByUserId: _movedBy, request, ...dto } = card;
+    return {
+        ...dto,
+        request:
+            request === null
+                ? null
+                : {
+                      ...request,
+                      attachments: request.attachments.map(
+                          ({ path: _path, ...attachment }) => attachment
+                      ),
+                  },
+    };
 }

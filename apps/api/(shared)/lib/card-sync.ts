@@ -24,7 +24,10 @@ const SPEC_READ_CONCURRENCY = 8;
 
 // `cards/sync` and `cards/order` are routes next to `cards/[slug]`, so a card with one of
 // these slugs could never be opened.
-const RESERVED_CARD_SLUGS: ReadonlySet<string> = new Set(["sync", "order"]);
+export const RESERVED_CARD_SLUGS: ReadonlySet<string> = new Set([
+    "sync",
+    "order",
+]);
 
 /** A spec file as read from the repository, before the slug checks of the plan. */
 export type BacklogSpec = {
@@ -185,6 +188,7 @@ const sameFields = (card: CardRecord, fields: SyncedFields): boolean =>
     card.spec.path === fields.spec.path &&
     card.spec.sha === fields.spec.sha &&
     card.spec.status === fields.spec.status &&
+    card.spec.ref === fields.spec.ref &&
     card.ready === fields.ready &&
     card.orphan === fields.orphan &&
     card.branch === fields.branch;
@@ -226,7 +230,12 @@ function syncedFields(
     const inTasks = (card?.lane ?? "tasks") === "tasks";
     return {
         title: spec.title,
-        spec: { path: spec.path, sha: spec.sha, status: spec.status },
+        spec: {
+            path: spec.path,
+            sha: spec.sha,
+            status: spec.status,
+            ref: null,
+        },
         ready: isCardReady(spec.status, config.backlog.readyStatus, false),
         orphan: false,
         branch: inTasks ? branchFor(config, spec.id) : (card?.branch ?? null),
@@ -269,6 +278,10 @@ function newCardDocument({
  * Tasks in index order; the order of existing cards is the board's and is never touched;
  * a card whose spec left the index turns orphan and stays. The branch only follows the
  * pattern while the card is in Tasks, so a card already started keeps its branch.
+ *
+ * A card born on the board lives on its own branch until merged: missing from the index is
+ * its normal state, not an orphan, and a spec draft is never overwritten by the index. Once
+ * its slug shows up in the index, the base branch becomes the source of its spec.
  */
 export function planBacklogSync(input: SyncInput): BacklogSyncPlan {
     const { boardId, existing, config, now } = input;
@@ -285,6 +298,10 @@ export function planBacklogSync(input: SyncInput): BacklogSyncPlan {
 
     for (const spec of accepted) {
         const card = bySlug.get(spec.id);
+        if (card?.lane === "drafts") {
+            summary.unchanged += 1;
+            continue;
+        }
         const fields = syncedFields(spec, card, config);
         if (!card) {
             writes.push({
@@ -317,7 +334,7 @@ export function planBacklogSync(input: SyncInput): BacklogSyncPlan {
         if (acceptedSlugs.has(card.slug)) {
             continue;
         }
-        if (card.orphan) {
+        if (card.orphan || card.origin === "board") {
             summary.unchanged += 1;
             continue;
         }

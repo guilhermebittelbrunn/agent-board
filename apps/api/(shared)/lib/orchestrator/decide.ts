@@ -3,12 +3,14 @@ import {
     type CardLane,
     type CardLastRun,
     type CardState,
+    findStageConfig,
     isAwaitingApproval,
     type RunEndReason,
     type RunPerson,
     type RunTrigger,
     resolveBranchName,
     resolveTransition,
+    SPEC_STAGE_KEY,
     type StageConfig,
     type StageDispatch,
     type StageOutcome,
@@ -58,9 +60,16 @@ export function decideTrigger(
     stageKey: string,
     config: BoardConfig
 ): TriggerDecision {
-    const stage = config.stages.find((candidate) => candidate.key === stageKey);
+    const stage = findStageConfig(config, stageKey);
     if (stage === undefined) {
         return refuse("CARD_STAGE_NOT_FOUND", HTTP_STATUS.UNPROCESSABLE_ENTITY);
+    }
+    // The spec stage only runs on a draft, and a draft only leaves Drafts by approval.
+    const isSpecStage = stage.key === SPEC_STAGE_KEY;
+    if (isSpecStage !== (card.lane === "drafts")) {
+        return isSpecStage
+            ? refuse("CARD_STAGE_NOT_FOUND", HTTP_STATUS.UNPROCESSABLE_ENTITY)
+            : refuse("CARD_DRAFT_NOT_APPROVED", HTTP_STATUS.CONFLICT);
     }
     if (card.lane === "tasks" && !card.ready) {
         return refuse("CARD_NOT_READY", HTTP_STATUS.CONFLICT);
@@ -70,7 +79,8 @@ export function decideTrigger(
         return refuse("CARD_BRANCH_INVALID", HTTP_STATUS.UNPROCESSABLE_ENTITY);
     }
 
-    const sameStage = card.lane === "stage" && card.stageKey === stageKey;
+    const inStageLane = card.lane === "stage" || card.lane === "drafts";
+    const sameStage = inStageLane && card.stageKey === stageKey;
     let trigger: RunTrigger = "drag";
     if (sameStage) {
         trigger = isAwaitingApproval(card) ? "approve" : "rerun";
@@ -80,7 +90,7 @@ export function decideTrigger(
         stage,
         branch,
         trigger,
-        resetReworkLoops: card.lane !== "stage",
+        resetReworkLoops: !inStageLane,
     };
 }
 
@@ -149,7 +159,7 @@ export function planTrigger(
             by: input.by,
         }),
         card: {
-            lane: "stage",
+            lane: decision.stage.key === SPEC_STAGE_KEY ? "drafts" : "stage",
             stageKey: decision.stage.key,
             state: "queued",
             branch: decision.branch,
@@ -173,6 +183,17 @@ export type CompletionPlan = {
 };
 
 /**
+ * A spec draft never moves on its own: it waits for a person to answer or approve. A rework
+ * has no earlier stage to go back to, so it stops the draft like a failure, until run again.
+ */
+function specDraftStateAfter(outcome: StageOutcome): CardState {
+    if (outcome === "success") {
+        return "idle";
+    }
+    return outcome === "needs_input" ? "waiting_input" : "failed";
+}
+
+/**
  * Where a stage result takes the card. This is the only caller of `resolveTransition` in
  * the API: an agent's report, a timeout and a failed dispatch all come through here.
  */
@@ -184,6 +205,17 @@ export function planCompletion(input: {
     stageSettings: BoardStageSettingsDTO;
 }): CompletionPlan {
     const { card, run, config } = input;
+    if (run.stageKey === SPEC_STAGE_KEY) {
+        return {
+            card: {
+                lane: "drafts",
+                stageKey: SPEC_STAGE_KEY,
+                state: specDraftStateAfter(input.outcome),
+                reworkLoops: card.reworkLoops,
+            },
+            next: null,
+        };
+    }
     const known = config.stages.some((stage) => stage.key === run.stageKey);
     if (!known) {
         return {

@@ -7,6 +7,7 @@ import type {
     CardMovePatch,
     CardMoveResult,
     CardSyncWrite,
+    DraftWriteRefusal,
 } from "@/(shared)/repositories/card.repository";
 
 type StoredCard = Record<string, unknown>;
@@ -98,6 +99,12 @@ export function createFakeCardRepository() {
                         code: "CARD_NOT_FOUND",
                     });
                 }
+                if (current.lane === "drafts") {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_DRAFT_NOT_APPROVED",
+                    });
+                }
                 if (current.activeRunId !== null) {
                     return Promise.resolve({
                         ok: false,
@@ -123,6 +130,69 @@ export function createFakeCardRepository() {
                         ? { ok: true, card: moved }
                         : { ok: false, code: "CARD_NOT_FOUND" }
                 );
+            },
+            isIdTaken: (id: string) => Promise.resolve(documents.has(id)),
+            createDraft(id: string, document: StoredCard) {
+                if (documents.has(id)) {
+                    return Promise.resolve(null);
+                }
+                documents.set(id, document);
+                return Promise.resolve(read(id));
+            },
+            approveDraft(
+                id: string,
+                patch: StoredCard
+            ): Promise<
+                | { ok: true; card: CardRecord }
+                | { ok: false; code: DraftWriteRefusal }
+            > {
+                const current = read(id);
+                if (current === null) {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_NOT_FOUND",
+                    });
+                }
+                if (current.lane !== "drafts") {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_NOT_DRAFT",
+                    });
+                }
+                if (
+                    current.activeRunId !== null ||
+                    current.pendingAsk !== null ||
+                    current.state !== "idle"
+                ) {
+                    return Promise.resolve({
+                        ok: false,
+                        code: "CARD_SPEC_NOT_READY",
+                    });
+                }
+                documents.set(id, { ...documents.get(id), ...patch });
+                const approved = read(id);
+                return Promise.resolve(
+                    approved
+                        ? { ok: true, card: approved }
+                        : { ok: false, code: "CARD_NOT_FOUND" }
+                );
+            },
+            discardDraft(
+                id: string,
+                at: Date
+            ): Promise<DraftWriteRefusal | null> {
+                const current = read(id);
+                if (current === null) {
+                    return Promise.resolve("CARD_NOT_FOUND");
+                }
+                if (current.lane !== "drafts") {
+                    return Promise.resolve("CARD_NOT_DRAFT");
+                }
+                if (current.activeRunId !== null) {
+                    return Promise.resolve("CARD_RUN_ACTIVE");
+                }
+                documents.set(id, { ...documents.get(id), deletedAt: at });
+                return Promise.resolve(null);
             },
         },
     };

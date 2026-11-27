@@ -160,7 +160,7 @@ export async function resumeAfterAnswer(input: {
     const card = await cardRepository.findBySlug(input.board.id, input.slug);
     if (
         card === null ||
-        card.lane !== "stage" ||
+        !(card.lane === "stage" || card.lane === "drafts") ||
         card.stageKey === null ||
         card.state !== "waiting_input" ||
         card.activeRunId !== null ||

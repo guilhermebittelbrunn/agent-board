@@ -44,6 +44,31 @@ function findSample(repo: GithubRepositoryRef): SampleRepository {
     return sample;
 }
 
+const DRAFT_SPEC_PATH = /^specs\/features\/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
+
+/**
+ * No agent writes on a card branch while the test executor runs, so a spec read there is
+ * answered with a proposed draft whose `id` is the slug, the shape an approval expects.
+ */
+function syntheticDraft(path: string): string | null {
+    const slug = DRAFT_SPEC_PATH.exec(path)?.[1];
+    if (slug === undefined) {
+        return null;
+    }
+    return [
+        "---",
+        `id: ${slug}`,
+        `title: Spec draft ${slug}`,
+        "status: proposed",
+        "---",
+        "",
+        `# Spec draft ${slug}`,
+        "",
+        "Written by the test executor.",
+        "",
+    ].join("\n");
+}
+
 /**
  * Stands in for the GitHub App while the API runs against the emulator. The logins in
  * `SAMPLE_COLLABORATOR_ROLES` get their listed permission; everyone else is an admin, so
@@ -71,8 +96,11 @@ export function createGithubFakeClient(
         readFile(repo, path, ref) {
             return settle(() => {
                 const sample = findSample(repo);
-                const content = sample.files[path];
-                if (ref !== sample.defaultBranch || content === undefined) {
+                const content =
+                    ref === sample.defaultBranch
+                        ? sample.files[path]
+                        : syntheticDraft(path);
+                if (content === undefined || content === null) {
                     return null;
                 }
                 return { content, sha: blobSha(content) };
