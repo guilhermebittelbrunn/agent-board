@@ -1,15 +1,24 @@
-import type {
-    ActiveRunView,
-    ExecutorReport,
-    RunEndReason,
-    RunPerson,
-    RunTrigger,
-    StageOutcome,
+import {
+    type ActiveRunView,
+    canRunPrComment,
+    type ExecutorReport,
+    findPullRequestStage,
+    type RunEndReason,
+    type RunPerson,
+    type RunTrigger,
+    resolvePullRequestClosure,
+    type StageOutcome,
 } from "@repo/kanban-contract";
 import type { BoardDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import { logEvent } from "@repo/shared/utils/helpers/log";
 import { agentEventFromTool } from "@/(shared)/lib/card-events";
+import { nextTasksOrder } from "@/(shared)/lib/card-order";
+import {
+    appendBoardUpdate,
+    pullRequestEventText,
+} from "@/(shared)/lib/pull-request/pull-request-events";
+import { ensurePullRequest } from "@/(shared)/lib/pull-request/pull-request-open";
 import { findUnclaimed } from "@/(shared)/lib/runner/runner-claim";
 import { type CardRecord, cardIdFor } from "@/(shared)/mappers/card.mapper";
 import type { RunRecord } from "@/(shared)/mappers/run.mapper";
@@ -71,6 +80,15 @@ export async function triggerStage(input: {
     if (!queued.ok) {
         return queued;
     }
+    if (input.trigger !== "pr_comment") {
+        await openPullRequestOnEntry({
+            board: input.board,
+            cardId: queued.cardId,
+            stageKey: input.stageKey,
+            dispatchAs: input.by,
+            now,
+        });
+    }
     await pumpBoard(input.board, now);
     const stored = await readBack(queued.cardId, queued.runId);
     return stored
@@ -108,14 +126,143 @@ export async function completeRun(input: {
                 outcome: input.outcome,
                 config: board.config,
                 stageSettings: board.stageSettings,
+                now,
             }),
         now,
     });
     if (result.ignored) {
         return { ignored: true };
     }
+    if (result.next !== null && result.next.trigger !== "pr_comment") {
+        await openPullRequestOnEntry({
+            board,
+            cardId: result.cardId,
+            stageKey: result.next.stageKey,
+            dispatchAs: result.next.triggeredBy,
+            now,
+        });
+    }
+    await settlePullRequest(board, result.cardId);
     await pumpBoard(board, now);
     return { ignored: false };
+}
+
+/**
+ * Opens the pull request before the stage command runs, so the command already finds it.
+ * A failure stays on the card for a person to retry; it never fails the caller.
+ */
+async function openPullRequestOnEntry({
+    board,
+    cardId,
+    stageKey,
+    dispatchAs,
+    now,
+}: {
+    board: Board;
+    cardId: string;
+    stageKey: string;
+    dispatchAs: RunPerson;
+    now: Date;
+}): Promise<void> {
+    if (findPullRequestStage(board.config)?.key !== stageKey) {
+        return;
+    }
+    try {
+        await ensurePullRequest({ board, cardId, dispatchAs, now });
+    } catch {
+        logEvent("github", "pull-request-open-crashed", {
+            boardId: board.id,
+            cardId,
+        });
+    }
+}
+
+/**
+ * Moves a card whose pull request was merged (to Done) or closed (to the end of Tasks). With
+ * a live run nothing moves: `completeRun` calls this again once that run ends.
+ */
+export async function settlePullRequest(
+    board: Pick<Board, "id" | "config">,
+    cardId: string
+): Promise<void> {
+    const card = await cardRepository.findById(cardId);
+    if (card === null) {
+        return;
+    }
+    const closure = resolvePullRequestClosure(
+        card,
+        findPullRequestStage(board.config)?.key
+    );
+    if (closure === null) {
+        return;
+    }
+    const order =
+        closure.lane === "tasks"
+            ? nextTasksOrder(await cardRepository.listByBoard(board.id))
+            : undefined;
+    await cardRepository.move(card.id, {
+        lane: closure.lane,
+        order,
+        movedByUserId: null,
+    });
+}
+
+/**
+ * A new comment or review on the card's pull request runs the comment command. With a run
+ * still live, or the hourly limit reached, the comment is kept as waiting: the end of the
+ * live run picks it up.
+ */
+export async function onPullRequestComment(
+    board: Board,
+    cardId: string,
+    now: Date
+): Promise<void> {
+    const stage = findPullRequestStage(board.config);
+    const limit = board.config.limits.maxPrCommentRunsPerHour;
+    if (stage?.onPrComment === undefined || limit === 0) {
+        return;
+    }
+    const card = await cardRepository.findById(cardId);
+    const pullRequest = card?.pullRequest;
+    if (
+        card === null ||
+        pullRequest == null ||
+        pullRequest.state !== "open" ||
+        card.lane !== "stage" ||
+        card.stageKey !== stage.key
+    ) {
+        return;
+    }
+    const withinLimit = canRunPrComment(pullRequest.commentRunsAt, now, limit);
+    if (withinLimit && card.activeRunId === null) {
+        const started = await triggerStage({
+            board,
+            slug: card.slug,
+            stageKey: stage.key,
+            by: pullRequest.dispatchAs,
+            trigger: "pr_comment",
+            now,
+        });
+        if (started.ok || started.code !== "CARD_RUN_ACTIVE") {
+            return;
+        }
+    }
+    await cardRepository.updatePullRequest(card.id, (stored) =>
+        stored.pullRequest?.state === "open"
+            ? {
+                  pullRequest: {
+                      ...stored.pullRequest,
+                      unhandledCommentAt: now.toISOString(),
+                  },
+              }
+            : null
+    );
+    if (!withinLimit && pullRequest.unhandledCommentAt === null) {
+        await appendBoardUpdate(
+            card,
+            pullRequestEventText.commentLimit(limit, stage.onPrComment)
+        );
+    }
 }
 
 export async function stopRun(input: {

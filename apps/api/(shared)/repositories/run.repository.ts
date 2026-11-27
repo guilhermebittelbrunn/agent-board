@@ -1,4 +1,8 @@
-import type { RunPerson, StageExecutorKind } from "@repo/kanban-contract";
+import type {
+    RunPerson,
+    RunTrigger,
+    StageExecutorKind,
+} from "@repo/kanban-contract";
 import type { BoardDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
 import type { DocumentSnapshot } from "firebase-admin/firestore";
@@ -17,6 +21,7 @@ import {
     CARD_TABLE,
     type CardRecord,
     cardMapper,
+    pullRequestDocument,
 } from "../mappers/card.mapper";
 import {
     newRunDocument,
@@ -32,9 +37,22 @@ export type EnqueueResult =
     | OrchestratorRefusal
     | { ok: true; cardId: string; runId: string };
 
+/** The run the completion queued, so the caller acts on it without reading it back. */
+export type FinishedNextRun = {
+    id: string;
+    stageKey: string;
+    trigger: RunTrigger;
+    triggeredBy: RunPerson;
+};
+
 export type FinishResult =
     | { ignored: true }
-    | { ignored: false; nextRunId: string | null };
+    | {
+          ignored: false;
+          cardId: string;
+          nextRunId: string | null;
+          next: FinishedNextRun | null;
+      };
 
 export type SetTokenResult = { ok: true; expiresAt: string } | { ok: false };
 
@@ -45,6 +63,29 @@ export type StopResult =
     | { ok: true; cardId: string; runId: string };
 
 const BOARD_TABLE = "board";
+
+const pullRequestPatch = (
+    pullRequest: CompletionPlan["card"]["pullRequest"]
+): Record<string, unknown> =>
+    pullRequest === undefined
+        ? {}
+        : { pullRequest: pullRequestDocument(pullRequest) };
+
+function finishedNextRun(
+    next: CompletionPlan["next"],
+    nextRunId: string | null,
+    run: RunRecord
+): FinishedNextRun | null {
+    if (next === null || nextRunId === null) {
+        return null;
+    }
+    return {
+        id: nextRunId,
+        stageKey: next.stage.key,
+        trigger: next.trigger,
+        triggeredBy: run.triggeredBy,
+    };
+}
 
 function liveCard(snapshot: DocumentSnapshot): CardRecord | null {
     const data = snapshot.data();
@@ -195,10 +236,17 @@ class RunRepository extends BaseRepository<RunRecord> {
                     updatedAt: now,
                 });
                 if (card === null || card.activeRunId !== run.id) {
-                    return { ignored: false, nextRunId: null };
+                    return {
+                        ignored: false,
+                        cardId: run.cardId,
+                        nextRunId: null,
+                        next: null,
+                    };
                 }
 
-                const plan = input.plan(card, run);
+                const planned = input.plan(card, run);
+                const { pullRequest, ...position } = planned.card;
+                const plan = { ...planned, card: position };
                 let nextRunId: string | null = null;
                 if (plan.next !== null) {
                     transaction.set(
@@ -211,6 +259,7 @@ class RunRepository extends BaseRepository<RunRecord> {
                                 branch: run.branch,
                                 trigger: plan.next.trigger,
                                 by: run.triggeredBy,
+                                command: plan.next.command,
                             }),
                             now
                         )
@@ -226,9 +275,15 @@ class RunRepository extends BaseRepository<RunRecord> {
                     ...(nextRunId === null ? {} : { pendingAsk: null }),
                     lastRun: lastRunOf(run, close, now),
                     ...(moved ? { movedAt: now } : {}),
+                    ...pullRequestPatch(pullRequest),
                     updatedAt: now,
                 });
-                return { ignored: false, nextRunId };
+                return {
+                    ignored: false,
+                    cardId: run.cardId,
+                    nextRunId,
+                    next: finishedNextRun(plan.next, nextRunId, run),
+                };
             }
         );
     }

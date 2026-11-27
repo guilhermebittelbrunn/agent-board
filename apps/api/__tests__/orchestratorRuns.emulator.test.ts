@@ -4,6 +4,8 @@ import type { BoardDTO } from "@repo/sdk/src/types";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+// No GitHub App variables: against the emulator the board answers with the sample client.
+vi.mock("@/env", () => ({ env: {} }));
 
 const { getFirestoreAdmin } = await import("@repo/auth/server");
 const { SAMPLE_BOARD_CONFIGS } = await import(
@@ -16,9 +18,9 @@ const { cardRepository } = await import(
 const { runRepository } = await import(
     "@/(shared)/repositories/run.repository"
 );
-const { completeRun, stopRun, tick, triggerStage } = await import(
-    "@/(shared)/lib/orchestrator/orchestrator"
-);
+const { applyPullRequestEvent } = await import("@repo/kanban-contract");
+const { completeRun, settlePullRequest, stopRun, tick, triggerStage } =
+    await import("@/(shared)/lib/orchestrator/orchestrator");
 const { FAKE_RUN_DURATION_MS } = await import(
     "@/(shared)/lib/orchestrator/fake-executor"
 );
@@ -274,7 +276,7 @@ describe("orchestrator against the Firestore emulator", () => {
         expect(afterStop.map((run) => run.status)).toEqual(["running"]);
     });
 
-    it("walks the card through every stage to Done with the fake executor", async () => {
+    it("walks the card through every stage, opens its pull request and takes it to Done on merge", async () => {
         const board = await createBoard();
         const cardId = await createCard(board.id, "happy-path");
         const start = new Date("2026-11-26T10:00:00.000Z");
@@ -288,12 +290,45 @@ describe("orchestrator against the Firestore emulator", () => {
 
         const { card, stages } = await driveUntilSettled(board, cardId, start);
 
-        expect(stages).toEqual(["analyze", "develop", "review", "test"]);
+        expect(stages).toEqual(["analyze", "develop", "review", "test", "pr"]);
         expect(card).toMatchObject({
+            lane: "stage",
+            stageKey: "pr",
+            state: "idle",
+            lastRun: { stageKey: "pr", outcome: "success" },
+            pullRequestError: null,
+            pullRequest: {
+                state: "open",
+                draft: true,
+                headRef: "feat/happy-path",
+                baseRef: "main",
+                openedByBoard: true,
+                dispatchAs: OCTO,
+            },
+        });
+        const number = card?.pullRequest?.number as number;
+
+        // What the merge webhook writes, against the real transaction and mapper.
+        await cardRepository.updatePullRequest(cardId, (stored) =>
+            stored.pullRequest?.number === number
+                ? {
+                      pullRequest: applyPullRequestEvent(stored.pullRequest, {
+                          kind: "closed",
+                          merged: true,
+                          byLogin: "qa-pr-flow",
+                          at: new Date().toISOString(),
+                      }),
+                  }
+                : null
+        );
+        await settlePullRequest(board, cardId);
+
+        expect(await cardRepository.findById(cardId)).toMatchObject({
             lane: "done",
             stageKey: null,
             state: "idle",
-            lastRun: { stageKey: "test", outcome: "success" },
+            movedByUserId: null,
+            pullRequest: { state: "merged", closedByLogin: "qa-pr-flow" },
         });
         const reports = await db()
             .collection("cardEvent")

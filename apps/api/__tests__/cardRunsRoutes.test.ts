@@ -33,7 +33,9 @@ const {
     getStageExecutorMock,
     updateStageSettingsMock,
     resolveExecutorForMock,
+    ensurePullRequestMock,
 } = vi.hoisted(() => ({
+    ensurePullRequestMock: vi.fn(),
     resolveExecutorForMock: vi.fn(),
     triggerStageMock: vi.fn(),
     stopRunMock: vi.fn(),
@@ -108,6 +110,10 @@ vi.mock("@/(shared)/lib/orchestrator/orchestrator", () => ({
     stopRun: (...args: unknown[]) => stopRunMock(...args),
 }));
 
+vi.mock("@/(shared)/lib/pull-request/pull-request-open", () => ({
+    ensurePullRequest: (...args: unknown[]) => ensurePullRequestMock(...args),
+}));
+
 vi.mock("@/(shared)/lib/orchestrator/executor", () => ({
     getStageExecutor: () => getStageExecutorMock(),
 }));
@@ -126,6 +132,9 @@ const { POST: TRIGGER } = await import(
 );
 const { POST: STOP } = await import(
     "@/app/(routes)/boards/[id]/cards/[slug]/stop/route"
+);
+const { POST: OPEN_PULL_REQUEST } = await import(
+    "@/app/(routes)/boards/[id]/cards/[slug]/pull-request/route"
 );
 const { PATCH: STAGE_SETTINGS } = await import(
     "@/app/(routes)/boards/[id]/stage-settings/route"
@@ -233,6 +242,7 @@ beforeEach(() => {
         getStageExecutorMock,
         updateStageSettingsMock,
         resolveExecutorForMock,
+        ensurePullRequestMock,
     ]) {
         mock.mockReset();
     }
@@ -503,5 +513,55 @@ describe("PATCH /boards/[id]/stage-settings", () => {
             expect(await errorCode(response)).toBe("VALIDATION_FAILED");
         }
         expect(updateStageSettingsMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("POST /boards/[id]/cards/[slug]/pull-request", () => {
+    const openPullRequest = (as: Person = "operator", slug = SLUG) =>
+        OPEN_PULL_REQUEST(request(as, { method: "POST" }), cardContext(slug));
+
+    it("opens the pull request as the operator and answers the card", async () => {
+        const card = await runningCard();
+        ensurePullRequestMock.mockResolvedValue({ ok: true, card });
+
+        const response = await openPullRequest();
+
+        expect(response.status).toBe(HTTP_STATUS.OK);
+        expect((await dataOf<CardDTO>(response)).slug).toBe(SLUG);
+        expect(ensurePullRequestMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                cardId: card.id,
+                dispatchAs: { userId: PEOPLE.operator.id, login: "qa-writer" },
+            })
+        );
+    });
+
+    it.each([
+        ["CARD_NOT_IN_PULL_REQUEST_STAGE", HTTP_STATUS.CONFLICT],
+        ["GITHUB_APP_NOT_CONFIGURED", HTTP_STATUS.SERVICE_UNAVAILABLE],
+        ["GITHUB_APP_PERMISSION_MISSING", HTTP_STATUS.SERVICE_UNAVAILABLE],
+        ["GITHUB_PULL_REQUEST_REJECTED", HTTP_STATUS.UNPROCESSABLE_ENTITY],
+    ])("answers %s with %i", async (code, status) => {
+        ensurePullRequestMock.mockResolvedValue({ ok: false, code, status });
+
+        const response = await openPullRequest();
+
+        expect(response.status).toBe(status);
+        expect(await errorCode(response)).toBe(code);
+    });
+
+    it("refuses a viewer before reaching GitHub", async () => {
+        const response = await openPullRequest("reader");
+
+        expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
+        expect(ensurePullRequestMock).not.toHaveBeenCalled();
+    });
+
+    it("answers 404 for a card that is not on the board", async () => {
+        const response = await openPullRequest("operator", "missing-card");
+
+        expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
+        expect(await errorCode(response)).toBe("CARD_NOT_FOUND");
+        expect(ensurePullRequestMock).not.toHaveBeenCalled();
     });
 });

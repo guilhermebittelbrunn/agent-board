@@ -2,9 +2,12 @@ import {
     type BoardConfig,
     type CardLane,
     type CardLastRun,
+    type CardPullRequest,
     type CardState,
+    canRunPrComment,
     findStageConfig,
     isAwaitingApproval,
+    pruneCommentRuns,
     type RunEndReason,
     type RunPerson,
     type RunTrigger,
@@ -17,7 +20,10 @@ import {
 } from "@repo/kanban-contract";
 import type { BoardDTO, BoardStageSettingsDTO } from "@repo/sdk/src/types";
 import { HTTP_STATUS } from "@repo/shared/utils/helpers/httpStatus";
-import type { CardRecord } from "@/(shared)/mappers/card.mapper";
+import {
+    type CardRecord,
+    pullRequestDocument,
+} from "@/(shared)/mappers/card.mapper";
 import type { NewRun, RunRecord } from "@/(shared)/mappers/run.mapper";
 
 export type OrchestratorRefusal = { ok: false; code: string; status: number };
@@ -94,6 +100,10 @@ export function decideTrigger(
     };
 }
 
+/**
+ * `command` replaces the stage command, as the pull request comment command does; the
+ * `board.yml` names no agent for it, so the run has none either.
+ */
 export function newRunFor(input: {
     card: Pick<CardRecord, "id" | "boardId" | "slug">;
     stage: StageConfig;
@@ -101,6 +111,7 @@ export function newRunFor(input: {
     branch: string;
     trigger: RunTrigger;
     by: RunPerson;
+    command?: string;
 }): NewRun {
     const { card, stage } = input;
     return {
@@ -108,8 +119,8 @@ export function newRunFor(input: {
         cardId: card.id,
         slug: card.slug,
         stageKey: stage.key,
-        command: stage.command,
-        agent: stage.agent ?? null,
+        command: input.command ?? stage.command,
+        agent: input.command === undefined ? (stage.agent ?? null) : null,
         model: stage.model,
         effort: stage.effort,
         maxTurns: input.config.limits.maxTurnsPerStage,
@@ -148,6 +159,13 @@ export function planTrigger(
     if (!decision.ok) {
         return decision;
     }
+    const comment =
+        input.trigger === "pr_comment"
+            ? planPrCommentRun(card, decision.stage, input.now)
+            : null;
+    if (input.trigger === "pr_comment" && comment === null) {
+        return refuse("CARD_NOT_IN_PULL_REQUEST_STAGE", HTTP_STATUS.CONFLICT);
+    }
     return {
         ok: true,
         run: newRunFor({
@@ -157,6 +175,7 @@ export function planTrigger(
             branch: decision.branch,
             trigger: input.trigger ?? decision.trigger,
             by: input.by,
+            command: comment?.command,
         }),
         card: {
             lane: decision.stage.key === SPEC_STAGE_KEY ? "drafts" : "stage",
@@ -168,7 +187,80 @@ export function planTrigger(
             movedByUserId: input.by.userId,
             updatedAt: input.now,
             ...(decision.resetReworkLoops ? { reworkLoops: 0 } : {}),
+            ...(comment === null
+                ? {}
+                : { pullRequest: pullRequestDocument(comment.pullRequest) }),
         },
+    };
+}
+
+/** The pull request after one more comment run starts now: counted, nothing left waiting. */
+function countCommentRun(
+    pullRequest: CardPullRequest,
+    now: Date
+): CardPullRequest {
+    return {
+        ...pullRequest,
+        commentRunsAt: [
+            ...pruneCommentRuns(pullRequest.commentRunsAt, now),
+            now.toISOString(),
+        ],
+        unhandledCommentAt: null,
+    };
+}
+
+/**
+ * The comment command only runs on the card's own stage while its pull request is open;
+ * the hourly limit is checked by the caller, before it decides to run instead of waiting.
+ */
+function planPrCommentRun(
+    card: CardRecord,
+    stage: StageConfig,
+    now: Date
+): { command: string; pullRequest: CardPullRequest } | null {
+    if (
+        stage.pullRequest === undefined ||
+        stage.onPrComment === undefined ||
+        card.lane !== "stage" ||
+        card.stageKey !== stage.key ||
+        card.pullRequest?.state !== "open"
+    ) {
+        return null;
+    }
+    return {
+        command: stage.onPrComment,
+        pullRequest: countCommentRun(card.pullRequest, now),
+    };
+}
+
+/**
+ * A comment that arrived while a run of the pull request stage was live is answered when
+ * that run ends, if the hourly limit still allows it.
+ */
+function prCommentFollowUp(
+    card: Pick<CardRecord, "pullRequest">,
+    stage: StageConfig,
+    config: BoardConfig,
+    now: Date
+): { command: string; pullRequest: CardPullRequest } | null {
+    const { pullRequest } = card;
+    if (
+        stage.pullRequest === undefined ||
+        stage.onPrComment === undefined ||
+        pullRequest === null ||
+        pullRequest.state !== "open" ||
+        pullRequest.unhandledCommentAt === null ||
+        !canRunPrComment(
+            pullRequest.commentRunsAt,
+            now,
+            config.limits.maxPrCommentRunsPerHour
+        )
+    ) {
+        return null;
+    }
+    return {
+        command: stage.onPrComment,
+        pullRequest: countCommentRun(pullRequest, now),
     };
 }
 
@@ -178,8 +270,13 @@ export type CompletionPlan = {
         stageKey: string | null;
         state: CardState;
         reworkLoops: number;
+        pullRequest?: CardPullRequest;
     };
-    next: { stage: StageConfig; trigger: "transition" } | null;
+    next: {
+        stage: StageConfig;
+        trigger: "transition" | "pr_comment";
+        command?: string;
+    } | null;
 };
 
 /**
@@ -198,11 +295,12 @@ function specDraftStateAfter(outcome: StageOutcome): CardState {
  * the API: an agent's report, a timeout and a failed dispatch all come through here.
  */
 export function planCompletion(input: {
-    card: Pick<CardRecord, "state" | "reworkLoops">;
+    card: Pick<CardRecord, "state" | "reworkLoops" | "pullRequest">;
     run: Pick<RunRecord, "stageKey">;
     outcome: StageOutcome;
     config: BoardConfig;
     stageSettings: BoardStageSettingsDTO;
+    now: Date;
 }): CompletionPlan {
     const { card, run, config } = input;
     if (run.stageKey === SPEC_STAGE_KEY) {
@@ -240,6 +338,31 @@ export function planCompletion(input: {
         approvalGateEnabled:
             input.stageSettings[run.stageKey]?.approvalGate ?? false,
     });
+
+    const ranStage = config.stages.find((stage) => stage.key === run.stageKey);
+    const settled =
+        position.stageKey === run.stageKey &&
+        (position.state === "idle" || position.state === "failed");
+    const followUp =
+        settled && ranStage !== undefined
+            ? prCommentFollowUp(card, ranStage, config, input.now)
+            : null;
+    if (followUp !== null && ranStage !== undefined) {
+        return {
+            card: {
+                lane: "stage",
+                stageKey: run.stageKey,
+                state: "queued",
+                reworkLoops: position.reworkLoops,
+                pullRequest: followUp.pullRequest,
+            },
+            next: {
+                stage: ranStage,
+                trigger: "pr_comment",
+                command: followUp.command,
+            },
+        };
+    }
 
     if (position.stageKey === null) {
         return {

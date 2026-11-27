@@ -41,7 +41,12 @@ vi.mock("@/(shared)/repositories/run.repository", () => ({
             }
             run.active = false;
             store.closed.push({ id: run.id, endReason: input.close.endReason });
-            return Promise.resolve({ ignored: false, nextRunId: null });
+            return Promise.resolve({
+                ignored: false,
+                cardId: run.cardId,
+                nextRunId: null,
+                next: null,
+            });
         },
         promote: (input: {
             executorFor: (run: RunRecord) => RunRecord["executor"];
@@ -65,6 +70,10 @@ vi.mock("@/(shared)/repositories/card.repository", () => ({
 
 vi.mock("@/(shared)/repositories/card-event.repository", () => ({
     cardEventRepository: { appendAgentEvent: vi.fn() },
+}));
+
+vi.mock("@/(shared)/lib/pull-request/pull-request-open", () => ({
+    ensurePullRequest: vi.fn(),
 }));
 
 vi.mock("@/(shared)/lib/orchestrator/executor", () => ({
