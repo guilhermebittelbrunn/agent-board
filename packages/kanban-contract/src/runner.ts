@@ -82,6 +82,7 @@ export type RunnerJob = {
     install: string | null;
     deadlineAt: string;
     runToken: string;
+    cycleId: string | null;
 };
 
 export type RunnerRegisterResult = {

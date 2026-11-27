@@ -12,6 +12,17 @@ const MAX_OPTION_LABEL = 120;
 const MAX_OPTION_DESCRIPTION = 500;
 const MAX_ARTIFACT_PATH = 1024;
 const COMMIT_SHA = /^[0-9a-f]{40}$/;
+export const MAX_STAGE_DECISIONS = 20;
+export const MAX_DECISION_TEXT = 500;
+
+/** Where the agent took a decision from, in the order it is expected to look. */
+export const DECISION_RULES = [
+    "policy",
+    "spec",
+    "repo_pattern",
+    "least_impact",
+] as const;
+export type DecisionRule = (typeof DECISION_RULES)[number];
 const ATTACHMENT_ID = /^[0-9a-f-]{36}$/;
 
 const cardRef = { cardId: z.string().min(1) };
@@ -37,6 +48,13 @@ export const questionSchema = z.object({
         .optional(),
 });
 
+/** `product: true` marks what a person would have been asked outside a cycle. */
+export const stageDecisionSchema = z.object({
+    decision: z.string().trim().min(1).max(MAX_DECISION_TEXT),
+    rule: z.enum(DECISION_RULES),
+    product: z.boolean(),
+});
+
 export const getCardInputSchema = z.object(cardRef);
 
 export const postUpdateInputSchema = z.object({
@@ -59,6 +77,7 @@ export const completeStageInputSchema = z.object({
     ...stageRef,
     outcome: z.enum(STAGE_OUTCOMES),
     summary: z.string().min(1).max(MAX_MARKDOWN),
+    decisions: z.array(stageDecisionSchema).max(MAX_STAGE_DECISIONS).optional(),
 });
 
 export const getAttachmentInputSchema = z.object({
@@ -88,6 +107,7 @@ export type Question = z.infer<typeof questionSchema>;
 export type PostUpdateInput = z.infer<typeof postUpdateInputSchema>;
 export type AskInput = z.infer<typeof askInputSchema>;
 export type AttachArtifactInput = z.infer<typeof attachArtifactInputSchema>;
+export type StageDecision = z.infer<typeof stageDecisionSchema>;
 export type CompleteStageInput = z.infer<typeof completeStageInputSchema>;
 export type GetAttachmentInput = z.infer<typeof getAttachmentInputSchema>;
 

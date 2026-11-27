@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     askInputSchema,
     attachArtifactInputSchema,
+    completeStageInputSchema,
     getAttachmentInputSchema,
     type Question,
     questionSchema,
@@ -154,5 +155,63 @@ describe("getAttachmentInputSchema", () => {
                     .success
             ).toBe(false);
         }
+    });
+});
+
+describe("completeStageInputSchema decisions", () => {
+    const base = {
+        cardId: "b1__a",
+        stage: "analyze",
+        outcome: "success",
+        summary: "ok",
+    };
+    const decision = {
+        decision: "Busca no cliente, sem índice novo.",
+        rule: "least_impact",
+        product: false,
+    };
+    const MAX_DECISIONS = 20;
+    const MAX_DECISION_TEXT = 500;
+
+    it("keeps decisions optional", () => {
+        expect(completeStageInputSchema.safeParse(base).success).toBe(true);
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: [decision],
+            }).success
+        ).toBe(true);
+    });
+
+    it("refuses a rule outside the list", () => {
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: [{ ...decision, rule: "gut_feeling" }],
+            }).success
+        ).toBe(false);
+    });
+
+    it("refuses 21 decisions and a text over 500 characters", () => {
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: Array.from(
+                    { length: MAX_DECISIONS + 1 },
+                    () => decision
+                ),
+            }).success
+        ).toBe(false);
+        expect(
+            completeStageInputSchema.safeParse({
+                ...base,
+                decisions: [
+                    {
+                        ...decision,
+                        decision: "d".repeat(MAX_DECISION_TEXT + 1),
+                    },
+                ],
+            }).success
+        ).toBe(false);
     });
 });

@@ -53,6 +53,8 @@ export type AgentCardView = {
         reworkLoops: number;
         branch: string | null;
         origin: CardOrigin;
+        /** Set while the card runs inside a cycle, where `ask` is refused. */
+        cycleId: string | null;
     };
     run: {
         id: string;
