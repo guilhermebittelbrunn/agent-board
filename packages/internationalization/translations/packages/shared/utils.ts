@@ -57,6 +57,12 @@ export const sharedUtilsTranslations = {
                 "O GitHub limitou as chamadas do board por alguns minutos. Tente de novo em instantes.",
             GITHUB_UNAVAILABLE:
                 "Não foi possível falar com o GitHub agora. Tente de novo em instantes.",
+            GITHUB_APP_PERMISSION_MISSING:
+                "O GitHub App do board não tem permissão para abrir pull requests neste repositório. Peça a quem administra o App para conceder Pull requests: Read and write.",
+            GITHUB_PULL_REQUEST_REJECTED:
+                "O GitHub recusou a PR. Confira se a branch do card está no repositório e tem commits que a base não tem.",
+            GITHUB_WEBHOOK_PROCESSING_FAILED:
+                "O evento do GitHub chegou, mas o board não conseguiu registrá-lo agora. O GitHub pode reenviá-lo.",
             BOARD_NOT_FOUND: "Board não encontrado.",
             BOARD_ALREADY_EXISTS: "Este repositório já tem um board.",
             BOARD_CONFIG_NOT_FOUND:
@@ -102,6 +108,8 @@ export const sharedUtilsTranslations = {
             CARD_RUN_ACTIVE:
                 "Este card já está rodando uma etapa. Pare a execução ou espere ela terminar.",
             CARD_RUN_NOT_ACTIVE: "Este card não está rodando nenhuma etapa.",
+            CARD_NOT_IN_PULL_REQUEST_STAGE:
+                "Este card não está na etapa de PR do board.",
             CARD_BRANCH_INVALID:
                 "Não foi possível montar uma branch válida para este card. Confira o branchPattern do board.yml.",
             CARD_DRAFT_NOT_APPROVED:

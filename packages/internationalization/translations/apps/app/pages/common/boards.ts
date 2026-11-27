@@ -199,6 +199,16 @@ export const commonBoardsPageTranslations = {
                     noRunner:
                         "Nenhum runner seu pegou esta etapa. Inicie o runner e rode de novo.",
                     awaitingApproval: "Plano pronto · aguarda sua aprovação",
+                    awaitingMerge: "Aguardando o merge",
+                },
+                pullRequest: {
+                    open: "PR #{number}",
+                    closed: "PR #{number} fechada sem merge",
+                    checks: {
+                        pending: "checks pendentes",
+                        success: "checks passando",
+                        failure: "checks falhando",
+                    },
                 },
                 runActions: {
                     rerun: "Rodar de novo",
@@ -331,6 +341,59 @@ export const commonBoardsPageTranslations = {
             confirm: "Parar",
         },
         cardDetail: {
+            pullRequest: {
+                title: "Pull request",
+                openOnGithub: "Abrir PR no GitHub",
+                draft: "Rascunho",
+                states: {
+                    open: "Aberta",
+                    merged: "Mergeada",
+                    closed: "Fechada sem merge",
+                },
+                branches: "{head} → {base}",
+                commitsOne: "1 commit",
+                commitsOther: "{count} commits",
+                openedByBoard: "aberta pelo board em {when}",
+                adoptedByBoard: "adotada pelo board em {when}",
+                closedBy: "Fechada sem merge por @{login}",
+                mergedBy: "Mergeada por @{login}",
+                checks: {
+                    title: "Checks",
+                    empty: "Nenhum check concluído ainda",
+                    summary: {
+                        pending: "Checks pendentes",
+                        success: "Checks passando",
+                        failure: "Checks falhando",
+                    },
+                    conclusion: {
+                        success: "Passou",
+                        failure: "Falhou",
+                        neutral: "Neutro",
+                        cancelled: "Cancelado",
+                        skipped: "Pulado",
+                        timed_out: "Tempo esgotado",
+                        action_required: "Ação necessária",
+                        stale: "Desatualizado",
+                        startup_failure: "Falhou ao iniciar",
+                        other: "{conclusion}",
+                    },
+                },
+                reviews: {
+                    title: "Reviews",
+                    empty: "Nenhuma review ainda",
+                    state: {
+                        approved: "Aprovou",
+                        changes_requested: "Pediu mudanças",
+                        commented: "Comentou",
+                    },
+                },
+                pendingComment: "Comentário novo esperando o {command}",
+                errorTitle: "Não foi possível abrir a PR",
+                retry: "Tentar de novo",
+                retrying: "Abrindo…",
+                mergeNote:
+                    "O merge é sempre seu. Quando a PR for mergeada, o card vai para Concluído.",
+            },
             loadError: "Não foi possível carregar o card.",
             specLoadError: "Não foi possível ler a spec no GitHub.",
             column: "Coluna",
@@ -530,6 +593,10 @@ export const commonBoardsPageTranslations = {
                 "A etapa {stageColumn} devolve o card para {target}, que não existe antes dela.",
             baseBranchUnprotected:
                 "A branch base {baseBranch} precisa estar em protectedBranches.",
+            pullRequestStageDuplicated:
+                "Só uma etapa pode abrir a PR. Tire pullRequest da etapa {stageColumn}.",
+            pullRequestStageNotLast:
+                "A etapa {stageColumn} abre a PR e precisa ser a última do board: o merge leva o card direto para Concluído.",
             yamlSyntax:
                 "O arquivo não é um YAML válido (linha {line}, coluna {column}).",
             yamlSyntaxNoPosition:
@@ -595,6 +662,7 @@ export const commonBoardsPageTranslations = {
                     approval: "aprovação",
                     onRework: "retrabalho",
                     onPrComment: "comentário de PR",
+                    pullRequest: "abertura da PR",
                 },
             },
         },
