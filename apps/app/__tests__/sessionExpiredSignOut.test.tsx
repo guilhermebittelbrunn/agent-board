@@ -48,9 +48,9 @@ const STATUS_UNAUTHORIZED = 401;
 const STATUS_SERVER_ERROR = 500;
 const ONE_CALL = 1;
 const ID_TOKEN = "id-token";
-const CURRENT_PATH = "/pt-br/entities";
+const CURRENT_PATH = "/pt-br/boards";
 const SIGN_IN_PATH = "/pt-br/sign-in";
-const SIGN_IN_WITH_REDIRECT = "/pt-br/sign-in?redirect=%2Fpt-br%2Fentities";
+const SIGN_IN_WITH_REDIRECT = "/pt-br/sign-in?redirect=%2Fpt-br%2Fboards";
 const SIGN_IN_WITH_FOREIGN_REDIRECT =
     "/pt-br/sign-in?redirect=https%3A%2F%2Fevil.example";
 const REFRESH_PATH = "/api/auth/session/refresh";

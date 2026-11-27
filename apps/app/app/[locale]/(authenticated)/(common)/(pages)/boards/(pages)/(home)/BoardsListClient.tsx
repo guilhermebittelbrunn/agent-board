@@ -8,7 +8,6 @@ import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { COMMON_ROUTES } from "../../../../paths";
 import { BoardCard } from "../../(components)/BoardCard";
@@ -41,12 +40,7 @@ export function BoardsListClient() {
 
     return (
         <>
-            <Header
-                breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
-                ]}
-                page={routes.boards.list.label}
-            />
+            <Header page={routes.boards.list.label} />
             <Container
                 header={
                     isEmpty ? (
@@ -66,7 +60,6 @@ export function BoardsListClient() {
                 loading={isLoading}
             >
                 <div className="flex w-full flex-col gap-6">
-                    <ImpersonationReadOnlyNotice />
                     {isEmpty ? (
                         <BoardsFirstAccess
                             boardsDictionary={boardsDictionary}

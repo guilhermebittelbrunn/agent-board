@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { AxiosError, AxiosHeaders } from "axios";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useEntityCrud } from "@/app/[locale]/(authenticated)/(common)/(pages)/entities/(hooks)/useEntityCrud";
+import { useBoardMemberCrud } from "@/app/[locale]/(authenticated)/(common)/(pages)/boards/(hooks)/useBoardMemberCrud";
 
 const { updateMock, errorAlertMock, localeRef } = vi.hoisted(() => ({
     updateMock: vi.fn(),
@@ -13,7 +13,9 @@ const { updateMock, errorAlertMock, localeRef } = vi.hoisted(() => ({
 
 vi.mock("@/shared/lib/client", () => ({
     apiClient: {
-        entity: { update: (...args: unknown[]) => updateMock(...args) },
+        boardMember: {
+            updateRole: (...args: unknown[]) => updateMock(...args),
+        },
     },
 }));
 
@@ -32,11 +34,14 @@ vi.mock("@repo/internationalization/client", () => ({
                 app: {
                     pages: {
                         common: {
-                            entities: {
-                                messages: {
-                                    created: "c",
-                                    updated: "u",
-                                    deleted: "d",
+                            boards: {
+                                members: {
+                                    invite: { success: "i" },
+                                    changeRole: { success: "c" },
+                                    actions: {
+                                        removed: "r",
+                                        inviteCanceled: "x",
+                                    },
                                 },
                             },
                         },
@@ -53,7 +58,7 @@ const NOT_FOUND = 404;
 function apiRejection(headers: Record<string, string> = {}): AxiosError {
     const error = new AxiosError("Request failed");
     error.response = {
-        data: { error: { code: "ENTITY_NOT_FOUND" } },
+        data: { error: { code: "BOARD_MEMBER_NOT_FOUND" } },
         status: NOT_FOUND,
         statusText: "Not Found",
         headers,
@@ -73,21 +78,17 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 async function submitFailingUpdate() {
-    const { result } = renderHook(() => useEntityCrud(), { wrapper });
+    const { result } = renderHook(() => useBoardMemberCrud("board-1"), {
+        wrapper,
+    });
 
-    result.current.updateEntityMutation.mutate({
-        id: "1",
-        name: "Nome",
-        description: "Descrição",
-        type: "PERSON",
-        photo: "",
-        genre: "unset",
-        birthdate: "",
-        enabled: true,
+    result.current.changeMemberRoleMutation.mutate({
+        member: { id: "m1", login: "octo" },
+        role: "operator",
     } as never);
 
     await waitFor(() =>
-        expect(result.current.updateEntityMutation.isError).toBe(true)
+        expect(result.current.changeMemberRoleMutation.isError).toBe(true)
     );
 
     return errorAlertMock.mock.calls.at(-1)?.[0] as string;
@@ -112,7 +113,7 @@ describe("erro de mutation no painel", () => {
         );
 
         expect(await submitFailingUpdate()).toBe(
-            `Entidade não encontrada. (Código do erro: ${REQUEST_ID})`
+            `Membro não encontrado neste board. (Código do erro: ${REQUEST_ID})`
         );
     });
 
@@ -125,7 +126,7 @@ describe("erro de mutation no painel", () => {
 
         const message = await submitFailingUpdate();
 
-        expect(message).toBe("Entidade não encontrada.");
+        expect(message).toBe("Membro não encontrado neste board.");
         expect(message).not.toContain("(");
         expect(message).not.toContain("null");
         expect(message).not.toContain("undefined");

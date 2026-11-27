@@ -36,7 +36,6 @@ import { Header } from "@/shared/components/ui/Header";
 import { LoadErrorState } from "@/shared/components/ui/LoadErrorState";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { queryKeys } from "@/shared/lib/queryKeys";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../../../paths";
 import { boardColumnTitle } from "../../../../(components)/boardColumnTitle";
 import {
@@ -88,7 +87,6 @@ function CardSummary({
 }: CardSectionProps & {
     onRunCommand: (card: CardDTO, command: CardRunCommand) => void;
 }) {
-    const { isImpersonating } = useAuthRequestPanel();
     const detailCopy = boardsDictionary.cardDetail;
     const specUrl = githubFileUrl(
         board.repository.owner,
@@ -116,10 +114,9 @@ function CardSummary({
                     <CardRunControls
                         board={board}
                         boardsDictionary={boardsDictionary}
-                        canTrigger={
-                            canTriggerStages(board.access.effectiveRole) &&
-                            !isImpersonating
-                        }
+                        canTrigger={canTriggerStages(
+                            board.access.effectiveRole
+                        )}
                         card={card}
                         onCommand={onRunCommand}
                         showOrphan={false}
@@ -256,7 +253,6 @@ function CardActivity({
     showSpecTab = true,
 }: CardSectionProps & { showSpecTab?: boolean }) {
     const { locale } = getDictionary();
-    const { isImpersonating } = useAuthRequestPanel();
     const detailCopy = boardsDictionary.cardDetail;
     const {
         data: events,
@@ -272,8 +268,8 @@ function CardActivity({
     } = useCardEventCrud(board.id, card.slug);
 
     const role = board.access.effectiveRole;
-    const canComment = canCommentOnCards(role) && !isImpersonating;
-    const canAnswer = canAnswerQuestions(role) && !isImpersonating;
+    const canComment = canCommentOnCards(role);
+    const canAnswer = canAnswerQuestions(role);
     const pendingQuestions = pendingQuestionsOf(card, events);
     const links = {
         owner: board.repository.owner,
@@ -458,7 +454,6 @@ export function CardDetailClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,

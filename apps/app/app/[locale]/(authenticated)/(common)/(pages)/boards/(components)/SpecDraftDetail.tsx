@@ -18,7 +18,6 @@ import { type ReactNode, useEffect, useRef } from "react";
 import { LoadErrorState } from "@/shared/components/ui/LoadErrorState";
 import { useFormatDisplayDateTime } from "@/shared/lib/formatDisplayDateTime";
 import { queryKeys } from "@/shared/lib/queryKeys";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { useFindCardSpecBySlug } from "../(hooks)/useFindCardSpecBySlug";
 import { useListCardEvents } from "../(hooks)/useListCardEvents";
 import { useSpecDraftCrud } from "../(hooks)/useSpecDraftCrud";
@@ -179,12 +178,11 @@ export function SpecDraftDetail({
     onRunCommand,
     onDiscarded,
 }: SpecDraftDetailProps) {
-    const { isImpersonating } = useAuthRequestPanel();
     const formatDateTime = useFormatDisplayDateTime();
     const detailCopy = boardsDictionary.drafts.detail;
     const role = board.access.effectiveRole;
-    const canTrigger = canTriggerStages(role) && !isImpersonating;
-    const canDecide = canPrioritizeCards(role) && !isImpersonating;
+    const canTrigger = canTriggerStages(role);
+    const canDecide = canPrioritizeCards(role);
     const { approveSpecMutation, discardDraftMutation } = useSpecDraftCrud(
         board.id
     );

@@ -9,9 +9,7 @@ import { useEffect, useState } from "react";
 import { env } from "@/env";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../../paths";
 import { BoardSectionNav } from "../../../(components)/BoardSectionNav";
 import { RevokeRunnerDialog } from "../../../(components)/RevokeRunnerDialog";
@@ -42,7 +40,6 @@ function useNow(active: boolean): number {
 export function BoardCredentialsClient() {
     const params = useParams<{ id: string }>();
     const id = typeof params.id === "string" ? params.id : "";
-    const { isImpersonating } = useAuthRequestPanel();
     const [registration, setRegistration] = useState<OpenRegistration | null>(
         null
     );
@@ -100,7 +97,6 @@ export function BoardCredentialsClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,
@@ -139,7 +135,6 @@ export function BoardCredentialsClient() {
                             aria-labelledby="runners-title"
                             className="flex min-w-0 flex-col gap-4"
                         >
-                            <ImpersonationReadOnlyNotice />
                             <div className="flex flex-col gap-1">
                                 <h2
                                     className="font-semibold"
@@ -154,14 +149,14 @@ export function BoardCredentialsClient() {
                             <RunnerList
                                 board={board}
                                 boardsDictionary={boardsDictionary}
-                                canRevoke={!isImpersonating}
+                                canRevoke
                                 onRevoke={setRunnerToRevoke}
                                 runners={runners}
                             />
                             <RunnerRegistrationPanel
                                 apiUrl={API_URL}
                                 boardsDictionary={boardsDictionary}
-                                canGenerate={!isImpersonating}
+                                canGenerate
                                 expired={expired}
                                 isGenerating={
                                     createRegistrationMutation.isPending

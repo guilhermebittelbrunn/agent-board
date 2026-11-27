@@ -5,7 +5,6 @@ import {
 } from "@tanstack/react-query";
 import { getServerApiClient } from "@/lib/server/apiServerClient";
 import { panelPageMetadata } from "@/lib/server/panelMetadata";
-import { isImpersonating } from "@/lib/server/panelSnapshot";
 import { queryKeys } from "@/shared/lib/queryKeys";
 import { BoardSettingsClient } from "./BoardSettingsClient";
 
@@ -21,8 +20,8 @@ export default async function BoardSettingsPage({
     const { id } = await params;
     const queryClient = new QueryClient();
 
-    if (id && !(await isImpersonating())) {
-        const client = await getServerApiClient("common");
+    if (id) {
+        const client = await getServerApiClient();
         if (client) {
             await queryClient.prefetchQuery({
                 queryKey: queryKeys.boards.detail(id),

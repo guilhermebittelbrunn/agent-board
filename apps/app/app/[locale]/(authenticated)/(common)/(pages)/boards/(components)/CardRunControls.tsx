@@ -13,7 +13,7 @@ export type CardRunCommand = "rerun" | "approve" | "stop";
 type CardRunControlsProps = {
     card: CardDTO;
     board: Pick<BoardViewDTO, "config" | "executor">;
-    /** The person can trigger stages on this board and is not impersonating. */
+    /** The person can trigger stages on this board. */
     canTrigger: boolean;
     boardsDictionary: BoardsDictionary;
     onCommand: (card: CardDTO, command: CardRunCommand) => void;

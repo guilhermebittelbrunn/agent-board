@@ -10,10 +10,8 @@ import { RefreshCwIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { useFormatDisplayDateTime } from "@/shared/lib/formatDisplayDateTime";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../../paths";
 import { BoardReloadResult } from "../../../(components)/BoardReloadResult";
 import { BoardSectionNav } from "../../../(components)/BoardSectionNav";
@@ -25,21 +23,18 @@ import { useBoardCrud } from "../../../(hooks)/useBoardCrud";
 import { useFindBoardById } from "../../../(hooks)/useFindBoardById";
 
 type ReloadConfigButtonProps = {
-    disabled: boolean;
     isPending: boolean;
     label: string;
     onReload: () => void;
 };
 
 function ReloadConfigButton({
-    disabled,
     isPending,
     label,
     onReload,
 }: ReloadConfigButtonProps) {
     return (
         <Button
-            disabled={disabled}
             loading={isPending}
             onClick={onReload}
             type="button"
@@ -56,7 +51,6 @@ export function BoardSettingsClient() {
     const id = typeof params.id === "string" ? params.id : "";
     const { data: board, isLoading, error } = useFindBoardById(id);
     const { reloadBoardMutation, updateStageSettingsMutation } = useBoardCrud();
-    const { isImpersonating } = useAuthRequestPanel();
     const formatDateTime = useFormatDisplayDateTime();
     const { dictionary, locale } = getDictionary();
     const routes = COMMON_ROUTES(dictionary, locale);
@@ -76,7 +70,6 @@ export function BoardSettingsClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,
@@ -111,7 +104,6 @@ export function BoardSettingsClient() {
             >
                 {board ? (
                     <div className="flex w-full flex-col gap-6">
-                        <ImpersonationReadOnlyNotice />
                         <Card className="flex-row flex-wrap items-center gap-3 p-5">
                             <div className="flex min-w-56 flex-1 flex-col gap-1">
                                 <span className="font-mono font-semibold">
@@ -129,7 +121,6 @@ export function BoardSettingsClient() {
                             </div>
                             {canReload ? (
                                 <ReloadConfigButton
-                                    disabled={isImpersonating}
                                     isPending={reloadBoardMutation.isPending}
                                     label={settingsCopy.reload}
                                     onReload={() =>
@@ -151,7 +142,7 @@ export function BoardSettingsClient() {
                         <BoardStageSettingsForm
                             board={board}
                             boardsDictionary={boardsDictionary}
-                            canEdit={canReload && !isImpersonating}
+                            canEdit={canReload}
                             isSaving={updateStageSettingsMutation.isPending}
                             onSave={(body) =>
                                 updateStageSettingsMutation.mutateAsync({

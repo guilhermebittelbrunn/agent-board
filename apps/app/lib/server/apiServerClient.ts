@@ -1,4 +1,3 @@
-import type { Context } from "@repo/sdk/src/client/base";
 import { Client } from "@repo/sdk/src/client/index";
 import { cookies } from "next/headers";
 
@@ -12,9 +11,7 @@ const ACCESS_TOKEN_COOKIE = "access-token";
  * would leak across concurrent requests. Returns `null` when there is no session
  * cookie or the API base URL is not configured.
  */
-export async function getServerApiClient(
-    context: Context = "common"
-): Promise<Client | null> {
+export async function getServerApiClient(): Promise<Client | null> {
     const cookieStore = await cookies();
     const token = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
     if (!token) {
@@ -26,7 +23,7 @@ export async function getServerApiClient(
         return null;
     }
 
-    const client = new Client({ url, project: "app", context });
+    const client = new Client({ url, project: "app" });
     client.setAuthorizationHeader(token);
     return client;
 }

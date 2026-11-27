@@ -16,9 +16,7 @@ import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 import { Container } from "@/shared/components/ui/Container";
 import { Header } from "@/shared/components/ui/Header";
-import { ImpersonationReadOnlyNotice } from "@/shared/components/ui/ImpersonationReadOnlyNotice";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { useAuthRequestPanel } from "@/shared/providers/AuthRequestPanelContext";
 import { COMMON_ROUTES } from "../../../../paths";
 import { BoardBacklogEmpty } from "../../(components)/BoardBacklogEmpty";
 import { BoardColumns } from "../../(components)/BoardColumns";
@@ -99,7 +97,6 @@ function BoardScreen({
 
     return (
         <div className="flex w-full min-w-0 flex-col gap-6">
-            <ImpersonationReadOnlyNotice />
             <p aria-live="polite" className="sr-only">
                 {announcement}
             </p>
@@ -219,15 +216,11 @@ function BoardPageHeader({
     );
 }
 
-/** Writes are refused while impersonating, so the screen offers none. */
-function boardPermissions(
-    board: BoardViewDTO | undefined,
-    isImpersonating: boolean
-) {
+function boardPermissions(board: BoardViewDTO | undefined) {
     const role = board?.access.effectiveRole ?? null;
     return {
-        canPrioritize: canPrioritizeCards(role) && !isImpersonating,
-        canTrigger: canTriggerStages(role) && !isImpersonating,
+        canPrioritize: canPrioritizeCards(role),
+        canTrigger: canTriggerStages(role),
     };
 }
 
@@ -310,7 +303,6 @@ export function BoardClient() {
     } = useListBoardCards(id);
     const { syncMutation, reorderMutation, moveMutation } =
         useBoardCardCrud(id);
-    const { isImpersonating } = useAuthRequestPanel();
     const [skipped, setSkipped] = useState<CardSyncSkipDTO[]>([]);
     const [announcement, setAnnouncement] = useState("");
     const { dictionary, locale } = getDictionary();
@@ -324,10 +316,7 @@ export function BoardClient() {
         : null;
     const isLoading = isBoardLoading || areCardsLoading;
 
-    const { canPrioritize, canTrigger } = boardPermissions(
-        board,
-        isImpersonating
-    );
+    const { canPrioritize, canTrigger } = boardPermissions(board);
     const { requestTrigger, onCommand, dialogs } = useStageRunDialogs({
         boardId: id,
         board,
@@ -396,7 +385,6 @@ export function BoardClient() {
         <>
             <Header
                 breadcrumbs={[
-                    { label: routes.root.label, href: routes.root.url },
                     {
                         label: routes.boards.list.label,
                         href: routes.boards.list.url,

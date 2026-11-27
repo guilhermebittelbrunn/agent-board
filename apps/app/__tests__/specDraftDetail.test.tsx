@@ -6,15 +6,11 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runBoard, runCard } from "./runCardFixtures";
 
-const { panelMock, specMock, eventsMock } = vi.hoisted(() => ({
-    panelMock: vi.fn(),
+const { specMock, eventsMock } = vi.hoisted(() => ({
     specMock: vi.fn(),
     eventsMock: vi.fn(),
 }));
 
-vi.mock("@/shared/providers/AuthRequestPanelContext", () => ({
-    useAuthRequestPanel: () => panelMock(),
-}));
 vi.mock("@/shared/lib/client", () => ({ apiClient: {} }));
 vi.mock("@repo/design-system/hooks/useAlert", () => ({
     default: () => ({ successAlert: vi.fn(), errorAlert: vi.fn() }),
@@ -115,7 +111,6 @@ const draw = (role: BoardRole, card = draft()) => {
 };
 
 beforeEach(() => {
-    panelMock.mockReturnValue({ isImpersonating: false });
     specMock.mockReturnValue({
         data: {
             path: "specs/features/aviso-no-slack.md",
@@ -158,14 +153,6 @@ describe("SpecDraftDetail", () => {
         expect(screen.queryByRole("button", { name: APPROVE })).toBeNull();
         expect(screen.queryByRole("button", { name: DISCARD })).toBeNull();
         expect(screen.getByText("Seu pedido")).toBeTruthy();
-    });
-
-    it("hides approve and discard while an admin impersonates", () => {
-        panelMock.mockReturnValue({ isImpersonating: true });
-        draw("owner");
-
-        expect(screen.queryByRole("button", { name: APPROVE })).toBeNull();
-        expect(screen.queryByRole("button", { name: DISCARD })).toBeNull();
     });
 
     it("says the draft is not on the branch yet when the file is missing", () => {
