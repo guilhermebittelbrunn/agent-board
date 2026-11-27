@@ -34,6 +34,23 @@ contrato: ler o pedido no `get_card`, os anexos com `get_attachment`, perguntar 
 em `specAuthoring.path` na branch do card. Sem `.claude/commands/spec.md`, o `apply.mjs` pula a seção e
 avisa.
 
+## Etapa de PR
+
+A etapa com `pullRequest` no `board.yml` (no kit, `pr`) é a de PR: ao entrar nela, o board abre a PR da
+branch do card para `baseBranch` com o GitHub App, como rascunho quando `pullRequest.draft` é `true`, e
+roda o comando da etapa (`/observe`). Comentário ou review novo na PR roda o `onPrComment` (`/mediate`),
+até `limits.maxPrCommentRunsPerHour` vezes por hora (`0` desliga). Quando o comando da etapa termina, o
+card fica parado nela até a PR ser mergeada (vai para Concluído) ou fechada sem merge (volta para o fim de
+Tarefas). O merge é sempre de uma pessoa.
+
+Só uma etapa pode ter `pullRequest`, e ela tem de ser a última. Um board importado antes dessa chave
+existir continua levando o card a Concluído quando a última etapa termina, até alguém acrescentar
+`pullRequest` ao `board.yml` e recarregar o board na tela Configuração.
+
+O App precisa de `Pull requests: Read and write` e dos eventos `Pull request`, `Pull request review`,
+`Issue comment` e `Check suite` ([`docs/board/ACCESS.md`](../docs/board/ACCESS.md)). Sem a permissão, o
+card mostra o erro e um botão para tentar de novo.
+
 ## Repositórios com outro pipeline
 
 O board só conhece o `board.yml` e o contrato das ferramentas (`get_card`, `ask`, `complete_stage`…). Um

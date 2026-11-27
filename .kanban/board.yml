@@ -51,6 +51,10 @@ stages:
     model: haiku
     effort: low
     onPrComment: /mediate
+    # Esta etapa abre a PR da branch do card (só uma etapa pode ter, e ela é a última).
+    # draft: true abre como rascunho; false abre pronta para review.
+    pullRequest:
+      draft: true
 
 # Escrita de specs no board (coluna Rascunhos). Tudo opcional; estes são os padrões.
 # A chave de etapa "spec" é reservada para ela.
@@ -65,6 +69,7 @@ stages:
 limits:
   maxReworkLoops: 2
   maxTurnsPerStage: 200
+  maxPrCommentRunsPerHour: 3 # /mediate por PR e por hora; 0 desliga o disparo por comentário
 
 environment:
   install: pnpm install --frozen-lockfile
