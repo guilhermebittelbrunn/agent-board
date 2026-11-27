@@ -88,7 +88,7 @@ beforeEach(() => {
 
 describe("app security headers", () => {
     it("blocks rather than reports", async () => {
-        const response = await proxy(makeRequest("/pt-br/entities"));
+        const response = await proxy(makeRequest("/pt-br/boards"));
 
         expect(response.headers.get("content-security-policy")).toBeTruthy();
         expect(
@@ -97,7 +97,7 @@ describe("app security headers", () => {
     });
 
     it("lets the SDK reach the API it was configured with", async () => {
-        const connectSrc = (await policyFor("/pt-br/entities")).get(
+        const connectSrc = (await policyFor("/pt-br/boards")).get(
             "connect-src"
         );
 
@@ -107,33 +107,33 @@ describe("app security headers", () => {
     });
 
     it("frames the Firebase auth domain the popup needs", async () => {
-        expect((await policyFor("/pt-br/entities")).get("frame-src")).toEqual([
+        expect((await policyFor("/pt-br/boards")).get("frame-src")).toEqual([
             `https://${AUTH_DOMAIN}`,
         ]);
     });
 
     it("serves the Google profile picture in the account menu", async () => {
-        expect((await policyFor("/pt-br/entities")).get("img-src")).toContain(
+        expect((await policyFor("/pt-br/boards")).get("img-src")).toContain(
             "https://lh3.googleusercontent.com"
         );
     });
 
     it("serves the GitHub avatar in the account menu", async () => {
-        expect((await policyFor("/pt-br/entities")).get("img-src")).toContain(
+        expect((await policyFor("/pt-br/boards")).get("img-src")).toContain(
             "https://avatars.githubusercontent.com"
         );
     });
 
     it("leaves analytics origins out while analytics is unconfigured", async () => {
         expect(
-            (await policyFor("/pt-br/entities")).get("script-src")
+            (await policyFor("/pt-br/boards")).get("script-src")
         ).not.toContain("https://www.googletagmanager.com");
     });
 
     it("hardens the redirects too, not only the pages it serves", async () => {
         getUserFromSessionCookieMock.mockResolvedValue(null);
 
-        const response = await proxy(makeRequest("/pt-br/entities"));
+        const response = await proxy(makeRequest("/pt-br/boards"));
 
         expect(response.headers.get("location")).toContain("/pt-br/sign-in");
         expect(response.headers.get("content-security-policy")).toContain(
@@ -142,7 +142,7 @@ describe("app security headers", () => {
     });
 
     it("keeps the sign-in popup connected to the page that opened it", async () => {
-        const response = await proxy(makeRequest("/pt-br/entities"));
+        const response = await proxy(makeRequest("/pt-br/boards"));
 
         expect(response.headers.get("cross-origin-opener-policy")).toBe(
             "same-origin-allow-popups"
@@ -151,7 +151,7 @@ describe("app security headers", () => {
     });
 
     it("turns off the browser features the panel does not use", async () => {
-        const response = await proxy(makeRequest("/pt-br/entities"));
+        const response = await proxy(makeRequest("/pt-br/boards"));
 
         expect(response.headers.get("permissions-policy")).toBe(
             PERMISSIONS_POLICY
@@ -196,7 +196,7 @@ describe("app security headers on the session routes", () => {
 
 describe("app responses stay out of search indexes", () => {
     it("marks a panel page as noindex", async () => {
-        const response = await proxy(makeRequest("/pt-br/entities"));
+        const response = await proxy(makeRequest("/pt-br/boards"));
 
         expect(response.headers.get("x-robots-tag")).toBe("noindex");
     });
@@ -204,7 +204,7 @@ describe("app responses stay out of search indexes", () => {
     it("marks the redirect to sign-in as noindex", async () => {
         getUserFromSessionCookieMock.mockResolvedValue(null);
 
-        const response = await proxy(makeRequest("/pt-br/entities"));
+        const response = await proxy(makeRequest("/pt-br/boards"));
 
         expect(response.headers.get("location")).toContain("/pt-br/sign-in");
         expect(response.headers.get("x-robots-tag")).toBe("noindex");
@@ -225,7 +225,7 @@ describe("app proxy matcher", () => {
         "/api/auth/session",
         "/api/auth/session/refresh",
         "/api/auth/custom-token",
-        "/pt-br/entities",
+        "/pt-br/boards",
     ])("runs on %s", (path) => {
         expect(matches(path)).toBe(true);
     });

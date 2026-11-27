@@ -1,4 +1,3 @@
-import { UserType } from "@repo/sdk/src/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { meMock, setAuthorizationHeaderMock } = vi.hoisted(() => ({
@@ -47,7 +46,6 @@ beforeEach(() => {
 describe("projeção das preferências da conta no sign-in", () => {
     it("grava tema e idioma salvos em cookie e leva ao idioma preferido", async () => {
         meMock.mockResolvedValue({
-            type: UserType.COMMON,
             preferences: { theme: "dark", locale: "es" },
         });
 
@@ -59,12 +57,11 @@ describe("projeção das preferências da conta no sign-in", () => {
         expect(setAuthorizationHeaderMock).toHaveBeenCalledWith(ID_TOKEN);
         expect(readCookie("x-theme")).toBe("dark");
         expect(readCookie("x-locale")).toBe("es");
-        expect(path).toBe("/es");
+        expect(path).toBe("/es/boards");
     });
 
     it("não navega quando o idioma preferido já é o da página", async () => {
         meMock.mockResolvedValue({
-            type: UserType.COMMON,
             preferences: { theme: "light", locale: "pt-br" },
         });
 
@@ -80,7 +77,6 @@ describe("projeção das preferências da conta no sign-in", () => {
     it("mantém o tema escolhido neste navegador e ainda assim aplica o idioma", async () => {
         window.localStorage.setItem("theme", "light");
         meMock.mockResolvedValue({
-            type: UserType.COMMON,
             preferences: { theme: "dark", locale: "es" },
         });
 
@@ -92,26 +88,11 @@ describe("projeção das preferências da conta no sign-in", () => {
         expect(window.localStorage.getItem("theme")).toBe("light");
         expect(readCookie("x-theme")).toBeNull();
         expect(readCookie("x-locale")).toBe("es");
-        expect(path).toBe("/es");
-    });
-
-    it("leva o admin ao painel administrativo no idioma preferido", async () => {
-        meMock.mockResolvedValue({
-            type: UserType.ADMIN,
-            preferences: { theme: "system", locale: "en" },
-        });
-
-        const path = await resolveDefaultPostLoginForApp({
-            idToken: ID_TOKEN,
-            locale: "pt-br",
-        });
-
-        expect(path).toBe("/en/admin");
+        expect(path).toBe("/es/boards");
     });
 
     it("descarta um tema ou idioma fora dos valores suportados", async () => {
         meMock.mockResolvedValue({
-            type: UserType.COMMON,
             preferences: { theme: "neon", locale: "fr" },
         });
 
@@ -126,7 +107,7 @@ describe("projeção das preferências da conta no sign-in", () => {
     });
 
     it("não grava cookie quando a conta não tem preferências", async () => {
-        meMock.mockResolvedValue({ type: UserType.COMMON });
+        meMock.mockResolvedValue({});
 
         await resolveDefaultPostLoginForApp({
             idToken: ID_TOKEN,
@@ -139,7 +120,6 @@ describe("projeção das preferências da conta no sign-in", () => {
 
     it("não grava cookie quando preferences chega como valor primitivo", async () => {
         meMock.mockResolvedValue({
-            type: UserType.COMMON,
             preferences: "dark",
         });
 
@@ -168,10 +148,9 @@ describe("resolveAppPostLoginPath", () => {
         window.history.replaceState(
             {},
             "",
-            "/pt-br/sign-in?redirect=%2Fpt-br%2Fentities"
+            "/pt-br/sign-in?redirect=%2Fpt-br%2Fboards%2Fb1"
         );
         meMock.mockResolvedValue({
-            type: UserType.COMMON,
             preferences: { theme: "light", locale: "es" },
         });
 
@@ -181,7 +160,7 @@ describe("resolveAppPostLoginPath", () => {
             fallbackPath: "/pt-br",
         });
 
-        expect(path).toBe("/pt-br/entities");
+        expect(path).toBe("/pt-br/boards/b1");
         expect(window.localStorage.getItem("theme")).toBe("light");
         expect(readCookie("x-theme")).toBe("light");
         // O idioma vem do caminho pedido, e o proxy reescreve o cookie a cada request:
@@ -206,7 +185,7 @@ describe("resolveAppPostLoginPath", () => {
     });
 
     it("cai no caminho padrão quando o perfil não resolve um destino", async () => {
-        meMock.mockResolvedValue({ type: UserType.COMMON });
+        meMock.mockResolvedValue({});
 
         const path = await resolveAppPostLoginPath({
             idToken: ID_TOKEN,

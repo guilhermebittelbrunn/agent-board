@@ -86,9 +86,15 @@ const securityOptions = buildBrowserAppOptions({
 /**
  * The only paths that do not require a session. Everything else is default-deny, so a
  * new authenticated route is protected the moment it exists — no allowlist to remember.
- * An authenticated visitor on one of these is bounced to their home.
+ * An authenticated visitor on one of these is bounced to the boards.
  */
 export const PUBLIC_PATHS = ["/sign-in"] as const;
+
+/**
+ * The landing is public only as the exact locale root. Treated as a prefix, `/` would
+ * also open `//boards`, since every other public path matches its own subpaths.
+ */
+export const LANDING_PATH = "/";
 
 function matchesPathPrefix(path: string, prefixes: readonly string[]): boolean {
     return prefixes.some(
@@ -97,7 +103,7 @@ function matchesPathPrefix(path: string, prefixes: readonly string[]): boolean {
 }
 
 function isPublicPath(path: string): boolean {
-    return matchesPathPrefix(path, PUBLIC_PATHS);
+    return path === LANDING_PATH || matchesPathPrefix(path, PUBLIC_PATHS);
 }
 
 export const config = {
@@ -252,13 +258,11 @@ async function route(request: NextRequest) {
             await clearSessionCookie();
         } else {
             // Honour the deep link the unauthenticated redirect stored, so returning through
-            // sign-in lands where the visitor was going. The role lives in Firestore, not in
-            // the session cookie, so resolving admin vs common here would cost an API call on
-            // the hot path: fall back to the common home and let `(common)/layout.tsx` forward
-            // admins to /admin — one server-side hop, no visible flash.
+            // sign-in lands where the visitor was going; without one, the boards. Falling back
+            // to the locale root would loop, since the landing is public too.
             const target = postAuthRedirectTarget(
                 request.nextUrl.searchParams.get("redirect"),
-                `/${currentLocale}`
+                `/${currentLocale}/boards`
             );
             const redirectUrl = request.nextUrl.clone();
             pointAt(redirectUrl, target);

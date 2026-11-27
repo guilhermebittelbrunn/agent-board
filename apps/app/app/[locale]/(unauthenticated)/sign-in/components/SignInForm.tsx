@@ -52,7 +52,7 @@ export const SignInForm = () => {
             const path = await resolveAppPostLoginPath({
                 idToken: result.idToken,
                 locale,
-                fallbackPath: `/${locale}`,
+                fallbackPath: `/${locale}/boards`,
             });
             window.location.replace(path);
         },
