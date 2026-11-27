@@ -32,6 +32,10 @@ export const queryKeys = {
             [...queryKeys.boards.cards(id), "spec", slug] as const,
         cardEvents: (id: string, slug: string) =>
             [...queryKeys.boards.cards(id), "events", slug] as const,
+        cycles: (id: string) =>
+            [...queryKeys.boards.all, "cycles", id] as const,
+        cycle: (id: string, cycleId: string) =>
+            [...queryKeys.boards.cycles(id), "detail", cycleId] as const,
     },
     runners: {
         all: ["runners"] as const,
