@@ -5,6 +5,7 @@ import ApplicationActions from "../actions/application/application";
 import AuthActions from "../actions/auth/action";
 import BoardActions from "../actions/board/action";
 import BoardCardActions from "../actions/boardCard/action";
+import BoardCredentialActions from "../actions/boardCredential/action";
 import BoardDraftActions from "../actions/boardDraft/action";
 import BoardMemberActions from "../actions/boardMember/action";
 import FileActions from "../actions/file/action";
@@ -16,6 +17,7 @@ export class Client extends BaseClient {
     authApi!: AuthActions;
     board!: BoardActions;
     boardCard!: BoardCardActions;
+    boardCredential!: BoardCredentialActions;
     boardDraft!: BoardDraftActions;
     boardMember!: BoardMemberActions;
     file!: FileActions;
@@ -29,6 +31,7 @@ export class Client extends BaseClient {
         this.authApi = new AuthActions(this);
         this.board = new BoardActions(this);
         this.boardCard = new BoardCardActions(this);
+        this.boardCredential = new BoardCredentialActions(this);
         this.boardDraft = new BoardDraftActions(this);
         this.boardMember = new BoardMemberActions(this);
         this.file = new FileActions(this);

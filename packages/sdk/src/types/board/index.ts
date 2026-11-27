@@ -2,6 +2,7 @@
 export * from "./board";
 export * from "./card";
 export * from "./cardEvent";
+export * from "./credential";
 export * from "./member";
 export * from "./run";
 export * from "./runner";
