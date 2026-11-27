@@ -6,6 +6,7 @@ export type LogScope =
     | "account"
     | "agent"
     | "auth"
+    | "credential"
     | "github"
     | "orchestrator"
     | "request"
