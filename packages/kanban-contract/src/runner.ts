@@ -22,6 +22,15 @@ const RUNNER_CODE = /^[0-9A-HJKMNP-TV-Z]{8}$/;
 export const RUNNER_NAME = /^[A-Za-z0-9._-]{1,40}$/;
 const SESSION_ID = /^[A-Za-z0-9-]{1,64}$/;
 
+const RUNNER_SHORT_ID_LENGTH = 6;
+
+/**
+ * How a runner is told apart where people see it: the board's runner list, the card notes and
+ * the runner's own terminal. Two runners of the same machine share the host name.
+ */
+export const shortRunnerId = (runnerId: string): string =>
+    runnerId.slice(0, RUNNER_SHORT_ID_LENGTH);
+
 export const normalizeRunnerCode = (code: string): string =>
     code.replaceAll("-", "").trim().toUpperCase();
 
