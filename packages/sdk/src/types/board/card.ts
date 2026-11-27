@@ -3,7 +3,10 @@ import type {
     CardLane,
     CardOrigin,
     CardPendingAsk,
+    CardPullRequest,
     CardState,
+    PullRequestChecksSummary,
+    PullRequestReviewState,
 } from "@repo/kanban-contract";
 import type { CardLastRunDTO, RunDTO } from "./run";
 
@@ -34,6 +37,20 @@ export type CardRequestDTO = {
 
 export type CardSpecApprovalDTO = { userId: string; login: string; at: string };
 
+/** The card's pull request as the screen sees it; who runs the comment command stays in the API. */
+export type CardPullRequestDTO = Omit<
+    CardPullRequest,
+    "dispatchAs" | "commentRunsAt" | "unhandledCommentAt"
+> & {
+    checksSummary: PullRequestChecksSummary;
+    reviewsSummary: PullRequestReviewState | null;
+    /** A comment arrived and waits for the comment command to run. */
+    pendingComment: boolean;
+};
+
+/** The last attempt to open the pull request failed; `code` is an API error code. */
+export type CardPullRequestErrorDTO = { code: string; at: string };
+
 export type CardDTO = {
     id: string;
     boardId: string;
@@ -61,6 +78,8 @@ export type CardDTO = {
     /** The queued or running run; a card holds at most one. */
     activeRunId: string | null;
     lastRun: CardLastRunDTO | null;
+    pullRequest: CardPullRequestDTO | null;
+    pullRequestError: CardPullRequestErrorDTO | null;
     movedAt: string | null;
     syncedAt: string;
     createdAt: string;
