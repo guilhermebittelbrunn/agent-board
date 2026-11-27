@@ -23,6 +23,8 @@ export const queryKeys = {
             [...queryKeys.boards.all, "preview", repository] as const,
         members: (id: string) =>
             [...queryKeys.boards.all, "members", id] as const,
+        credentials: (id: string) =>
+            [...queryKeys.boards.all, "credentials", id] as const,
         cards: (id: string) => [...queryKeys.boards.all, "cards", id] as const,
         card: (id: string, slug: string) =>
             [...queryKeys.boards.cards(id), "detail", slug] as const,
