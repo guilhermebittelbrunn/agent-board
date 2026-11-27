@@ -53,16 +53,16 @@ parar esperando alguém. Roteiro em [`IMPORT.md`](IMPORT.md).
 
 | # | Spec | Entrega |
 |---|------|---------|
-| 1 | [`github-sign-in`](../../specs/features/github-sign-in.md) | Login GitHub. E-mail/senha só no emulador; o Google saiu |
-| 2 | [`github-app-integration`](../../specs/features/github-app-integration.md) | Ler repositórios, receber webhooks, consultar permissão de cada pessoa |
-| 3 | [`board-import`](../../specs/features/board-import.md) | O repositório vira um board com as colunas do `board.yml` |
-| 4 | [`board-members`](../../specs/features/board-members.md) | Guard por papel efetivo antes de existir ação que gaste dinheiro |
-| 5 | [`card-backlog`](../../specs/features/card-backlog.md) | Specs viram cards; priorizar e arrastar |
-| 6 | [`theme-toggle`](../../specs/features/theme-toggle.md) | Botão de tema no cabeçalho do board, antes de as telas crescerem |
-| 7 | [`card-timeline`](../../specs/features/card-timeline.md) | Onde os agentes escrevem; perguntas e respostas |
-| 8 | [`orchestrator`](../../specs/features/orchestrator.md) | Arrastar dispara; transições, fila, WIP e o limite de duas voltas |
-| 9 | [`agent-contract`](../../specs/features/agent-contract.md) | Ferramentas MCP/HTTP com token por execução |
-| 10 | [`local-runner`](../../specs/features/local-runner.md) | Etapas reais na sua máquina com o Agent SDK |
+| 1 | [`github-sign-in`](../features/github-sign-in/spec.md) | Login GitHub. E-mail/senha só no emulador; o Google saiu |
+| 2 | [`github-app-integration`](../features/github-app-integration/spec.md) | Ler repositórios, receber webhooks, consultar permissão de cada pessoa |
+| 3 | [`board-import`](../features/board-import/spec.md) | O repositório vira um board com as colunas do `board.yml` |
+| 4 | [`board-members`](../features/board-members/spec.md) | Guard por papel efetivo antes de existir ação que gaste dinheiro |
+| 5 | [`card-backlog`](../features/card-backlog/spec.md) | Specs viram cards; priorizar e arrastar |
+| 6 | [`theme-toggle`](../features/theme-toggle/spec.md) | Botão de tema no cabeçalho do board, antes de as telas crescerem |
+| 7 | [`card-timeline`](../features/card-timeline/spec.md) | Onde os agentes escrevem; perguntas e respostas |
+| 8 | [`orchestrator`](../features/orchestrator/spec.md) | Arrastar dispara; transições, fila, WIP e o limite de duas voltas |
+| 9 | [`agent-contract`](../features/agent-contract/spec.md) | Ferramentas MCP/HTTP com token por execução |
+| 10 | [`local-runner`](../features/local-runner/spec.md) | Etapas reais na sua máquina com o Agent SDK |
 
 **G2:** três features passam por Análise → Concluído no board, sem ninguém destravar etapa. O board não
 mostra custo; o consumo dessas três, medido no uso da conta do Claude, é o que decide o plano (ver
