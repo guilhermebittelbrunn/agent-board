@@ -47,7 +47,7 @@
     "@types/react-dom": "19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
     "baseline-browser-mapping": "^2.10.10",
-    "jsdom": "^27.0.1",
+    "jsdom": "^31.0.1",
     "tailwindcss": "^4.1.16",
     "typescript": "^5.9.3",
     "vitest": "^4.0.3"
