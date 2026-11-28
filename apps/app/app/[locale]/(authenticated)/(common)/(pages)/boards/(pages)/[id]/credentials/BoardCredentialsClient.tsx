@@ -160,6 +160,7 @@ export function BoardCredentialsClient() {
                                 boardsDictionary={boardsDictionary}
                                 canGenerate
                                 expired={expired}
+                                hasRunners={runners.length > 0}
                                 isGenerating={
                                     createRegistrationMutation.isPending
                                 }

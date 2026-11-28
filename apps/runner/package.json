@@ -2,8 +2,12 @@
   "name": "runner",
   "private": true,
   "type": "module",
+  "bin": {
+    "agent-board-runner": "bin/agent-board-runner"
+  },
   "scripts": {
     "cli": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/cli.ts",
+    "install-bin": "node scripts/install-bin.mjs",
     "test": "NODE_ENV=test vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "git clean -xdf .turbo node_modules"

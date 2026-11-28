@@ -839,15 +839,48 @@ export const commonBoardsPageTranslations = {
                 registered: "Registrado em {date}",
                 lastSeen: "último contato em {date}",
                 tokenEnding: "token terminando em {last4}",
+                idTag: "id {id}",
+                idTitle:
+                    "O terminal do runner mostra este mesmo id em cada linha.",
                 revoke: "Revogar",
-                revokeAria: "Revogar o runner {name}",
+                revokeAria: "Revogar o runner {name} (id {id})",
             },
             register: {
-                title: "Registrar um runner",
+                title: "Ligar um runner nesta máquina",
+                titleAnother: "Registrar outro runner",
+                intro: "O runner é seu, não do board: ele roda as etapas que você disparar em qualquer um dos seus boards, uma de cada vez. Os comandos abaixo rodam no terminal da máquina que vai executar as etapas.",
+                firstTime:
+                    "Primeira vez nesta máquina? Pré-requisitos e instalação",
+                prerequisites: {
+                    title: "Antes de começar",
+                    why: "O runner roda o Claude Code com o seu login e faz push na branch do card com o seu git. O board não guarda nenhuma dessas credenciais.",
+                    node: "Node 22.12 ou mais novo e pnpm.",
+                    claude: "Claude Code instalado e com login feito: abra o claude no terminal uma vez.",
+                    git: "git com permissão de push no repositório de cada board que for usar.",
+                },
+                install: {
+                    title: "Instalar o comando (uma vez por máquina)",
+                    why: "Rode num clone do agent-board. Isso guarda uma cópia do runner em ~/.agent-board-runner e coloca o comando agent-board-runner no seu PATH. O comando passa a funcionar em qualquer pasta, atende todos os seus boards e não muda quando você troca de branch no clone.",
+                },
+                registerStep: {
+                    title: "Registrar o runner",
+                    why: "Liga esta máquina à sua conta. O token fica só nela, num arquivo que só o seu usuário lê.",
+                    hint: "Gere um código para ver o comando. Ele vale por 10 minutos.",
+                },
+                startStep: {
+                    title: "Deixar buscando trabalho",
+                    why: "Deixe o terminal aberto. O runner consulta o board a cada 10 segundos e só abre conexões de saída. Cada linha do terminal começa com o id que aparece na lista de runners.",
+                },
+                parallel: {
+                    title: "Mais de uma etapa ao mesmo tempo",
+                    why: "Cada runner roda uma etapa por vez, seja de qual board for. Para rodar duas em paralelo, gere outro código, registre de novo e abra um segundo terminal com o mesmo start: ele pega o runner que estiver livre. O list mostra quais estão rodando.",
+                },
+                update: {
+                    title: "Atualizar o runner",
+                    why: "Depois de atualizar o clone, instale de novo e reinicie os terminais. Um terminal já aberto segue na versão anterior até ser reiniciado.",
+                },
                 generate: "Gerar código",
                 generating: "Gerando…",
-                step1: "Na máquina que vai rodar as etapas, registre com o código abaixo. Ele vale por 10 minutos.",
-                step2: "Deixe o runner buscando trabalho. Ele só abre conexões de saída.",
                 expiresAt: "Vale até {time}.",
                 expired: "O código venceu. Gere outro.",
                 waiting: "Aguardando o runner se apresentar…",

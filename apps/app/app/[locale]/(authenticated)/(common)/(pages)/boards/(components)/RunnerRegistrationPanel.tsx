@@ -1,66 +1,41 @@
 "use client";
 
-import { Button } from "@repo/design-system/components/ui/button";
+import {
+    Button,
+    buttonVariants,
+} from "@repo/design-system/components/ui/button";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@repo/design-system/components/ui/collapsible";
 import type { RunnerRegistrationDTO } from "@repo/sdk/src/types";
-import { CheckIcon, CopyIcon } from "lucide-react";
-import { useState } from "react";
+import { ChevronDownIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useFormatDisplayDateTime } from "@/shared/lib/formatDisplayDateTime";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
-import { runnerCommands } from "./runnerCommands";
+import { RunnerCommandLine } from "./RunnerCommandLine";
+import { RUNNER_SETUP_COMMANDS, runnerRegisterCommand } from "./runnerCommands";
 
-const COPY_FEEDBACK_MS = 2000;
+const FIRST_STEPS_COUNT = 2;
 
-type CopyState = "idle" | "copied" | "failed";
-
-function CommandLine({
-    command,
-    boardsDictionary,
+function SetupStep({
+    title,
+    why,
+    children,
 }: {
-    command: string;
-    boardsDictionary: BoardsDictionary;
+    title: string;
+    why: string;
+    children?: ReactNode;
 }) {
-    const registerCopy = boardsDictionary.credentials.register;
-    const [copyState, setCopyState] = useState<CopyState>("idle");
-
-    const copy = async () => {
-        try {
-            await navigator.clipboard.writeText(command);
-            setCopyState("copied");
-        } catch {
-            setCopyState("failed");
-        }
-        setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_MS);
-    };
-
-    const label = {
-        idle: registerCopy.copy,
-        copied: registerCopy.copied,
-        failed: registerCopy.copyFailed,
-    }[copyState];
-
     return (
-        <div className="flex flex-wrap items-center gap-2">
-            <code
-                className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-md bg-muted px-3 py-2 font-mono text-sm"
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: on a narrow screen the command scrolls sideways, and only a focusable box can be scrolled from the keyboard.
-                tabIndex={0}
-            >
-                {command}
-            </code>
-            <Button
-                aria-label={fillMessage(registerCopy.copyAria, { command })}
-                onClick={copy}
-                size="sm"
-                type="button"
-                variant="outline"
-            >
-                {copyState === "copied" ? <CheckIcon /> : <CopyIcon />}
-                {label}
-            </Button>
-            <output aria-live="polite" className="sr-only">
-                {copyState === "idle" ? "" : label}
-            </output>
-        </div>
+        <li className="pl-1 marker:font-semibold marker:text-muted-foreground">
+            <div className="flex flex-col gap-2">
+                <p className="font-medium">{title}</p>
+                <p className="text-muted-foreground">{why}</p>
+                {children}
+            </div>
+        </li>
     );
 }
 
@@ -69,17 +44,23 @@ type RunnerRegistrationPanelProps = {
     expired: boolean;
     registeredName: string | null;
     apiUrl: string;
+    hasRunners: boolean;
     canGenerate: boolean;
     isGenerating: boolean;
     boardsDictionary: BoardsDictionary;
     onGenerate: () => void;
 };
 
+/**
+ * The whole setup of a local runner, with why each step exists. Someone who already has a
+ * runner sees the first-time steps folded, since they only repeat on a new machine.
+ */
 export function RunnerRegistrationPanel({
     registration,
     expired,
     registeredName,
     apiUrl,
+    hasRunners,
     canGenerate,
     isGenerating,
     boardsDictionary,
@@ -87,9 +68,6 @@ export function RunnerRegistrationPanel({
 }: RunnerRegistrationPanelProps) {
     const registerCopy = boardsDictionary.credentials.register;
     const formatDateTime = useFormatDisplayDateTime();
-    const commands = registration
-        ? runnerCommands(registration.code, apiUrl)
-        : null;
     let statusLine = registerCopy.waiting;
     if (registeredName) {
         statusLine = fillMessage(registerCopy.registered, {
@@ -99,65 +77,151 @@ export function RunnerRegistrationPanel({
         statusLine = "";
     }
 
+    const firstSteps = (
+        <ol className="flex list-decimal flex-col gap-4 pl-5 text-sm">
+            <SetupStep
+                title={registerCopy.prerequisites.title}
+                why={registerCopy.prerequisites.why}
+            >
+                <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                    <li>{registerCopy.prerequisites.node}</li>
+                    <li>{registerCopy.prerequisites.claude}</li>
+                    <li>{registerCopy.prerequisites.git}</li>
+                </ul>
+            </SetupStep>
+            <SetupStep
+                title={registerCopy.install.title}
+                why={registerCopy.install.why}
+            >
+                <RunnerCommandLine
+                    boardsDictionary={boardsDictionary}
+                    command={RUNNER_SETUP_COMMANDS.install}
+                />
+            </SetupStep>
+        </ol>
+    );
+
     return (
         <section
             aria-labelledby="runner-register-title"
-            className="flex flex-col gap-3 rounded-md border p-4"
+            className="flex flex-col gap-4 rounded-md border p-4"
         >
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-col gap-1">
                 <h3
                     className="font-semibold text-sm"
                     id="runner-register-title"
                 >
-                    {registerCopy.title}
+                    {hasRunners
+                        ? registerCopy.titleAnother
+                        : registerCopy.title}
                 </h3>
-                <Button
-                    disabled={!canGenerate}
-                    loading={isGenerating}
-                    onClick={onGenerate}
-                    size="sm"
-                    type="button"
-                >
-                    {isGenerating
-                        ? registerCopy.generating
-                        : registerCopy.generate}
-                </Button>
+                <p className="text-muted-foreground text-sm">
+                    {registerCopy.intro}
+                </p>
             </div>
-            {registration && commands ? (
-                <ol className="flex flex-col gap-3 text-sm">
-                    <li className="flex flex-col gap-2">
-                        <p>{registerCopy.step1}</p>
-                        <CommandLine
-                            boardsDictionary={boardsDictionary}
-                            command={commands.register}
+            {hasRunners ? (
+                <Collapsible className="flex flex-col gap-3">
+                    <CollapsibleTrigger
+                        className={buttonVariants({
+                            variant: "ghost",
+                            className:
+                                "group h-auto w-fit gap-2 whitespace-normal px-2 py-1 text-left font-medium text-sm [&[data-state=open]>svg]:rotate-180",
+                        })}
+                    >
+                        {registerCopy.firstTime}
+                        <ChevronDownIcon
+                            aria-hidden
+                            className="size-4 shrink-0 transition-transform"
                         />
-                        <p className="text-muted-foreground text-xs">
-                            {expired
-                                ? registerCopy.expired
-                                : fillMessage(registerCopy.expiresAt, {
-                                      time: formatDateTime(
-                                          registration.expiresAt
-                                      ),
-                                  })}
-                        </p>
-                    </li>
-                    <li className="flex flex-col gap-2">
-                        <p>{registerCopy.step2}</p>
-                        <CommandLine
-                            boardsDictionary={boardsDictionary}
-                            command={commands.start}
-                        />
-                    </li>
-                </ol>
-            ) : null}
-            {registration ? (
-                <output
-                    aria-live="polite"
-                    className="text-muted-foreground text-sm"
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>{firstSteps}</CollapsibleContent>
+                </Collapsible>
+            ) : (
+                firstSteps
+            )}
+            <ol
+                className="flex list-decimal flex-col gap-4 pl-5 text-sm"
+                start={FIRST_STEPS_COUNT + 1}
+            >
+                <SetupStep
+                    title={registerCopy.registerStep.title}
+                    why={registerCopy.registerStep.why}
                 >
-                    {statusLine}
-                </output>
-            ) : null}
+                    {registration ? (
+                        <>
+                            <RunnerCommandLine
+                                boardsDictionary={boardsDictionary}
+                                command={runnerRegisterCommand(
+                                    registration.code,
+                                    apiUrl
+                                )}
+                            />
+                            <p className="text-muted-foreground text-xs">
+                                {expired
+                                    ? registerCopy.expired
+                                    : fillMessage(registerCopy.expiresAt, {
+                                          time: formatDateTime(
+                                              registration.expiresAt
+                                          ),
+                                      })}
+                            </p>
+                        </>
+                    ) : (
+                        <p className="text-muted-foreground text-xs">
+                            {registerCopy.registerStep.hint}
+                        </p>
+                    )}
+                    <Button
+                        className="self-start"
+                        disabled={!canGenerate}
+                        loading={isGenerating}
+                        onClick={onGenerate}
+                        size="sm"
+                        type="button"
+                        variant={registration ? "outline" : "default"}
+                    >
+                        {isGenerating
+                            ? registerCopy.generating
+                            : registerCopy.generate}
+                    </Button>
+                    {registration ? (
+                        <output
+                            aria-live="polite"
+                            className="text-muted-foreground text-sm"
+                        >
+                            {statusLine}
+                        </output>
+                    ) : null}
+                </SetupStep>
+                <SetupStep
+                    title={registerCopy.startStep.title}
+                    why={registerCopy.startStep.why}
+                >
+                    <RunnerCommandLine
+                        boardsDictionary={boardsDictionary}
+                        command={RUNNER_SETUP_COMMANDS.start}
+                    />
+                </SetupStep>
+                <SetupStep
+                    title={registerCopy.parallel.title}
+                    why={registerCopy.parallel.why}
+                >
+                    <RunnerCommandLine
+                        boardsDictionary={boardsDictionary}
+                        command={RUNNER_SETUP_COMMANDS.list}
+                    />
+                </SetupStep>
+            </ol>
+            <div className="flex flex-col gap-2 border-t pt-4 text-sm">
+                <p className="font-medium">{registerCopy.update.title}</p>
+                <p className="text-muted-foreground">
+                    {registerCopy.update.why}
+                </p>
+                <RunnerCommandLine
+                    boardsDictionary={boardsDictionary}
+                    command={RUNNER_SETUP_COMMANDS.update}
+                />
+            </div>
         </section>
     );
 }

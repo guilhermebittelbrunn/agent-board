@@ -14,7 +14,14 @@ import {
 import { jobFixture, SECRET } from "./fixtures.ts";
 
 const SKIP_FLAG = "--dangerously-skip-permissions";
-const ALLOW_TAIL = 3;
+const BOARD_MODE_TOOLS = [
+    "mcp__kanban",
+    "Bash(git add:*)",
+    "Bash(git commit:*)",
+    "Bash(git push)",
+    "Bash(git push origin feat/search-cards)",
+    "Bash(git push -u origin feat/search-cards)",
+];
 const NOT_A_RULE = 3;
 
 describe("agent session", () => {
@@ -52,13 +59,34 @@ describe("agent session", () => {
         expect(joined).toContain("--output-format stream-json --verbose");
         expect(joined).toContain("--mcp-config /r/mcp.json");
         expect(joined).toContain("--permission-mode acceptEdits");
-        expect(args.slice(-ALLOW_TAIL)).toEqual([
+        expect(args.slice(args.indexOf("--allowedTools"))).toEqual([
             "--allowedTools",
+            ...BOARD_MODE_TOOLS,
             "Bash(pnpm test:*)",
             "Bash(git status)",
         ]);
         expect(args).not.toContain(SKIP_FLAG);
         expect(args).not.toContain("bypassPermissions");
+    });
+
+    it("allows the kanban tools and the card branch's commit and push even with no allow list", () => {
+        const args = buildAgentArgs(job, "/r/mcp.json", {
+            mode: "acceptEdits",
+            allow: [],
+        });
+        expect(args.slice(args.indexOf("--allowedTools"))).toEqual([
+            "--allowedTools",
+            ...BOARD_MODE_TOOLS,
+        ]);
+    });
+
+    it("does not repeat a rule the repository already allows", () => {
+        const args = buildAgentArgs(job, "/r/mcp.json", {
+            mode: "acceptEdits",
+            allow: ["Bash(git add:*)", "mcp__kanban"],
+        });
+        expect(args.filter((arg) => arg === "mcp__kanban")).toHaveLength(1);
+        expect(args.filter((arg) => arg === "Bash(git add:*)")).toHaveLength(1);
     });
 
     it("skips permission checks only when asked by name", () => {
@@ -84,6 +112,31 @@ describe("agent session", () => {
         expect(
             Object.values(env).some((value) => value?.startsWith("kbl_"))
         ).toBe(false);
+    });
+
+    it("pins push.default to simple for the session, after the git config already set", () => {
+        const fresh = buildAgentEnv({ PATH: "/bin" }, job, "http://x");
+        expect(fresh).toMatchObject({
+            GIT_CONFIG_COUNT: "1",
+            GIT_CONFIG_KEY_0: "push.default",
+            GIT_CONFIG_VALUE_0: "simple",
+        });
+
+        const existing = buildAgentEnv(
+            {
+                GIT_CONFIG_COUNT: "1",
+                GIT_CONFIG_KEY_0: "core.editor",
+                GIT_CONFIG_VALUE_0: "vim",
+            },
+            job,
+            "http://x"
+        );
+        expect(existing).toMatchObject({
+            GIT_CONFIG_COUNT: "2",
+            GIT_CONFIG_KEY_0: "core.editor",
+            GIT_CONFIG_KEY_1: "push.default",
+            GIT_CONFIG_VALUE_1: "simple",
+        });
     });
 
     it("points the MCP server at /mcp with the run token", () => {
@@ -136,6 +189,7 @@ describe("agent session", () => {
         });
         expect(args.slice(args.indexOf("--allowedTools"))).toEqual([
             "--allowedTools",
+            ...BOARD_MODE_TOOLS,
             "Bash(git status)",
         ]);
         expect(args).not.toContain(SKIP_FLAG);

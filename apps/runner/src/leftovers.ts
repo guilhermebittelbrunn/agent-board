@@ -8,10 +8,12 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { runGit } from "./git.ts";
+import type { RunnerIdentity } from "./report.ts";
 
 const PRIVATE_FILE_MODE = 0o600;
 const RUNNER_PID_FILE = "runner.pid";
 const AGENT_PID_FILE = "agent.pid";
+const RUN_FILE = "run.json";
 /** A run folder this young without a pid file may belong to a runner still writing it. */
 const MISSING_PID_GRACE_MS = 60_000;
 const WORKTREE_LINE = /^worktree (.+)$/;
@@ -46,6 +48,57 @@ export function writeAgentPid(runDir: string, pid: number): Promise<void> {
     });
 }
 
+/** What the sweep needs to close the stage of a run whose runner died before it could. */
+export type LeftoverRun = {
+    cardId: string;
+    stageKey: string;
+    command: string;
+    slug: string;
+    runToken: string;
+    /** The runner that took the run; the one cleaning up may be another runner of the folder. */
+    runner?: RunnerIdentity;
+};
+
+export type Leftover = { runId: string; run: LeftoverRun | null };
+
+function isRunnerIdentity(value: unknown): value is RunnerIdentity {
+    const runner = value as Partial<RunnerIdentity> | null;
+    return (
+        typeof runner === "object" &&
+        runner !== null &&
+        typeof runner.name === "string" &&
+        typeof runner.id === "string"
+    );
+}
+
+export function writeRunFile(runDir: string, run: LeftoverRun): Promise<void> {
+    return writeFile(path.join(runDir, RUN_FILE), JSON.stringify(run), {
+        mode: PRIVATE_FILE_MODE,
+    });
+}
+
+async function readRunFile(runDir: string): Promise<LeftoverRun | null> {
+    try {
+        const parsed = JSON.parse(
+            await readFile(path.join(runDir, RUN_FILE), "utf8")
+        ) as Partial<LeftoverRun>;
+        const fields = [
+            parsed.cardId,
+            parsed.stageKey,
+            parsed.command,
+            parsed.slug,
+            parsed.runToken,
+        ];
+        if (!fields.every((field) => typeof field === "string")) {
+            return null;
+        }
+        const { runner, ...run } = parsed as LeftoverRun;
+        return isRunnerIdentity(runner) ? { ...run, runner } : run;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * A run belongs to a live runner when the process that wrote its pid file still exists and is
  * not this one: this process runs one job at a time, so any older run of its own is a leftover.
@@ -65,14 +118,14 @@ async function ownedByLiveRunner(runDir: string): Promise<boolean> {
 /**
  * Cleans what a runner killed mid-run left behind (second Ctrl+C, `kill -9`, power loss): the
  * agent's process group, which still holds the run token, the `mcp.json` with that token and
- * the run's worktree folder. Returns the run ids it cleaned.
+ * the run's worktree folder. Returns what it cleaned, with what is needed to tell the board.
  */
 export async function sweepLeftoverRuns(paths: {
     runs: string;
     worktrees: string;
-}): Promise<string[]> {
+}): Promise<Leftover[]> {
     const runIds = await readdir(paths.runs).catch(() => [] as string[]);
-    const cleaned: string[] = [];
+    const cleaned: Leftover[] = [];
     for (const runId of runIds) {
         const runDir = path.join(paths.runs, runId);
         if (await ownedByLiveRunner(runDir)) {
@@ -86,12 +139,13 @@ export async function sweepLeftoverRuns(paths: {
                 // The group is already gone.
             }
         }
+        const run = await readRunFile(runDir);
         await rm(path.join(paths.worktrees, runId), {
             recursive: true,
             force: true,
         });
         await rm(runDir, { recursive: true, force: true });
-        cleaned.push(runId);
+        cleaned.push({ runId, run });
     }
     return cleaned;
 }

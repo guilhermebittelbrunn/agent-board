@@ -94,7 +94,7 @@ async function run() {
     process.env.AGENT_BOARD_RUNNER_TOKEN = RUNNER_TOKEN;
     const result = await runJob(jobFixture(), {
         apiUrl,
-        runnerName: "qa-runner",
+        runner: { name: "qa-runner", id: "rnQa01xyz" },
         home,
         repoBase: `file://${repos}`,
         agent: { command: process.execPath, args: [STUB] },
@@ -129,7 +129,7 @@ describe("runJob with the stub agent and a local bare repository", () => {
         expect(log).toContain("chore: sample app");
 
         expect(toolCalls("post_update")[0]?.body.markdown).toBe(
-            "Runner `qa-runner` começou `/analyze search-cards` na branch `feat/search-cards`."
+            "Runner `qa-runner` (id `rnQa01`) começou `/analyze search-cards` na branch `feat/search-cards`."
         );
         expect(toolCalls("complete_stage")[0]?.body.outcome).toBe("success");
         for (const call of calls.filter((c) => c.path.startsWith("/agent/"))) {
@@ -169,7 +169,7 @@ describe("runJob after a run that left its worktree behind", () => {
         process.env.AGENT_BOARD_RUNNER_TOKEN = RUNNER_TOKEN;
         const context = (keepWorktrees: boolean) => ({
             apiUrl,
-            runnerName: "qa-runner",
+            runner: { name: "qa-runner", id: "rnQa01xyz" },
             home,
             repoBase: `file://${repos}`,
             agent: { command: process.execPath, args: [STUB] },

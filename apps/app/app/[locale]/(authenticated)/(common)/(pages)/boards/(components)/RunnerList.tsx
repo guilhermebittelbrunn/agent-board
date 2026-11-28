@@ -2,6 +2,7 @@
 
 import { Badge } from "@repo/design-system/components/ui/badge";
 import { Button } from "@repo/design-system/components/ui/button";
+import { shortRunnerId } from "@repo/kanban-contract";
 import type { BoardDTO, RunnerDTO } from "@repo/sdk/src/types";
 import { useFormatDisplayDateTime } from "@/shared/lib/formatDisplayDateTime";
 import { type BoardsDictionary, fillMessage } from "./boardConfigIssueMessage";
@@ -82,6 +83,15 @@ export function RunnerList({
                                 {runner.name}
                             </span>
                             <Badge
+                                className="font-mono"
+                                title={runnersCopy.idTitle}
+                                variant="secondary"
+                            >
+                                {fillMessage(runnersCopy.idTag, {
+                                    id: shortRunnerId(runner.id),
+                                })}
+                            </Badge>
+                            <Badge
                                 variant={runner.online ? "default" : "outline"}
                             >
                                 {runner.online
@@ -114,6 +124,7 @@ export function RunnerList({
                     <Button
                         aria-label={fillMessage(runnersCopy.revokeAria, {
                             name: runner.name,
+                            id: shortRunnerId(runner.id),
                         })}
                         className="self-start sm:self-center"
                         disabled={!canRevoke}

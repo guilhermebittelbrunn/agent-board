@@ -1,5 +1,6 @@
 import os from "node:os";
 import type { RunnerExit, RunnerJob } from "@repo/kanban-contract";
+import { shortRunnerId } from "./config.ts";
 
 const REASON: Record<RunnerExit, string> = {
     exited: "O agente terminou sem chamar complete_stage.",
@@ -10,6 +11,12 @@ const REASON: Record<RunnerExit, string> = {
     error: "O runner encerrou a sessão por um erro.",
 };
 
+export type RunnerIdentity = { name: string; id: string };
+
+/** The runner as the card names it: the host name alone repeats across runners of one machine. */
+export const runnerLabel = (runner: RunnerIdentity): string =>
+    `\`${runner.name}\` (id \`${shortRunnerId(runner.id)}\`)`;
+
 /** Whether the runner closes the stage itself: a stop and a deadline are closed by the board. */
 export function runnerClosesStage(exit: RunnerExit): boolean {
     return exit !== "stopped" && exit !== "deadline";
@@ -18,12 +25,12 @@ export function runnerClosesStage(exit: RunnerExit): boolean {
 /** The stage report the runner sends when the agent could not, in the contract's template. */
 export function failureSummary(
     job: Pick<RunnerJob, "command" | "slug">,
-    runnerName: string,
+    runner: RunnerIdentity,
     exit: RunnerExit,
     detail: string | null = null
 ): string {
     return [
-        `### ${job.command} — falhou no runner \`${runnerName}\``,
+        `### ${job.command} — falhou no runner ${runnerLabel(runner)}`,
         "",
         `**O que foi feito:** ${REASON[exit]}${detail ? ` ${detail}` : ""}`,
         "**Decisões tomadas sem você:** nenhuma.",
@@ -35,9 +42,9 @@ export function failureSummary(
 
 export function startNote(
     job: Pick<RunnerJob, "command" | "slug" | "branch">,
-    runnerName: string
+    runner: RunnerIdentity
 ): string {
-    return `Runner \`${runnerName}\` começou \`${job.command} ${job.slug}\` na branch \`${job.branch}\`.`;
+    return `Runner ${runnerLabel(runner)} começou \`${job.command} ${job.slug}\` na branch \`${job.branch}\`.`;
 }
 
 /** The card is read by every board member: paths go there without this machine's user folder. */

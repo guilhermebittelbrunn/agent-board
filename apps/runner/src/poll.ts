@@ -49,7 +49,9 @@ export async function pollForWork(options: PollOptions): Promise<PollEnd> {
             await wait(options.pollIntervalMs, options.signal);
             continue;
         }
-        options.log(`pegou ${job.command} ${job.slug} (${job.stageKey})`);
+        options.log(
+            `pegou ${job.command} ${job.slug} · etapa ${job.stageKey} · branch ${job.branch} · ${job.model}/${job.effort} · até ${job.maxTurns} turnos · run ${job.runId}`
+        );
         const result = await runJob(job, options);
         if (result.revoked) {
             return { reason: "refused", code: "RUNNER_REVOKED" };

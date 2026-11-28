@@ -25,7 +25,10 @@ export type SupervisorInput = {
     heartbeat: (turns: number) => Promise<HeartbeatAnswer>;
     logFile: string;
     signal: AbortSignal;
-    onTool?: (name: string) => void;
+    /** Every line of the session's stream-json, as it arrives. */
+    onLine?: (line: string) => void;
+    /** What the session writes to stderr, such as the CLI's own warnings. */
+    onStderr?: (text: string) => void;
     onSpawn?: (pid: number) => void;
     heartbeatIntervalMs?: number;
     killGraceMs?: number;
@@ -104,13 +107,9 @@ export function superviseAgent(
         log.write(`${line}\n`);
         // Output still buffered after a stop is logged but not counted, so the turns reported
         // are the ones the session had when the runner decided to stop it.
+        input.onLine?.(line);
         const event =
             reason === null ? counter.observe(line) : readStreamLine(line);
-        if (event?.kind === "assistant") {
-            for (const tool of event.tools) {
-                input.onTool?.(tool);
-            }
-        }
         if (event?.kind === "result") {
             costUsd = event.costUsd;
             if (event.maxTurnsReached) {
@@ -121,7 +120,10 @@ export function superviseAgent(
             stop("turn_limit");
         }
     });
-    child.stderr.on("data", (chunk: Buffer) => log.write(chunk));
+    child.stderr.on("data", (chunk: Buffer) => {
+        log.write(chunk);
+        input.onStderr?.(chunk.toString("utf8"));
+    });
 
     const heartbeatTimer = setInterval(() => {
         input
