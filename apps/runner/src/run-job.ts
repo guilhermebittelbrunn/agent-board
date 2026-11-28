@@ -7,6 +7,7 @@ import { createActivityLog } from "./activity.ts";
 import { ApiError, type RunnerApi } from "./api.ts";
 import { ensurePrivateDir, runnerPaths } from "./config.ts";
 import {
+    fetchOrigin,
     removeWorktreePlan,
     repositoryUrl,
     runGit,
@@ -105,7 +106,12 @@ async function addWorktree(
 ): Promise<void> {
     const paths = runnerPaths(ctx.home);
     if (existsSync(path.join(repoDir, ".git"))) {
-        await git(["fetch", "origin", "--prune"], repoDir);
+        const fetched = await fetchOrigin(repoDir);
+        if (fetched.code !== 0) {
+            throw new StepFailed(
+                `git fetch: ${fetched.stderr.trim().split("\n").at(-1) ?? ""}`
+            );
+        }
     } else {
         await mkdir(path.dirname(repoDir), { recursive: true, mode: 0o700 });
         await git(

@@ -1,6 +1,10 @@
 import { spawn } from "node:child_process";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const TRAILING_SLASH = /\/$/;
+const REF_LOCKED = /cannot lock ref/;
+const FETCH_ATTEMPTS = 3;
+const FETCH_RETRY_MS = 500;
 
 export type GitStep = { args: string[]; cwd: string };
 
@@ -86,4 +90,34 @@ export async function runGitSteps(steps: GitStep[]): Promise<GitResult> {
         }
     }
     return last;
+}
+
+/**
+ * Runners of one machine share the clone, and an agent's push from its worktree updates the
+ * same remote refs this fetch writes. When the two meet, git refuses with "cannot lock ref"
+ * instead of waiting; trying again a moment later succeeds. Any other failure is returned at once.
+ */
+export async function fetchOrigin(
+    repoDir: string,
+    run: (step: GitStep) => Promise<GitResult> = runGit,
+    wait: (ms: number) => Promise<unknown> = sleep
+): Promise<GitResult> {
+    let result = await run({
+        args: ["fetch", "origin", "--prune"],
+        cwd: repoDir,
+    });
+    for (
+        let attempt = 1;
+        attempt < FETCH_ATTEMPTS &&
+        result.code !== 0 &&
+        REF_LOCKED.test(result.stderr);
+        attempt += 1
+    ) {
+        await wait(FETCH_RETRY_MS);
+        result = await run({
+            args: ["fetch", "origin", "--prune"],
+            cwd: repoDir,
+        });
+    }
+    return result;
 }

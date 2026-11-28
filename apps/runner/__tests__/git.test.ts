@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { removeWorktreePlan, repositoryUrl, worktreePlan } from "../src/git.ts";
+import {
+    fetchOrigin,
+    type GitResult,
+    removeWorktreePlan,
+    repositoryUrl,
+    worktreePlan,
+} from "../src/git.ts";
 
 const base = {
     repoDir: "/home/r/repos/o/n",
@@ -55,5 +61,51 @@ describe("worktreePlan", () => {
         expect(repositoryUrl("https://github.com", "o", "n")).toBe(
             "https://github.com/o/n.git"
         );
+    });
+});
+
+describe("fetchOrigin", () => {
+    const ATTEMPTS = 3;
+    const locked: GitResult = {
+        code: 1,
+        stdout: "",
+        stderr: "error: cannot lock ref 'refs/remotes/origin/feat/a': is at 1 but expected 2\n",
+    };
+    const ok: GitResult = { code: 0, stdout: "", stderr: "" };
+    const noWait = () => Promise.resolve();
+
+    function scripted(results: GitResult[]) {
+        const calls: string[][] = [];
+        const run = (step: { args: string[] }) => {
+            calls.push(step.args);
+            return Promise.resolve(results[calls.length - 1] ?? ok);
+        };
+        return { run, calls };
+    }
+
+    it("tries again when another runner's push holds a remote ref", async () => {
+        const { run, calls } = scripted([locked, ok]);
+        expect(await fetchOrigin("/repo", run, noWait)).toEqual(ok);
+        expect(calls).toEqual([
+            ["fetch", "origin", "--prune"],
+            ["fetch", "origin", "--prune"],
+        ]);
+    });
+
+    it("gives up after three locked attempts", async () => {
+        const { run, calls } = scripted([locked, locked, locked, ok]);
+        expect((await fetchOrigin("/repo", run, noWait)).code).toBe(1);
+        expect(calls).toHaveLength(ATTEMPTS);
+    });
+
+    it("returns any other failure at once", async () => {
+        const unreachable: GitResult = {
+            code: 128,
+            stdout: "",
+            stderr: "fatal: unable to access 'https://github.com/o/n.git/'\n",
+        };
+        const { run, calls } = scripted([unreachable, ok]);
+        expect(await fetchOrigin("/repo", run, noWait)).toEqual(unreachable);
+        expect(calls).toHaveLength(1);
     });
 });
