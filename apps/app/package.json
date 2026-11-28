@@ -49,7 +49,7 @@
     "baseline-browser-mapping": "^2.10.10",
     "jsdom": "^27.0.1",
     "tailwindcss": "^4.1.16",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.0.3"
   }
 }
