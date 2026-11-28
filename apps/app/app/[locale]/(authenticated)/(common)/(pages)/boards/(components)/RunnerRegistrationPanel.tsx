@@ -29,10 +29,12 @@ function SetupStep({
     children?: ReactNode;
 }) {
     return (
-        <li className="flex flex-col gap-2 pl-1 marker:font-semibold marker:text-muted-foreground">
-            <p className="font-medium">{title}</p>
-            <p className="text-muted-foreground">{why}</p>
-            {children}
+        <li className="pl-1 marker:font-semibold marker:text-muted-foreground">
+            <div className="flex flex-col gap-2">
+                <p className="font-medium">{title}</p>
+                <p className="text-muted-foreground">{why}</p>
+                {children}
+            </div>
         </li>
     );
 }
