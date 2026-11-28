@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { isAlive } from "./lock.ts";
@@ -53,7 +53,11 @@ export async function withRepoLock<T>(
         }
     }
     try {
-        await writeFile(path.join(lockDir, PID_FILE), String(process.pid));
+        // Written beside the lock and renamed in, so a runner checking the holder never reads
+        // a half-written (empty) pid and takes the lock as abandoned.
+        const pidDraft = `${lockDir}.${process.pid}.pid`;
+        await writeFile(pidDraft, String(process.pid));
+        await rename(pidDraft, path.join(lockDir, PID_FILE));
         return await work();
     } finally {
         await rm(lockDir, { recursive: true, force: true });
