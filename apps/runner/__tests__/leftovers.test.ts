@@ -174,6 +174,54 @@ describe("reportLeftovers", () => {
         expect(lines.join("\n")).toContain("avisou o board");
     });
 
+    it("names the runner that took the run, not the one cleaning up", async () => {
+        const { paths, addRun } = await layout();
+        const deadRunner = { name: "mac", id: "aaaaaa11" };
+        await addRun("run10", {
+            "runner.pid": String(await exitedPid()),
+            "run.json": JSON.stringify({ ...leftoverRun, runner: deadRunner }),
+        });
+        const leftovers = await sweepLeftoverRuns(paths);
+        expect(leftovers).toEqual([
+            { runId: "run10", run: { ...leftoverRun, runner: deadRunner } },
+        ]);
+
+        const { api, calls } = fakeApi();
+        await reportLeftovers(leftovers, {
+            api,
+            runner: { name: "mac-2", id: "bbbbbb22" },
+            log: () => null,
+        });
+
+        const summary = JSON.stringify(calls[0]?.input);
+        expect(summary).toContain("`mac` (id `aaaaaa`)");
+        expect(summary).not.toContain("bbbbbb");
+    });
+
+    it("falls back to the cleaning runner when the run file has no valid runner", async () => {
+        const { paths, addRun } = await layout();
+        await addRun("run11", {
+            "runner.pid": String(await exitedPid()),
+            "run.json": JSON.stringify({
+                ...leftoverRun,
+                runner: { name: "mac" },
+            }),
+        });
+        const leftovers = await sweepLeftoverRuns(paths);
+        expect(leftovers).toEqual([{ runId: "run11", run: leftoverRun }]);
+
+        const { api, calls } = fakeApi();
+        await reportLeftovers(leftovers, {
+            api,
+            runner: { name: "mac-2", id: "bbbbbb22" },
+            log: () => null,
+        });
+
+        expect(JSON.stringify(calls[0]?.input)).toContain(
+            "`mac-2` (id `bbbbbb`)"
+        );
+    });
+
     it("only logs when the board refuses the report or the run file is missing", async () => {
         const { api, calls } = fakeApi(true);
         const lines: string[] = [];
